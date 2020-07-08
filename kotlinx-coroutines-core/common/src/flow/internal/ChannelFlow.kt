@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.flow.internal
@@ -16,21 +16,46 @@ internal fun <T> Flow<T>.asChannelFlow(): ChannelFlow<T> =
     this as? ChannelFlow ?: ChannelFlowOperatorImpl(this)
 
 /**
- * Operators that use channels extend this ChannelFlow and are always fused with each other.
+ * Operators that can fuse with [buffer] and [flowOn] operators implement this interface.
+ *
+ * @suppress **This an internal API and should not be used from general code.**
+ */
+@InternalCoroutinesApi
+public interface FusibleFlow<T> : Flow<T> {
+    /**
+     * This function is called by [flowOn] (with context) and [buffer] (with capacity) operators
+     * that are applied to this flow.
+     */
+    public fun fuse(
+        context: CoroutineContext = EmptyCoroutineContext,
+        capacity: Int = Channel.OPTIONAL_CHANNEL
+    ): FusibleFlow<T>
+}
+
+/**
+ * Operators that use channels extend this `ChannelFlow` and are always fused with each other.
+ * This class servers as a skeleton implementation of [FusibleFlow] and provides other cross-cutting
+ * methods like ability to [produceIn] and [broadcastIn] the corresponding flow, thus making it
+ * possible to directly use the backing channel if it exists (hence the `ChannelFlow` name).
  *
  * @suppress **This an internal API and should not be used from general code.**
  */
 @InternalCoroutinesApi
 public abstract class ChannelFlow<T>(
     // upstream context
-    @JvmField val context: CoroutineContext,
+    @JvmField public val context: CoroutineContext,
     // buffer capacity between upstream and downstream context
-    @JvmField val capacity: Int
-) : Flow<T> {
-    public fun update(
-        context: CoroutineContext = EmptyCoroutineContext,
-        capacity: Int = Channel.OPTIONAL_CHANNEL
-    ): ChannelFlow<T> {
+    @JvmField public val capacity: Int
+) : FusibleFlow<T> {
+
+    // shared code to create a suspend lambda from collectTo function in one place
+    internal val collectToFun: suspend (ProducerScope<T>) -> Unit
+        get() = { collectTo(it) }
+
+    private val produceCapacity: Int
+        get() = if (capacity == Channel.OPTIONAL_CHANNEL) Channel.BUFFERED else capacity
+
+    public override fun fuse(context: CoroutineContext, capacity: Int): FusibleFlow<T> {
         // note: previous upstream context (specified before) takes precedence
         val newContext = context + this.context
         val newCapacity = when {
@@ -57,29 +82,30 @@ public abstract class ChannelFlow<T>(
 
     protected abstract suspend fun collectTo(scope: ProducerScope<T>)
 
-    // shared code to create a suspend lambda from collectTo function in one place
-    internal val collectToFun: suspend (ProducerScope<T>) -> Unit
-        get() = { collectTo(it) }
-
-    private val produceCapacity: Int
-        get() = if (capacity == Channel.OPTIONAL_CHANNEL) Channel.BUFFERED else capacity
-
-    open fun broadcastImpl(scope: CoroutineScope, start: CoroutineStart): BroadcastChannel<T> =
+    public open fun broadcastImpl(scope: CoroutineScope, start: CoroutineStart): BroadcastChannel<T> =
         scope.broadcast(context, produceCapacity, start, block = collectToFun)
 
-    open fun produceImpl(scope: CoroutineScope): ReceiveChannel<T> =
-        scope.produce(context, produceCapacity, block = collectToFun)
+    /**
+     * Here we use ATOMIC start for a reason (#1825).
+     * NB: [produceImpl] is used for [flowOn].
+     * For non-atomic start it is possible to observe the situation,
+     * where the pipeline after the [flowOn] call successfully executes (mostly, its `onCompletion`)
+     * handlers, while the pipeline before does not, because it was cancelled during its dispatch.
+     * Thus `onCompletion` and `finally` blocks won't be executed and it may lead to a different kinds of memory leaks.
+     */
+    public open fun produceImpl(scope: CoroutineScope): ReceiveChannel<T> =
+        scope.produce(context, produceCapacity, start = CoroutineStart.ATOMIC, block = collectToFun)
 
-    override suspend fun collect(collector: FlowCollector<T>) =
+    override suspend fun collect(collector: FlowCollector<T>): Unit =
         coroutineScope {
             collector.emitAll(produceImpl(this))
         }
 
+    public open fun additionalToStringProps(): String = ""
+
     // debug toString
     override fun toString(): String =
         "$classSimpleName[${additionalToStringProps()}context=$context, capacity=$capacity]"
-
-    open fun additionalToStringProps() = ""
 }
 
 // ChannelFlow implementation that operates on another flow before it
@@ -161,7 +187,7 @@ private suspend fun <T, V> withContextUndispatched(
     countOrElement: Any = threadContextElements(newContext), // can be precomputed for speed
     block: suspend (V) -> T, value: V
 ): T =
-    suspendCoroutineUninterceptedOrReturn sc@{ uCont ->
+    suspendCoroutineUninterceptedOrReturn { uCont ->
         withCoroutineContext(newContext, countOrElement) {
             block.startCoroutineUninterceptedOrReturn(value, Continuation(newContext) {
                 uCont.resumeWith(it)

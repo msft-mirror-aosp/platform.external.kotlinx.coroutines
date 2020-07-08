@@ -1,20 +1,4 @@
-<!--- INCLUDE .*/example-([a-z]+)-([0-9a-z]+)\.kt 
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.$$1$$2
--->
-<!--- KNIT     ../kotlinx-coroutines-core/jvm/test/guide/.*\.kt -->
-<!--- TEST_OUT ../kotlinx-coroutines-core/jvm/test/guide/test/DispatcherGuideTest.kt
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.test
-
-import org.junit.Test
-
-class DispatchersGuideTest {
---> 
+<!--- TEST_NAME DispatcherGuideTest -->
 
 **Table of contents**
 
@@ -33,7 +17,7 @@ class DispatchersGuideTest {
   * [Coroutine scope](#coroutine-scope)
   * [Thread-local data](#thread-local-data)
 
-<!--- END_TOC -->
+<!--- END -->
 
 ## Coroutine Context and Dispatchers
 
@@ -517,21 +501,8 @@ class Activity {
 
 </div>
 
-Alternatively, we can implement the [CoroutineScope] interface in this `Activity` class. The best way to do it is
-to use delegation with default factory functions.
-We also can combine the desired dispatcher (we used [Dispatchers.Default] in this example) with the scope:
-
-<div class="sample" markdown="1" theme="idea" data-highlight-only>
-
-```kotlin
-    class Activity : CoroutineScope by CoroutineScope(Dispatchers.Default) {
-    // to be continued ...
-```
-
-</div>
-
-Now, we can launch coroutines in the scope of this `Activity` without having to explicitly
-specify their context. For the demo, we launch ten coroutines that delay for a different time:
+Now, we can launch coroutines in the scope of this `Activity` using the defined `scope`.
+For the demo, we launch ten coroutines that delay for a different time:
 
 <div class="sample" markdown="1" theme="idea" data-highlight-only>
 
@@ -540,7 +511,7 @@ specify their context. For the demo, we launch ten coroutines that delay for a d
     fun doSomething() {
         // launch ten coroutines for a demo, each working for a different time
         repeat(10) { i ->
-            launch {
+            mainScope.launch {
                 delay((i + 1) * 200L) // variable delay 200ms, 400ms, ... etc
                 println("Coroutine $i is done")
             }
@@ -560,21 +531,19 @@ of the activity no more messages are printed, even if we wait a little longer.
 <div class="sample" markdown="1" theme="idea" data-min-compiler-version="1.3">
 
 ```kotlin
-import kotlin.coroutines.*
 import kotlinx.coroutines.*
 
-class Activity : CoroutineScope by CoroutineScope(Dispatchers.Default) {
-
+class Activity {
+    private val mainScope = CoroutineScope(Dispatchers.Default) // use Default for test purposes
+    
     fun destroy() {
-        cancel() // Extension on CoroutineScope
+        mainScope.cancel()
     }
-    // to be continued ...
 
-    // class Activity continues
     fun doSomething() {
         // launch ten coroutines for a demo, each working for a different time
         repeat(10) { i ->
-            launch {
+            mainScope.launch {
                 delay((i + 1) * 200L) // variable delay 200ms, 400ms, ... etc
                 println("Coroutine $i is done")
             }
@@ -612,6 +581,9 @@ Destroying activity!
 
 As you can see, only the first two coroutines print a message and the others are cancelled 
 by a single invocation of `job.cancel()` in `Activity.destroy()`.
+
+> Note, that Android has first-party support for coroutine scope in all entities with the lifecycle.
+See [the corresponding documentation](https://developer.android.com/topic/libraries/architecture/coroutines#lifecyclescope).
 
 ### Thread-local data
 
