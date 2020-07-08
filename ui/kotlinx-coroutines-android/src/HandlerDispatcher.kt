@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:Suppress("unused")
@@ -7,7 +7,7 @@
 package kotlinx.coroutines.android
 
 import android.os.*
-import android.support.annotation.*
+import androidx.annotation.*
 import android.view.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
