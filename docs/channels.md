@@ -1,20 +1,5 @@
-<!--- INCLUDE .*/example-([a-z]+)-([0-9a-z]+)\.kt 
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
+<!--- TEST_NAME ChannelsGuideTest -->
 
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.$$1$$2
--->
-<!--- KNIT     ../kotlinx-coroutines-core/jvm/test/guide/.*\.kt -->
-<!--- TEST_OUT ../kotlinx-coroutines-core/jvm/test/guide/test/ChannelsGuideTest.kt
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.test
-
-import org.junit.Test
-
-class ChannelsGuideTest {
---> 
 **Table of contents**
 
 <!--- TOC -->
@@ -31,7 +16,7 @@ class ChannelsGuideTest {
   * [Channels are fair](#channels-are-fair)
   * [Ticker channels](#ticker-channels)
 
-<!--- END_TOC -->
+<!--- END -->
 
 ## Channels
 
@@ -209,7 +194,9 @@ fun main() = runBlocking {
 //sampleStart
     val numbers = produceNumbers() // produces integers from 1 and on
     val squares = square(numbers) // squares integers
-    for (i in 1..5) println(squares.receive()) // print first five
+    repeat(5) {
+        println(squares.receive()) // print first five
+    }
     println("Done!") // we are done
     coroutineContext.cancelChildren() // cancel children coroutines
 //sampleEnd
@@ -297,7 +284,7 @@ import kotlinx.coroutines.channels.*
 fun main() = runBlocking {
 //sampleStart
     var cur = numbersFrom(2)
-    for (i in 1..10) {
+    repeat(10) {
         val prime = cur.receive()
         println(prime)
         cur = filter(cur, prime)
@@ -647,9 +634,9 @@ import kotlinx.coroutines.channels.*
 fun main() = runBlocking<Unit> {
     val tickerChannel = ticker(delayMillis = 100, initialDelayMillis = 0) // create ticker channel
     var nextElement = withTimeoutOrNull(1) { tickerChannel.receive() }
-    println("Initial element is available immediately: $nextElement") // initial delay hasn't passed yet
+    println("Initial element is available immediately: $nextElement") // no initial delay
 
-    nextElement = withTimeoutOrNull(50) { tickerChannel.receive() } // all subsequent elements has 100ms delay
+    nextElement = withTimeoutOrNull(50) { tickerChannel.receive() } // all subsequent elements have 100ms delay
     println("Next element is not ready in 50 ms: $nextElement")
 
     nextElement = withTimeoutOrNull(60) { tickerChannel.receive() }
