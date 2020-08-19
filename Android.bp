@@ -25,3 +25,17 @@ java_library {
         "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
     ],
 }
+
+java_library {
+    name: "kotlinx_coroutines_android",
+    sdk_version: "28",
+    srcs: ["ui/kotlinx-coroutines-android/src/**/*.kt"],
+    kotlincflags: [
+        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+    ],
+    libs: [
+        "kotlinx_coroutines",
+        "androidx.annotation_annotation",
+    ],
+}
