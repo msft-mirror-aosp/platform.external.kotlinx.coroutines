@@ -1,20 +1,4 @@
-<!--- INCLUDE .*/example-([a-z]+)-([0-9a-z]+)\.kt 
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.$$1$$2
--->
-<!--- KNIT     ../kotlinx-coroutines-core/jvm/test/guide/.*\.kt -->
-<!--- TEST_OUT ../kotlinx-coroutines-core/jvm/test/guide/test/ComposingGuideTest.kt
-// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
-package kotlinx.coroutines.guide.test
-
-import org.junit.Test
-
-class ComposingGuideTest {
---> 
+<!--- TEST_NAME ComposingGuideTest -->
 
 **Table of contents**
 
@@ -27,7 +11,7 @@ class ComposingGuideTest {
   * [Async-style functions](#async-style-functions)
   * [Structured concurrency with async](#structured-concurrency-with-async)
 
-<!--- END_TOC -->
+<!--- END -->
 
 ## Composing Suspending Functions
 
@@ -97,7 +81,7 @@ suspend fun doSomethingUsefulTwo(): Int {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-01.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-01.kt).
 
 It produces something like this:
 
@@ -150,7 +134,7 @@ suspend fun doSomethingUsefulTwo(): Int {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-02.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-02.kt).
 
 It produces something like this:
 
@@ -204,7 +188,7 @@ suspend fun doSomethingUsefulTwo(): Int {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-03.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-03.kt).
 
 It produces something like this:
 
@@ -301,7 +285,7 @@ suspend fun doSomethingUsefulTwo(): Int {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-04.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-04.kt).
 
 <!--- TEST ARBITRARY_TIME
 The answer is 42
@@ -377,7 +361,7 @@ suspend fun doSomethingUsefulTwo(): Int {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-05.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-05.kt).
 
 We still have concurrent execution of both operations, as evident from the output of the above `main` function: 
 
@@ -424,7 +408,7 @@ suspend fun failedConcurrentSum(): Int = coroutineScope {
 
 </div>
 
-> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-06.kt).
+> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-compose-06.kt).
 
 Note how both the first `async` and the awaiting parent are cancelled on failure of one of the children
 (namely, `two`):

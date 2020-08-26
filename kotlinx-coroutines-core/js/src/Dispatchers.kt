@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
@@ -26,5 +26,5 @@ private class JsMainDispatcher(val delegate: CoroutineDispatcher) : MainCoroutin
 
     override fun dispatchYield(context: CoroutineContext, block: Runnable) = delegate.dispatchYield(context, block)
 
-    override fun toString(): String = delegate.toString()
+    override fun toString(): String = toStringInternalImpl() ?: delegate.toString()
 }

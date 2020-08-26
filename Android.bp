@@ -1,0 +1,41 @@
+java_library {
+    name: "kotlinx_coroutines",
+    host_supported: true,
+    // This should be "core_current", but that causes nullability issues
+    // for returned platform types that are explicitly marked @Nullable in
+    // SDK 29 and current.
+    sdk_version: "28",
+    srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
+    common_srcs: ["kotlinx-coroutines-core/common/src/**/*.kt"],
+    exclude_srcs: [
+        "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
+        "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
+    ],
+    static_libs: [
+        "kotlinx_atomicfu",
+    ],
+    kotlincflags: [
+        "-Xmulti-platform",
+        "-Xuse-experimental=kotlin.ExperimentalMultiplatform",
+        "-Xuse-experimental=kotlin.Experimental",
+        "-Xuse-experimental=kotlin.experimental.ExperimentalTypeInference",
+        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
+        "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+    ],
+}
+
+java_library {
+    name: "kotlinx_coroutines_android",
+    sdk_version: "28",
+    srcs: ["ui/kotlinx-coroutines-android/src/**/*.kt"],
+    kotlincflags: [
+        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+    ],
+    libs: [
+        "kotlinx_coroutines",
+        "androidx.annotation_annotation",
+    ],
+}
