@@ -1,13 +1,17 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
 
 kotlin {
-    targets {
-        fromPreset(presets.jvm, 'jvm')
+    jvm {
+        if (rootProject.ext.jvm_ir_enabled) {
+            compilations.all {
+                kotlinOptions.useIR = true
+            }
+        }
     }
     sourceSets {
         jvmTest.dependencies {
