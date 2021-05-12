@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.future
@@ -105,19 +105,16 @@ private fun Job.setupCancellation(future: CompletableFuture<*>) {
 }
 
 /**
- * Converts this [CompletionStage] to an instance of [Deferred].
- *
- * The [CompletableFuture] that corresponds to this [CompletionStage] (see [CompletionStage.toCompletableFuture])
- * is cancelled when the resulting deferred is cancelled.
+ * Converts this completion stage to an instance of [Deferred].
+ * When this completion stage is an instance of [Future], then it is cancelled when
+ * the resulting deferred is cancelled.
  */
-@Suppress("DeferredIsResult")
 public fun <T> CompletionStage<T>.asDeferred(): Deferred<T> {
-    val future = toCompletableFuture() // retrieve the future
     // Fast path if already completed
-    if (future.isDone) {
+    if (this is Future<*> && isDone()){
         return try {
             @Suppress("UNCHECKED_CAST")
-            CompletableDeferred(future.get() as T)
+            CompletableDeferred(get() as T)
         } catch (e: Throwable) {
             // unwrap original cause from ExecutionException
             val original = (e as? ExecutionException)?.cause ?: e
@@ -135,28 +132,25 @@ public fun <T> CompletionStage<T>.asDeferred(): Deferred<T> {
             result.completeExceptionally((exception as? CompletionException)?.cause ?: exception)
         }
     }
-    result.cancelFutureOnCompletion(future)
+    if (this is Future<*>) result.cancelFutureOnCompletion(this)
     return result
 }
 
 /**
- * Awaits for completion of [CompletionStage] without blocking a thread.
+ * Awaits for completion of the completion stage without blocking a thread.
  *
  * This suspending function is cancellable.
  * If the [Job] of the current coroutine is cancelled or completed while this suspending function is waiting, this function
  * stops waiting for the completion stage and immediately resumes with [CancellationException][kotlinx.coroutines.CancellationException].
- *
- * This method is intended to be used with one-shot futures, so on coroutine cancellation the [CompletableFuture] that
- * corresponds to this [CompletionStage] (see [CompletionStage.toCompletableFuture])
- * is cancelled. If cancelling the given stage is undesired, `stage.asDeferred().await()` should be used instead.
+ * This method is intended to be used with one-shot futures, so on coroutine cancellation completion stage is cancelled as well if it is instance of [CompletableFuture].
+ * If cancelling given stage is undesired, `stage.asDeferred().await()` should be used instead.
  */
 public suspend fun <T> CompletionStage<T>.await(): T {
-    val future = toCompletableFuture() // retrieve the future
     // fast path when CompletableFuture is already done (does not suspend)
-    if (future.isDone) {
+    if (this is Future<*> && isDone()) {
         try {
-            @Suppress("UNCHECKED_CAST", "BlockingMethodInNonBlockingContext")
-            return future.get() as T
+            @Suppress("UNCHECKED_CAST")
+            return get() as T
         } catch (e: ExecutionException) {
             throw e.cause ?: e // unwrap original cause from ExecutionException
         }
@@ -166,7 +160,8 @@ public suspend fun <T> CompletionStage<T>.await(): T {
         val consumer = ContinuationConsumer(cont)
         whenComplete(consumer)
         cont.invokeOnCancellation {
-            future.cancel(false)
+            // mayInterruptIfRunning is not used
+            (this as? CompletableFuture<T>)?.cancel(false)
             consumer.cont = null // shall clear reference to continuation to aid GC
         }
     }
