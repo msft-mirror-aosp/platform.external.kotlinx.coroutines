@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:JvmMultifileClass
@@ -201,7 +201,7 @@ public fun <T> BroadcastChannel<T>.asFlow(): Flow<T> = flow {
  */
 @Deprecated(
     message = "Use shareIn operator and the resulting SharedFlow as a replacement for BroadcastChannel",
-    replaceWith = ReplaceWith("this.shareIn(scope, SharingStarted.Lazily, 0)"),
+    replaceWith = ReplaceWith("shareIn(scope, 0, SharingStarted.Lazily)"),
     level = DeprecationLevel.WARNING
 )
 public fun <T> Flow<T>.broadcastIn(
