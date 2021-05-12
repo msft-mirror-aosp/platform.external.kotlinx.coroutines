@@ -235,7 +235,7 @@ class MonoTest : TestBase() {
             } finally {
                 throw TestException() // would not be able to handle it since mono is disposed
             }
-        }.contextWrite { Context.of("reactor.onOperatorError.local", handler) }
+        }.subscriberContext { Context.of("reactor.onOperatorError.local", handler) }
         mono.subscribe(object : Subscriber<Unit> {
             override fun onSubscribe(s: Subscription) {
                 expect(2)
