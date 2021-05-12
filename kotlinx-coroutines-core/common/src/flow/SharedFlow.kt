@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.flow
@@ -67,15 +67,6 @@ import kotlin.native.concurrent.*
  * A shared flow with a buffer can be configured to avoid suspension of emitters on buffer overflow using
  * the `onBufferOverflow` parameter, which is equal to one of the entries of the [BufferOverflow] enum. When a strategy other
  * than [SUSPENDED][BufferOverflow.SUSPEND] is configured, emissions to the shared flow never suspend.
- *
- * ### Unbuffered shared flow
- *
- * A default implementation of a shared flow that is created with `MutableSharedFlow()` constructor function
- * without parameters has no replay cache nor additional buffer.
- * [emit][MutableSharedFlow.emit] call to such a shared flow suspends until all subscribers receive the emitted value
- * and returns immediately if there are no subscribers.
- * Thus, [tryEmit][MutableSharedFlow.tryEmit] call succeeds and returns `true` only if
- * there are no subscribers (in which case the emitted value is immediately lost).
  *
  * ### SharedFlow vs BroadcastChannel
  *
@@ -148,17 +139,6 @@ public interface SharedFlow<out T> : Flow<T> {
  */
 public interface MutableSharedFlow<T> : SharedFlow<T>, FlowCollector<T> {
     /**
-     * Emits a [value] to this shared flow, suspending on buffer overflow if the shared flow was created
-     * with the default [BufferOverflow.SUSPEND] strategy.
-     *
-     * See [tryEmit] for a non-suspending variant of this function.
-     *
-     * This method is **thread-safe** and can be safely invoked from concurrent coroutines without
-     * external synchronization.
-     */
-    override suspend fun emit(value: T)
-
-    /**
      * Tries to emit a [value] to this shared flow without suspending. It returns `true` if the value was
      * emitted successfully. When this function returns `false`, it means that the call to a plain [emit]
      * function will suspend until there is a buffer space available.
@@ -166,9 +146,6 @@ public interface MutableSharedFlow<T> : SharedFlow<T>, FlowCollector<T> {
      * A shared flow configured with a [BufferOverflow] strategy other than [SUSPEND][BufferOverflow.SUSPEND]
      * (either [DROP_OLDEST][BufferOverflow.DROP_OLDEST] or [DROP_LATEST][BufferOverflow.DROP_LATEST]) never
      * suspends on [emit], and thus `tryEmit` to such a shared flow always returns `true`.
-     *
-     * This method is **thread-safe** and can be safely invoked from concurrent coroutines without
-     * external synchronization.
      */
     public fun tryEmit(value: T): Boolean
 
@@ -203,9 +180,6 @@ public interface MutableSharedFlow<T> : SharedFlow<T>, FlowCollector<T> {
      * On a [MutableStateFlow], which always contains a single value, this function is not
      * supported, and throws an [UnsupportedOperationException]. To reset a [MutableStateFlow]
      * to an initial value, just update its [value][MutableStateFlow.value].
-     *
-     * This method is **thread-safe** and can be safely invoked from concurrent coroutines without
-     * external synchronization.
      *
      * **Note: This is an experimental api.** This function may be removed or renamed in the future.
      */
