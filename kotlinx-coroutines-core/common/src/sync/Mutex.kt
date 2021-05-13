@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.sync
@@ -201,8 +201,7 @@ internal class MutexImpl(locked: Boolean) : Mutex, SelectClause2<Any?, Mutex> {
                         // try lock
                         val update = if (owner == null) EMPTY_LOCKED else Empty(owner)
                         if (_state.compareAndSet(state, update)) { // locked
-                            // TODO implement functional type in LockCont as soon as we get rid of legacy JS
-                            cont.resume(Unit) { unlock(owner) }
+                            cont.resume(Unit)
                             return@sc
                         }
                     }

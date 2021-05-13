@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.gradle.util.VersionNumber
@@ -7,6 +7,7 @@ import org.gradle.util.VersionNumber
 apply plugin: 'jdk-convention'
 apply from: rootProject.file("gradle/experimental.gradle")
 
+def rootModule = "kotlinx.coroutines"
 def coreModule = "kotlinx-coroutines-core"
 // Not applicable for Kotlin plugin
 def sourceless = ['kotlinx.coroutines', 'site', 'kotlinx-coroutines-bom', 'integration-testing']
@@ -32,10 +33,6 @@ buildscript {
             throw new IllegalArgumentException("'kotlin_snapshot_version' should be defined when building with snapshot compiler")
         }
     }
-    // These three flags are enabled in train builds for JVM IR compiler testing
-    ext.jvm_ir_enabled = rootProject.properties['enable_jvm_ir'] != null
-    ext.jvm_ir_api_check_enabled = rootProject.properties['enable_jvm_ir_api_check'] != null
-    ext.native_targets_enabled = rootProject.properties['disable_native_targets'] == null
 
     // Determine if any project dependency is using a snapshot version
     ext.using_snapshot_version = build_snapshot_train
@@ -53,7 +50,14 @@ buildscript {
     }
 
     repositories {
-        maven {url "https://kotlin.bintray.com/kotlinx"}
+        jcenter()
+        maven {
+            url "https://kotlin.bintray.com/kotlinx"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
         // Future replacement for kotlin-dev, with cache redirector
         maven { url "https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/dev" }
         maven {
@@ -63,6 +67,7 @@ buildscript {
                 password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
             }
         }
+        maven { url "https://kotlin.bintray.com/kotlin-eap" }
         maven { url "https://jetbrains.bintray.com/kotlin-native-dependencies" }
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -149,10 +154,25 @@ allprojects {
          * transitive dependencies was removed from jcenter, thus breaking gradle dependency resolution
          */
         google()
-        mavenCentral()
+        jcenter()
         // Future replacement for kotlin-dev, with cache redirector
         maven { url "https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/dev" }
-        maven { url "https://kotlin.bintray.com/kotlinx" }
+        maven {
+            url "https://kotlin.bintray.com/kotlin-dev"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        maven { url "https://kotlin.bintray.com/kotlin-eap" }
+        maven {
+            url "https://kotlin.bintray.com/kotlinx"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        mavenLocal()
     }
 }
 
@@ -160,10 +180,10 @@ allprojects {
 configure(subprojects.findAll { !sourceless.contains(it.name) && it.name != coreModule }) {
     evaluationDependsOn(":$coreModule")
     def platform = PlatformKt.platformOf(it)
-    apply plugin: "kotlin-${platform}-conventions"
+    apply from: rootProject.file("gradle/compile-${platform}.gradle")
     dependencies {
         // See comment below for rationale, it will be replaced with "project" dependency
-        compile project(":$coreModule")
+        compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:$version"
         // the only way IDEA can resolve test classes
         testCompile project(":$coreModule").kotlin.targets.jvm.compilations.test.output.allOutputs
     }
@@ -179,8 +199,6 @@ configure(subprojects.findAll { !sourceless.contains(it.name) }) {
         kotlinOptions.freeCompilerArgs += experimentalAnnotations.collect { "-Xuse-experimental=" + it }
         kotlinOptions.freeCompilerArgs += "-progressive"
         kotlinOptions.freeCompilerArgs += "-XXLanguage:+InlineClasses"
-        // Disable KT-36770 for RxJava2 integration
-        kotlinOptions.freeCompilerArgs += "-XXLanguage:-ProhibitUsingNullableTypeParameterAgainstNotNullAnnotated"
         // Remove null assertions to get smaller bytecode on Android
         kotlinOptions.freeCompilerArgs += ["-Xno-param-assertions", "-Xno-receiver-assertions", "-Xno-call-assertions"]
     }
@@ -215,6 +233,22 @@ if (build_snapshot_train) {
                     println it
                 }
             }
+        }
+    }
+}
+
+/*
+ * Hack to trick nmpp plugin: we are renaming artifacts in order to provide backward compatibility for dependencies,
+ * but publishing plugin does not re-read artifact names for kotlin-jvm projects, so renaming is not applied in pom files
+ * for JVM-only projects.
+ *
+ * We artificially replace "project" dependency with "module" one to have proper names in pom files, but then substitute it
+ * to have out "project" dependency back.
+ */
+configure(subprojects.findAll { it.name != coreModule && it.name != rootModule }) {
+    configurations.all {
+        resolutionStrategy.dependencySubstitution {
+            substitute module("org.jetbrains.kotlinx:kotlinx-coroutines-core:$version") with project(':kotlinx-coroutines-core')
         }
     }
 }
@@ -289,12 +323,3 @@ knit {
 }
 
 knitPrepare.dependsOn getTasksByName("dokka", true)
-
-// Disable binary compatibility check for JVM IR compiler output by default
-if (jvm_ir_enabled) {
-    subprojects { project ->
-        configure(tasks.matching { it.name == "apiCheck" }) {
-            enabled = enabled && jvm_ir_api_check_enabled
-        }
-    }
-}
