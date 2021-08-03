@@ -76,3 +76,16 @@ java_library {
         "androidx.annotation_annotation",
     ],
 }
+
+java_library {
+    name: "kotlinx_coroutines_test",
+    host_supported: true,
+    srcs: ["kotlinx-coroutines-test/src/**/*.kt"],
+    kotlincflags: [
+        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+    ],
+    libs: [
+        "kotlinx_coroutines",
+    ],
+}
