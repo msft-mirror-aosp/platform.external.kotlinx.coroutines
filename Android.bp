@@ -48,6 +48,7 @@ java_library {
         "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
     ],
+    java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
     static_libs: [
         "kotlinx_atomicfu",
     ],
@@ -71,6 +72,7 @@ java_library {
     name: "kotlinx_coroutines_android",
     sdk_version: "28",
     srcs: ["ui/kotlinx-coroutines-android/src/**/*.kt"],
+    java_resource_dirs: ["ui/kotlinx-coroutines-android/resources"],
     kotlincflags: [
         "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
         "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
@@ -89,6 +91,7 @@ java_library {
     name: "kotlinx_coroutines_test",
     host_supported: true,
     srcs: ["kotlinx-coroutines-test/src/**/*.kt"],
+    java_resource_dirs: ["kotlinx-coroutines-test/resources"],
     kotlincflags: [
         "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
         "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
