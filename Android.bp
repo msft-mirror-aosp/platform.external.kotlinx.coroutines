@@ -62,6 +62,10 @@ java_library {
         "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
         "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
     ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
+    ],
 }
 
 java_library {
@@ -77,6 +81,10 @@ java_library {
         "kotlinx_coroutines",
         "androidx.annotation_annotation",
     ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
+    ],
 }
 
 java_library {
@@ -90,5 +98,46 @@ java_library {
     ],
     libs: [
         "kotlinx_coroutines",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
+    ],
+}
+
+// Temporary aliases for kotlinx-coroutines-core, kotlinx-coroutines-core-jvm and kotlinx-coroutines-android
+
+java_library {
+    name: "kotlinx-coroutines-core",
+    host_supported: true,
+    sdk_version: "28",
+    static_libs: ["kotlinx_coroutines"],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
+    ],
+}
+
+java_library {
+    name: "kotlinx-coroutines-core-jvm",
+    host_supported: true,
+    sdk_version: "28",
+    static_libs: ["kotlinx_coroutines"],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
+    ],
+}
+
+java_library {
+    name: "kotlinx-coroutines-android",
+    sdk_version: "28",
+    static_libs: [
+        "kotlinx_coroutines_android",
+        "kotlinx_coroutines",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex"
     ],
 }
