@@ -127,7 +127,11 @@ private open class ActorCoroutine<E>(
     parentContext: CoroutineContext,
     channel: Channel<E>,
     active: Boolean
-) : ChannelCoroutine<E>(parentContext, channel, active), ActorScope<E> {
+) : ChannelCoroutine<E>(parentContext, channel, initParentJob = false, active = active), ActorScope<E> {
+
+    init {
+        initParentJob(parentContext[Job])
+    }
 
     override fun onCancelling(cause: Throwable?) {
         _channel.cancel(cause?.let {
@@ -159,9 +163,15 @@ private class LazyActorCoroutine<E>(
         return super.send(element)
     }
 
+    @Suppress("DEPRECATION_ERROR")
     override fun offer(element: E): Boolean {
         start()
         return super.offer(element)
+    }
+
+    override fun trySend(element: E): ChannelResult<Unit> {
+        start()
+        return super.trySend(element)
     }
 
     override fun close(cause: Throwable?): Boolean {
