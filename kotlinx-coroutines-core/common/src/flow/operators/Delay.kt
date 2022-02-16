@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:JvmMultifileClass
@@ -209,7 +209,8 @@ public fun <T> Flow<T>.debounce(timeout: (T) -> Duration): Flow<T> =
 private fun <T> Flow<T>.debounceInternal(timeoutMillisSelector: (T) -> Long) : Flow<T> =
     scopedFlow { downstream ->
         // Produce the values using the default (rendezvous) channel
-        val values = produce {
+        // Note: the actual type is Any, KT-30796
+        val values = produce<Any?> {
             collect { value -> send(value ?: NULL) }
         }
         // Now consume the values
@@ -236,15 +237,14 @@ private fun <T> Flow<T>.debounceInternal(timeoutMillisSelector: (T) -> Long) : F
                         lastValue = null // Consume the value
                     }
                 }
-                values.onReceiveCatching { value ->
-                    value
-                        .onSuccess { lastValue = it }
-                        .onFailure {
-                            it?.let { throw it }
-                            // If closed normally, emit the latest value
-                            if (lastValue != null) downstream.emit(NULL.unbox(lastValue))
-                            lastValue = DONE
-                        }
+                // Should be receiveOrClosed when boxing issues are fixed
+                values.onReceiveOrNull { value ->
+                    if (value == null) {
+                        if (lastValue != null) downstream.emit(NULL.unbox(lastValue))
+                        lastValue = DONE
+                    } else {
+                        lastValue = value
+                    }
                 }
             }
         }
@@ -278,21 +278,21 @@ private fun <T> Flow<T>.debounceInternal(timeoutMillisSelector: (T) -> Long) : F
 public fun <T> Flow<T>.sample(periodMillis: Long): Flow<T> {
     require(periodMillis > 0) { "Sample period should be positive" }
     return scopedFlow { downstream ->
-        val values = produce(capacity = Channel.CONFLATED) {
+        val values = produce<Any?>(capacity = Channel.CONFLATED) {
+            // Actually Any, KT-30796
             collect { value -> send(value ?: NULL) }
         }
         var lastValue: Any? = null
         val ticker = fixedPeriodTicker(periodMillis)
         while (lastValue !== DONE) {
             select<Unit> {
-                values.onReceiveCatching { result ->
-                    result
-                        .onSuccess { lastValue = it }
-                        .onFailure {
-                            it?.let { throw it }
-                            ticker.cancel(ChildCancelledException())
-                            lastValue = DONE
-                        }
+                values.onReceiveOrNull {
+                    if (it == null) {
+                        ticker.cancel(ChildCancelledException())
+                        lastValue = DONE
+                    } else {
+                        lastValue = it
+                    }
                 }
 
                 // todo: shall be start sampling only when an element arrives or sample aways as here?
