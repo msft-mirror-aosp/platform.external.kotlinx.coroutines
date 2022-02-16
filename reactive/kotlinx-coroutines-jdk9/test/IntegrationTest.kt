@@ -5,12 +5,10 @@
 package kotlinx.coroutines.jdk9
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.exceptions.*
 import org.junit.Test
 import kotlinx.coroutines.flow.flowOn
 import org.junit.runner.*
 import org.junit.runners.*
-import kotlin.contracts.*
 import java.util.concurrent.Flow as JFlow
 import kotlin.coroutines.*
 import kotlin.test.*
@@ -131,20 +129,4 @@ class IntegrationTest(
         assertEquals(n, last)
     }
 
-}
-
-@OptIn(ExperimentalContracts::class)
-internal suspend inline fun <reified E: Throwable> assertCallsExceptionHandlerWith(
-    crossinline operation: suspend (CoroutineExceptionHandler) -> Unit): E {
-    contract {
-        callsInPlace(operation, InvocationKind.EXACTLY_ONCE)
-    }
-    val handler = CapturingHandler()
-    return withContext(handler) {
-        operation(handler)
-        handler.getException().let {
-            assertTrue(it is E, it.toString())
-            it
-        }
-    }
 }

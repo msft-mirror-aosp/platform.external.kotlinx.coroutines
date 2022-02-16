@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.scheduling
@@ -52,7 +52,7 @@ internal val IDLE_WORKER_KEEP_ALIVE_NS = TimeUnit.SECONDS.toNanos(
 )
 
 @JvmField
-internal var schedulerTimeSource: SchedulerTimeSource = NanoTimeSource
+internal var schedulerTimeSource: TimeSource = NanoTimeSource
 
 /**
  * Marker indicating that task is CPU-bound and will not block
@@ -108,11 +108,10 @@ internal class TaskImpl(
 // Open for tests
 internal class GlobalQueue : LockFreeTaskQueue<Task>(singleConsumer = false)
 
-// Was previously TimeSource, renamed due to KT-42625 and KT-23727
-internal abstract class SchedulerTimeSource {
+internal abstract class TimeSource {
     abstract fun nanoTime(): Long
 }
 
-internal object NanoTimeSource : SchedulerTimeSource() {
+internal object NanoTimeSource : TimeSource() {
     override fun nanoTime() = System.nanoTime()
 }

@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 
 package kotlinx.coroutines.debug
@@ -18,7 +14,6 @@ public class CoroutinesBlockHoundIntegration : BlockHoundIntegration {
         allowBlockingWhenEnqueuingTasks()
         allowServiceLoaderInvocationsOnInit()
         allowBlockingCallsInReflectionImpl()
-        allowBlockingCallsInDebugProbes()
         /* The predicates that define that BlockHound should only report blocking calls from threads that are part of
         the coroutine thread pool and currently execute a CPU-bound coroutine computation. */
         addDynamicThreadPredicate { isSchedulerWorker(it) }
@@ -46,17 +41,6 @@ public class CoroutinesBlockHoundIntegration : BlockHoundIntegration {
             "tryMakeCompleting"))
         {
             allowBlockingCallsInside("kotlinx.coroutines.JobSupport", method)
-        }
-    }
-
-    /**
-     * Allow blocking calls inside [kotlinx.coroutines.debug.internal.DebugProbesImpl].
-     */
-    private fun BlockHound.Builder.allowBlockingCallsInDebugProbes() {
-        for (method in listOf("install", "uninstall", "hierarchyToString", "dumpCoroutinesInfo", "dumpDebuggerInfo",
-            "dumpCoroutinesSynchronized", "updateRunningState", "updateState"))
-        {
-            allowBlockingCallsInside("kotlinx.coroutines.debug.internal.DebugProbesImpl", method)
         }
     }
 
