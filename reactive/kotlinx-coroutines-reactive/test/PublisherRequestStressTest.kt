@@ -29,14 +29,13 @@ import kotlin.random.*
  */
 @Suppress("ReactiveStreamsSubscriberImplementation")
 class PublisherRequestStressTest : TestBase() {
-
     private val testDurationSec = 3 * stressTestMultiplier
 
     // Original code in Amazon SDK uses 4 and 16 as low/high watermarks.
-    // These constants were chosen so that problem reproduces asap with particular this code.
+    // There constants were chosen so that problem reproduces asap with particular this code.
     private val minDemand = 8L
     private val maxDemand = 16L
-
+    
     private val nEmitThreads = 4
 
     private val emitThreadNo = AtomicInteger()
@@ -48,7 +47,7 @@ class PublisherRequestStressTest : TestBase() {
     private val reqPool = Executors.newSingleThreadExecutor { r ->
         Thread(r, "PublisherRequestStressTest-req")
     }
-
+    
     private val nextValue = AtomicLong(0)
 
     @After
@@ -65,6 +64,7 @@ class PublisherRequestStressTest : TestBase() {
     fun testRequestStress() {
         val expectedValue = AtomicLong(0)
         val requestedTill = AtomicLong(0)
+        val completionLatch = CountDownLatch(1)
         val callingOnNext = AtomicInteger()
 
         val publisher = mtFlow().asPublisher()
@@ -74,7 +74,7 @@ class PublisherRequestStressTest : TestBase() {
             private var demand = 0L // only updated from reqPool
 
             override fun onComplete() {
-                // Typically unreached, but, rarely, `emitPool` may shut down before the cancellation is performed.
+                completionLatch.countDown()
             }
 
             override fun onSubscribe(sub: Subscription) {
@@ -123,9 +123,7 @@ class PublisherRequestStressTest : TestBase() {
         }
         if (!error) {
             subscription.cancel()
-            runBlocking {
-                (subscription as AbstractCoroutine<*>).join()
-            }
+            completionLatch.await()
         }
     }
 
