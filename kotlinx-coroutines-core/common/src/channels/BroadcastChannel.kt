@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:Suppress("FunctionName")
@@ -20,10 +20,10 @@ import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
  * See `BroadcastChannel()` factory function for the description of available
  * broadcast channel implementations.
  *
- * **Note: This API is obsolete since 1.5.0.** It will be deprecated with warning in 1.6.0
- * and with error in 1.7.0. It is replaced with [SharedFlow][kotlinx.coroutines.flow.SharedFlow].
+ * **Note: This API is obsolete.** It will be deprecated and replaced by [SharedFlow][kotlinx.coroutines.flow.SharedFlow]
+ * when it becomes stable.
  */
-@ObsoleteCoroutinesApi
+@ExperimentalCoroutinesApi // not @ObsoleteCoroutinesApi to reduce burden for people who are still using it
 public interface BroadcastChannel<E> : SendChannel<E> {
     /**
      * Subscribes to this [BroadcastChannel] and returns a channel to receive elements from it.
@@ -60,11 +60,9 @@ public interface BroadcastChannel<E> : SendChannel<E> {
  * * when `capacity` is [BUFFERED] -- creates `ArrayBroadcastChannel` with a default capacity.
  * * otherwise -- throws [IllegalArgumentException].
  *
- * **Note: This API is obsolete since 1.5.0.** It will be deprecated with warning in 1.6.0
- * and with error in 1.7.0. It is replaced with [StateFlow][kotlinx.coroutines.flow.StateFlow]
- * and [SharedFlow][kotlinx.coroutines.flow.SharedFlow].
+ * **Note: This is an experimental api.** It may be changed in the future updates.
  */
-@ObsoleteCoroutinesApi
+@ExperimentalCoroutinesApi
 public fun <E> BroadcastChannel(capacity: Int): BroadcastChannel<E> =
     when (capacity) {
         0 -> throw IllegalArgumentException("Unsupported 0 capacity for BroadcastChannel")

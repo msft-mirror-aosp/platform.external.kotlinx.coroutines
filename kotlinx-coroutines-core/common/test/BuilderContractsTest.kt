@@ -1,10 +1,9 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
 
-import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.selects.*
 import kotlin.test.*
 
@@ -45,22 +44,9 @@ class BuilderContractsTest : TestBase() {
             Job().apply { complete() }.onJoin {}
         }
         consume(s)
-
-
-        val ch: Int
-        val i = Channel<Int>()
-        i.consume {
-            ch = 321
-        }
-        consume(ch)
     }
 
     private fun consume(a: Int) {
-        /*
-         * Verify the value is actually set correctly
-         * (non-zero, VerificationError is not triggered, can be read)
-         */
-        assertNotEquals(0, a)
-        assertEquals(a.hashCode(), a)
+        a.hashCode() // BE codegen verification
     }
 }

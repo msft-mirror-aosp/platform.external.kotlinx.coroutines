@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -48,7 +48,7 @@ class TickerChannelCommonTest(private val channelFactory: Channel) : TestBase() 
 
             delayChannel.cancel()
             delay(5100)
-            assertFailsWith<CancellationException> { delayChannel.tryReceive().getOrThrow() }
+            assertFailsWith<CancellationException> { delayChannel.poll() }
         }
     }
 
@@ -112,13 +112,13 @@ class TickerChannelCommonTest(private val channelFactory: Channel) : TestBase() 
         var sum = 0
         var n = 0
         whileSelect {
-            this@averageInTimeWindow.onReceiveCatching {
+            this@averageInTimeWindow.onReceiveOrClosed {
                 if (it.isClosed) {
                     // Send leftovers and bail out
                     if (n != 0) send(sum / n.toDouble())
                     false
                 } else {
-                    sum += it.getOrThrow()
+                    sum += it.value
                     ++n
                     true
                 }
@@ -159,9 +159,9 @@ class TickerChannelCommonTest(private val channelFactory: Channel) : TestBase() 
     }
 }
 
-fun ReceiveChannel<Unit>.checkEmpty() = assertNull(tryReceive().getOrNull())
+fun ReceiveChannel<Unit>.checkEmpty() = assertNull(poll())
 
 fun ReceiveChannel<Unit>.checkNotEmpty() {
-    assertNotNull(tryReceive().getOrNull())
-    assertNull(tryReceive().getOrNull())
+    assertNotNull(poll())
+    assertNull(poll())
 }

@@ -7,12 +7,13 @@ package kotlinx.coroutines.rx2
 import io.reactivex.*
 import io.reactivex.disposables.*
 import io.reactivex.exceptions.*
+import io.reactivex.functions.*
 import io.reactivex.internal.functions.Functions.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.CancellationException
 import org.junit.*
 import org.junit.Test
 import java.util.concurrent.*
+import java.util.concurrent.CancellationException
 import kotlin.test.*
 
 class MaybeTest : TestBase() {
@@ -46,7 +47,7 @@ class MaybeTest : TestBase() {
             null
         }
         expect(2)
-        maybe.subscribe (emptyConsumer(), ON_ERROR_MISSING, {
+        maybe.subscribe (emptyConsumer(), ON_ERROR_MISSING, Action {
             expect(5)
         })
         expect(3)
@@ -111,45 +112,18 @@ class MaybeTest : TestBase() {
 
     @Test
     fun testMaybeAwait() = runBlocking {
-        assertEquals("OK", Maybe.just("O").awaitSingleOrNull() + "K")
-        assertEquals("OK", Maybe.just("O").awaitSingle() + "K")
+        assertEquals("OK", Maybe.just("O").await() + "K")
     }
 
     @Test
-    fun testMaybeAwaitForNull(): Unit = runBlocking {
-        assertNull(Maybe.empty<String>().awaitSingleOrNull())
-        assertFailsWith<NoSuchElementException> { Maybe.empty<String>().awaitSingle() }
-    }
-
-    /** Tests that calls to [awaitSingleOrNull] throw [CancellationException] and dispose of the subscription when their
-     * [Job] is cancelled. */
-    @Test
-    fun testMaybeAwaitCancellation() = runTest {
-        expect(1)
-        val maybe = MaybeSource<Int> { s ->
-            s.onSubscribe(object: Disposable {
-                override fun dispose() { expect(4) }
-                override fun isDisposed(): Boolean { expectUnreached(); return false }
-            })
-        }
-        val job = launch(start = CoroutineStart.UNDISPATCHED) {
-            try {
-                expect(2)
-                maybe.awaitSingleOrNull()
-            } catch (e: CancellationException) {
-                expect(5)
-                throw e
-            }
-        }
-        expect(3)
-        job.cancelAndJoin()
-        finish(6)
+    fun testMaybeAwaitForNull() = runBlocking {
+        assertNull(Maybe.empty<String>().await())
     }
 
     @Test
     fun testMaybeEmitAndAwait() {
         val maybe = rxMaybe {
-            Maybe.just("O").awaitSingleOrNull() + "K"
+            Maybe.just("O").await() + "K"
         }
 
         checkMaybeValue(maybe) {
@@ -231,7 +205,7 @@ class MaybeTest : TestBase() {
     @Test
     fun testCancelledConsumer() = runTest {
         expect(1)
-        val maybe = rxMaybe(currentDispatcher()) {
+        val maybe = rxMaybe<Int>(currentDispatcher()) {
             expect(4)
             try {
                 delay(Long.MAX_VALUE)
@@ -254,56 +228,6 @@ class MaybeTest : TestBase() {
         finish(7)
     }
 
-    /** Tests the simple scenario where the Maybe doesn't output a value. */
-    @Test
-    fun testMaybeCollectEmpty() = runTest {
-        expect(1)
-        Maybe.empty<Int>().collect {
-            expectUnreached()
-        }
-        finish(2)
-    }
-
-    /** Tests the simple scenario where the Maybe doesn't output a value. */
-    @Test
-    fun testMaybeCollectSingle() = runTest {
-        expect(1)
-        Maybe.just("OK").collect {
-            assertEquals("OK", it)
-            expect(2)
-        }
-        finish(3)
-    }
-
-    /** Tests the behavior of [collect] when the Maybe raises an error. */
-    @Test
-    fun testMaybeCollectThrowingMaybe() = runTest {
-        expect(1)
-        try {
-            Maybe.error<Int>(TestException()).collect {
-                expectUnreached()
-            }
-        } catch (e: TestException) {
-            expect(2)
-        }
-        finish(3)
-    }
-
-    /** Tests the behavior of [collect] when the action throws. */
-    @Test
-    fun testMaybeCollectThrowingAction() = runTest {
-        expect(1)
-        try {
-            Maybe.just("OK").collect {
-                expect(2)
-                throw TestException()
-            }
-        } catch (e: TestException) {
-            expect(3)
-        }
-        finish(4)
-    }
-
     @Test
     fun testSuppressedException() = runTest {
         val maybe = rxMaybe(currentDispatcher()) {
@@ -317,7 +241,7 @@ class MaybeTest : TestBase() {
             }
         }
         try {
-            maybe.awaitSingleOrNull()
+            maybe.await()
             expectUnreached()
         } catch (e: TestException) {
             assertTrue(e.suppressed[0] is TestException2)
@@ -377,7 +301,7 @@ class MaybeTest : TestBase() {
             rxMaybe(Dispatchers.Unconfined) {
                 expect(1)
                 42
-            }.subscribe { throw LinkageError() }
+            }.subscribe({ throw LinkageError() })
             finish(3)
         }
     }
