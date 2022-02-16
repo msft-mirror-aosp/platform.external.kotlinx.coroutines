@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.test.internal
@@ -35,6 +35,7 @@ internal class TestMainDispatcher(private val mainFactory: MainDispatcherFactory
         delegate.dispatch(context, block)
     }
 
+    @ExperimentalCoroutinesApi
     override fun isDispatchNeeded(context: CoroutineContext): Boolean = delegate.isDispatchNeeded(context)
 
     override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
@@ -49,11 +50,11 @@ internal class TestMainDispatcher(private val mainFactory: MainDispatcherFactory
         return delay.invokeOnTimeout(timeMillis, block, context)
     }
 
-    fun setDispatcher(dispatcher: CoroutineDispatcher) {
+    public fun setDispatcher(dispatcher: CoroutineDispatcher) {
         _delegate = dispatcher
     }
 
-    fun resetDispatcher() {
+    public fun resetDispatcher() {
         _delegate = null
     }
 }
@@ -63,7 +64,7 @@ internal class TestMainDispatcherFactory : MainDispatcherFactory {
     override fun createDispatcher(allFactories: List<MainDispatcherFactory>): MainCoroutineDispatcher {
         val originalFactory = allFactories.asSequence()
             .filter { it !== this }
-            .maxByOrNull { it.loadPriority } ?: MissingMainCoroutineDispatcherFactory
+            .maxBy { it.loadPriority } ?: MissingMainCoroutineDispatcherFactory
         return TestMainDispatcher(originalFactory)
     }
 

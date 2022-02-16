@@ -1,12 +1,15 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
-import org.junit.*
-import java.util.concurrent.atomic.*
+import org.junit.After
+import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.*
 
 class ConflatedChannelCloseStressTest : TestBase() {
 
@@ -34,9 +37,12 @@ class ConflatedChannelCloseStressTest : TestBase() {
                 var x = senderId
                 try {
                     while (isActive) {
-                        curChannel.get().trySend(x).onSuccess {
+                        try {
+                            curChannel.get().offer(x)
                             x += nSenders
                             sent.incrementAndGet()
+                        } catch (e: ClosedSendChannelException) {
+                            // ignore
                         }
                     }
                 } finally {
@@ -58,9 +64,7 @@ class ConflatedChannelCloseStressTest : TestBase() {
         }
         val receiver = async(pool + NonCancellable) {
             while (isActive) {
-                curChannel.get().receiveCatching().getOrElse {
-                    it?.let { throw it }
-                }
+                curChannel.get().receiveOrNull()
                 received.incrementAndGet()
             }
         }
