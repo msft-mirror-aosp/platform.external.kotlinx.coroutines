@@ -29,7 +29,7 @@ class ConflatedBroadcastChannelNotifyStressTest : TestBase() {
             launch(Dispatchers.Default + CoroutineName("Sender$senderId")) {
                 repeat(nEvents) { i ->
                     if (i % nSenders == senderId) {
-                        broadcast.trySend(i)
+                        broadcast.offer(i)
                         sentTotal.incrementAndGet()
                         yield()
                     }
@@ -63,7 +63,7 @@ class ConflatedBroadcastChannelNotifyStressTest : TestBase() {
         try {
             withTimeout(timeLimit) {
                 senders.forEach { it.join() }
-                broadcast.trySend(nEvents) // last event to signal receivers termination
+                broadcast.offer(nEvents) // last event to signal receivers termination
                 receivers.forEach { it.join() }
             }
         } catch (e: CancellationException) {
