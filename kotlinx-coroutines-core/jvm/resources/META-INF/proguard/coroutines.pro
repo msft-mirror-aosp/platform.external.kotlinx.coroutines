@@ -3,12 +3,12 @@
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
 # Most of volatile fields are updated with AFU and should not be mangled
--keepclassmembers class kotlinx.coroutines.** {
+-keepclassmembernames class kotlinx.** {
     volatile <fields>;
 }
 
 # Same story for the standard library's SafeContinuation that also uses AtomicReferenceFieldUpdater
--keepclassmembers class kotlin.coroutines.SafeContinuation {
+-keepclassmembernames class kotlin.coroutines.SafeContinuation {
     volatile <fields>;
 }
 

@@ -1,20 +1,17 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
-
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.HostManager
 import org.gradle.util.VersionNumber
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
-import org.jetbrains.dokka.gradle.DokkaMultiModuleTask
 
 apply plugin: 'jdk-convention'
-apply from: rootProject.file("gradle/opt-in.gradle")
+apply from: rootProject.file("gradle/experimental.gradle")
 
+def rootModule = "kotlinx.coroutines"
 def coreModule = "kotlinx-coroutines-core"
 // Not applicable for Kotlin plugin
-def sourceless = ['kotlinx.coroutines', 'kotlinx-coroutines-bom', 'integration-testing']
-def internal = ['kotlinx.coroutines', 'benchmarks', 'integration-testing']
+def sourceless = ['kotlinx.coroutines', 'site', 'kotlinx-coroutines-bom', 'integration-testing']
+def internal = ['kotlinx.coroutines', 'site', 'benchmarks', 'js-stub', 'stdlib-stubs', 'integration-testing']
 // Not published
 def unpublished = internal + ['example-frontend-js', 'android-unit-tests']
 
@@ -36,14 +33,13 @@ buildscript {
             throw new IllegalArgumentException("'kotlin_snapshot_version' should be defined when building with snapshot compiler")
         }
     }
-    ext.native_targets_enabled = rootProject.properties['disable_native_targets'] == null
 
     // Determine if any project dependency is using a snapshot version
     ext.using_snapshot_version = build_snapshot_train
     rootProject.properties.each { key, value ->
         if (key.endsWith("_version") && value instanceof String && value.endsWith("-SNAPSHOT")) {
             println("NOTE: USING SNAPSHOT VERSION: $key=$value")
-            ext.using_snapshot_version = true
+            ext.using_snapshot_version=true
         }
     }
 
@@ -54,10 +50,26 @@ buildscript {
     }
 
     repositories {
-        mavenCentral()
+        jcenter()
+        maven {
+            url "https://kotlin.bintray.com/kotlinx"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        // Future replacement for kotlin-dev, with cache redirector
+        maven { url "https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/dev" }
+        maven {
+            url "https://kotlin.bintray.com/kotlin-dev"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        maven { url "https://kotlin.bintray.com/kotlin-eap" }
+        maven { url "https://jetbrains.bintray.com/kotlin-native-dependencies" }
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev" }
-        mavenLocal()
     }
 
     dependencies {
@@ -74,6 +86,9 @@ buildscript {
 
     CacheRedirector.configureBuildScript(buildscript, rootProject)
 }
+
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+
 // todo:KLUDGE: Hierarchical project structures are not fully supported in IDEA, enable only for a regular built
 if (!Idea.active) {
     ext.set("kotlin.mpp.enableGranularSourceSetsMetadata", "true")
@@ -124,6 +139,7 @@ apply plugin: "binary-compatibility-validator"
 apiValidation {
     ignoredProjects += unpublished + ["kotlinx-coroutines-bom"]
     if (build_snapshot_train) {
+        ignoredProjects.remove("site")
         ignoredProjects.remove("example-frontend-js")
         ignoredProjects.add("kotlinx-coroutines-core")
     }
@@ -138,7 +154,25 @@ allprojects {
          * transitive dependencies was removed from jcenter, thus breaking gradle dependency resolution
          */
         google()
-        mavenCentral()
+        jcenter()
+        // Future replacement for kotlin-dev, with cache redirector
+        maven { url "https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/kotlin/p/kotlin/dev" }
+        maven {
+            url "https://kotlin.bintray.com/kotlin-dev"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        maven { url "https://kotlin.bintray.com/kotlin-eap" }
+        maven {
+            url "https://kotlin.bintray.com/kotlinx"
+            credentials {
+                username = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER') ?: ""
+                password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY') ?: ""
+            }
+        }
+        mavenLocal()
     }
 }
 
@@ -146,12 +180,12 @@ allprojects {
 configure(subprojects.findAll { !sourceless.contains(it.name) && it.name != coreModule }) {
     evaluationDependsOn(":$coreModule")
     def platform = PlatformKt.platformOf(it)
-    apply plugin: "kotlin-${platform}-conventions"
+    apply from: rootProject.file("gradle/compile-${platform}.gradle")
     dependencies {
         // See comment below for rationale, it will be replaced with "project" dependency
-        api project(":$coreModule")
+        compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:$version"
         // the only way IDEA can resolve test classes
-        testImplementation project(":$coreModule").kotlin.targets.jvm.compilations.test.output.allOutputs
+        testCompile project(":$coreModule").kotlin.targets.jvm.compilations.test.output.allOutputs
     }
 }
 
@@ -162,10 +196,9 @@ configure(subprojects.findAll { !sourceless.contains(it.name) }) {
 
     // Configure options for all Kotlin compilation tasks
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile).all {
-        kotlinOptions.freeCompilerArgs += optInAnnotations.collect { "-Xopt-in=" + it }
+        kotlinOptions.freeCompilerArgs += experimentalAnnotations.collect { "-Xuse-experimental=" + it }
         kotlinOptions.freeCompilerArgs += "-progressive"
-        // Disable KT-36770 for RxJava2 integration
-        kotlinOptions.freeCompilerArgs += "-XXLanguage:-ProhibitUsingNullableTypeParameterAgainstNotNullAnnotated"
+        kotlinOptions.freeCompilerArgs += "-XXLanguage:+InlineClasses"
         // Remove null assertions to get smaller bytecode on Android
         kotlinOptions.freeCompilerArgs += ["-Xno-param-assertions", "-Xno-receiver-assertions", "-Xno-call-assertions"]
     }
@@ -204,6 +237,22 @@ if (build_snapshot_train) {
     }
 }
 
+/*
+ * Hack to trick nmpp plugin: we are renaming artifacts in order to provide backward compatibility for dependencies,
+ * but publishing plugin does not re-read artifact names for kotlin-jvm projects, so renaming is not applied in pom files
+ * for JVM-only projects.
+ *
+ * We artificially replace "project" dependency with "module" one to have proper names in pom files, but then substitute it
+ * to have out "project" dependency back.
+ */
+configure(subprojects.findAll { it.name != coreModule && it.name != rootModule }) {
+    configurations.all {
+        resolutionStrategy.dependencySubstitution {
+            substitute module("org.jetbrains.kotlinx:kotlinx-coroutines-core:$version") with project(':kotlinx-coroutines-core')
+        }
+    }
+}
+
 // Redefine source sets because we are not using 'kotlin/main/fqn' folder convention
 configure(subprojects.findAll {
     !sourceless.contains(it.name) &&
@@ -222,25 +271,23 @@ configure(subprojects.findAll {
 }
 
 def core_docs_url = "https://kotlin.github.io/kotlinx.coroutines/$coreModule/"
-def core_docs_file = "$projectDir/kotlinx-coroutines-core/build/dokka/htmlPartial/package-list"
-apply plugin: "org.jetbrains.dokka"
+def core_docs_file = "$projectDir/kotlinx-coroutines-core/build/dokka/kotlinx-coroutines-core/package-list"
 
 configure(subprojects.findAll { !unpublished.contains(it.name) }) {
     if (it.name != 'kotlinx-coroutines-bom') {
-        apply from: rootProject.file('gradle/dokka.gradle.kts')
+        apply from: rootProject.file('gradle/dokka.gradle')
     }
-    apply from: rootProject.file('gradle/publish.gradle')
+    apply from: rootProject.file('gradle/publish-bintray.gradle')
 }
 
 configure(subprojects.findAll { !unpublished.contains(it.name) }) {
     if (it.name != "kotlinx-coroutines-bom") {
         if (it.name != coreModule) {
-            tasks.withType(DokkaTaskPartial.class) {
-                dokkaSourceSets.configureEach {
-                    externalDocumentationLink {
-                        url.set(new URL(core_docs_url))
-                        packageListUrl.set(new File(core_docs_file).toURI().toURL())
-                    }
+            dokka.dependsOn project(":$coreModule").dokka
+            tasks.withType(dokka.getClass()) {
+                externalDocumentationLink {
+                    url = new URL(core_docs_url)
+                    packageListUrl = new File(core_docs_file).toURI().toURL()
                 }
             }
         }
@@ -273,43 +320,6 @@ apply plugin: 'kotlinx-knit'
 knit {
     siteRoot = "https://kotlin.github.io/kotlinx.coroutines"
     moduleRoots = [".", "integration", "reactive", "ui"]
-    moduleDocs = "build/dokka/htmlPartial"
-    dokkaMultiModuleRoot = "build/dokka/htmlMultiModule/"
 }
 
-knitPrepare.dependsOn getTasksByName("dokkaHtmlMultiModule", true)
-
-dependencies {
-    dokkaHtmlMultiModulePlugin("org.jetbrains.kotlinx:dokka-pathsaver-plugin:$knit_version")
-}
-
-// Opt-in for build scan in order to troubleshoot Gradle on TC
-if (hasProperty('buildScan')) {
-    buildScan {
-        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
-        termsOfServiceAgree = 'yes'
-    }
-}
-
-/*
- * kotlinx-coroutines-core dependency leaks into test runtime classpath via kotlin-compiler-embeddable
- * and conflicts with our own test/runtime incompatibilities (e.g. when class is moved from a main to test),
- * so we do substitution here
- */
-allprojects { subProject ->
-    subProject
-            .configurations
-            .matching {
-                // Excluding substituted project itself because of circular dependencies, but still do it
-                // for "*Test*" configurations
-                subProject.name != "kotlinx-coroutines-core" || it.name.contains("Test")
-            }
-            .configureEach { conf ->
-                conf.resolutionStrategy.dependencySubstitution {
-                    substitute(module("org.jetbrains.kotlinx:kotlinx-coroutines-core"))
-                            .using(project(":kotlinx-coroutines-core"))
-                            .because("Because Kotlin compiler embeddable leaks coroutines into the runtime classpath, " +
-                                    "triggering all sort of incompatible class changes errors")
-                }
-            }
-}
+knitPrepare.dependsOn getTasksByName("dokka", true)
