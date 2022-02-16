@@ -6,7 +6,6 @@ package kotlinx.coroutines.reactor
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.reactive.*
 import org.junit.*
 import org.junit.Test
@@ -97,7 +96,7 @@ class ConvertTest : TestBase() {
             delay(50)
             send("K")
         }
-        val flux = c.consumeAsFlow().asFlux(Dispatchers.Unconfined)
+        val flux = c.asFlux(Dispatchers.Unconfined)
         checkMonoValue(flux.reduce { t1, t2 -> t1 + t2 }) {
             assertEquals("OK", it)
         }
@@ -111,7 +110,7 @@ class ConvertTest : TestBase() {
             delay(50)
             throw TestException("K")
         }
-        val flux = c.consumeAsFlow().asFlux(Dispatchers.Unconfined)
+        val flux = c.asFlux(Dispatchers.Unconfined)
         val mono = mono(Dispatchers.Unconfined) {
             var result = ""
             try {

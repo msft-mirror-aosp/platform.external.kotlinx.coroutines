@@ -36,7 +36,7 @@ class CallbackFlowTest : TestBase() {
     fun testThrowingConsumer() = runTest {
         var i = 0
         val api = CallbackApi {
-            it.trySend(++i)
+            runCatching {  it.offer(++i) }
         }
 
         val flow = callbackFlow<Int> {
@@ -77,13 +77,13 @@ class CallbackFlowTest : TestBase() {
         var i = 0
         val api = CallbackApi {
             if (i < 5) {
-                it.trySend(++i)
+                it.offer(++i)
             } else {
                 it.close(RuntimeException())
             }
         }
 
-        val flow = callbackFlow<Int> {
+        val flow = callbackFlow<Int>() {
             api.start(channel)
             awaitClose {
                 api.stop()
