@@ -1,11 +1,10 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.reactive
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.selects.*
 import org.junit.Test
 import org.junit.runner.*
@@ -28,27 +27,27 @@ class PublisherSubscriptionSelectTest(private val request: Int) : TestBase() {
         var a = 0
         var b = 0
         // open two subs
-        val channelA = source.toChannel(request)
-        val channelB = source.toChannel(request)
+        val channelA = source.openSubscription(request)
+        val channelB = source.openSubscription(request)
         loop@ while (true) {
             val done: Int = select {
-                channelA.onReceiveCatching { result ->
-                    result.onSuccess { assertEquals(a++, it) }
-                    if (result.isSuccess) 1 else 0
+                channelA.onReceiveOrNull {
+                    if (it != null) assertEquals(a++, it)
+                    if (it == null) 0 else 1
                 }
-                channelB.onReceiveCatching { result ->
-                    result.onSuccess { assertEquals(b++, it) }
-                    if (result.isSuccess) 2 else 0
+                channelB.onReceiveOrNull {
+                    if (it != null) assertEquals(b++, it)
+                    if (it == null) 0 else 2
                 }
             }
             when (done) {
                 0 -> break@loop
                 1 -> {
-                    val r = channelB.receiveCatching().getOrNull()
+                    val r = channelB.receiveOrNull()
                     if (r != null) assertEquals(b++, r)
                 }
                 2 -> {
-                    val r = channelA.receiveCatching().getOrNull()
+                    val r = channelA.receiveOrNull()
                     if (r != null) assertEquals(a++, r)
                 }
             }
