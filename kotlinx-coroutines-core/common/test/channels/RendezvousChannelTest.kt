@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -36,15 +36,15 @@ class RendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testClosedReceiveCatching() = runTest {
+    fun testClosedReceiveOrNull() = runTest {
         val q = Channel<Int>(Channel.RENDEZVOUS)
         check(q.isEmpty && !q.isClosedForSend && !q.isClosedForReceive)
         expect(1)
         launch {
             expect(3)
-            assertEquals(42, q.receiveCatching().getOrNull())
+            assertEquals(42, q.receiveOrNull())
             expect(4)
-            assertNull(q.receiveCatching().getOrNull())
+            assertNull(q.receiveOrNull())
             expect(6)
         }
         expect(2)
@@ -80,26 +80,26 @@ class RendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testTrySendTryReceive() = runTest {
+    fun testOfferAndPool() = runTest {
         val q = Channel<Int>(Channel.RENDEZVOUS)
-        assertFalse(q.trySend(1).isSuccess)
+        assertFalse(q.offer(1))
         expect(1)
         launch {
             expect(3)
-            assertNull(q.tryReceive().getOrNull())
+            assertNull(q.poll())
             expect(4)
             assertEquals(2, q.receive())
             expect(7)
-            assertNull(q.tryReceive().getOrNull())
+            assertNull(q.poll())
             yield()
             expect(9)
-            assertEquals(3, q.tryReceive().getOrNull())
+            assertEquals(3, q.poll())
             expect(10)
         }
         expect(2)
         yield()
         expect(5)
-        assertTrue(q.trySend(2).isSuccess)
+        assertTrue(q.offer(2))
         expect(6)
         yield()
         expect(8)
@@ -233,9 +233,9 @@ class RendezvousChannelTest : TestBase() {
         expect(7)
         yield() // try to resume sender (it will not resume despite the close!)
         expect(8)
-        assertEquals(42, q.receiveCatching().getOrNull())
+        assertEquals(42, q.receiveOrNull())
         expect(9)
-        assertNull(q.receiveCatching().getOrNull())
+        assertNull(q.receiveOrNull())
         expect(10)
         yield() // to sender, it was resumed!
         finish(12)
@@ -266,7 +266,7 @@ class RendezvousChannelTest : TestBase() {
         q.cancel()
         check(q.isClosedForSend)
         check(q.isClosedForReceive)
-        assertFailsWith<CancellationException> { q.receiveCatching().getOrThrow() }
+        assertFailsWith<CancellationException> { q.receiveOrNull() }
         finish(12)
     }
 
@@ -274,6 +274,6 @@ class RendezvousChannelTest : TestBase() {
     fun testCancelWithCause() = runTest({ it is TestCancellationException }) {
         val channel = Channel<Int>(Channel.RENDEZVOUS)
         channel.cancel(TestCancellationException())
-        channel.receiveCatching().getOrThrow()
+        channel.receiveOrNull()
     }
 }

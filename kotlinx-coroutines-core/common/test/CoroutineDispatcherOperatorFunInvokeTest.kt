@@ -65,6 +65,7 @@ class CoroutineDispatcherOperatorFunInvokeTest : TestBase() {
             dispatcher.dispatch(context, block)
         }
 
+        @ExperimentalCoroutinesApi
         override fun isDispatchNeeded(context: CoroutineContext): Boolean {
             return dispatcher.isDispatchNeeded(context)
         }
