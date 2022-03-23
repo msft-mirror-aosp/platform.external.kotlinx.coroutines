@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -38,17 +38,17 @@ class ArrayChannelTest : TestBase() {
     }
 
     @Test
-    fun testClosedBufferedReceiveCatching() = runTest {
+    fun testClosedBufferedReceiveOrNull() = runTest {
         val q = Channel<Int>(1)
         check(q.isEmpty && !q.isClosedForSend && !q.isClosedForReceive)
         expect(1)
         launch {
             expect(5)
             check(!q.isEmpty && q.isClosedForSend && !q.isClosedForReceive)
-            assertEquals(42, q.receiveCatching().getOrNull())
+            assertEquals(42, q.receiveOrNull())
             expect(6)
             check(!q.isEmpty && q.isClosedForSend && q.isClosedForReceive)
-            assertNull(q.receiveCatching().getOrNull())
+            assertNull(q.receiveOrNull())
             expect(7)
         }
         expect(2)
@@ -86,31 +86,31 @@ class ArrayChannelTest : TestBase() {
     }
 
     @Test
-    fun testTryOp() = runTest {
+    fun testOfferAndPoll() = runTest {
         val q = Channel<Int>(1)
-        assertTrue(q.trySend(1).isSuccess)
+        assertTrue(q.offer(1))
         expect(1)
         launch {
             expect(3)
-            assertEquals(1, q.tryReceive().getOrNull())
+            assertEquals(1, q.poll())
             expect(4)
-            assertNull(q.tryReceive().getOrNull())
+            assertNull(q.poll())
             expect(5)
             assertEquals(2, q.receive()) // suspends
             expect(9)
-            assertEquals(3, q.tryReceive().getOrNull())
+            assertEquals(3, q.poll())
             expect(10)
-            assertNull(q.tryReceive().getOrNull())
+            assertNull(q.poll())
             expect(11)
         }
         expect(2)
         yield()
         expect(6)
-        assertTrue(q.trySend(2).isSuccess)
+        assertTrue(q.offer(2))
         expect(7)
-        assertTrue(q.trySend(3).isSuccess)
+        assertTrue(q.offer(3))
         expect(8)
-        assertFalse(q.trySend(4).isSuccess)
+        assertFalse(q.offer(4))
         yield()
         finish(12)
     }
@@ -134,7 +134,7 @@ class ArrayChannelTest : TestBase() {
         q.cancel()
         check(q.isClosedForSend)
         check(q.isClosedForReceive)
-        assertFailsWith<CancellationException> { q.receiveCatching().getOrThrow() }
+        assertFailsWith<CancellationException> { q.receiveOrNull() }
         finish(12)
     }
 
@@ -142,7 +142,7 @@ class ArrayChannelTest : TestBase() {
     fun testCancelWithCause() = runTest({ it is TestCancellationException }) {
         val channel = Channel<Int>(5)
         channel.cancel(TestCancellationException())
-        channel.receive()
+        channel.receiveOrNull()
     }
 
     @Test
@@ -157,10 +157,10 @@ class ArrayChannelTest : TestBase() {
         val capacity = 42
         val channel = Channel<Int>(capacity)
         repeat(4) {
-            channel.trySend(-1)
+            channel.offer(-1)
         }
         repeat(4) {
-            channel.receiveCatching().getOrNull()
+            channel.receiveOrNull()
         }
         checkBufferChannel(channel, capacity)
     }

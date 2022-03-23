@@ -58,7 +58,7 @@ class StackTraceRecoveryNestedTest : TestBase() {
         try {
             rootAsync.awaitRootLevel()
         } catch (e: RecoverableTestException) {
-            e.verifyException("awaitRootLevel")
+            e.verifyException("await\$suspendImpl", "awaitRootLevel")
             finish(8)
         }
     }
