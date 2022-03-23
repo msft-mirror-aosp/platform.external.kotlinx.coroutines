@@ -1,12 +1,15 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
+
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 
 package kotlinx.coroutines.rx2
 
 import io.reactivex.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
+import kotlin.internal.*
 
 /**
  * Creates cold [single][Single] that will run a given [block] in a coroutine and emits its result.
@@ -25,6 +28,17 @@ public fun <T : Any> rxSingle(
     return rxSingleInternal(GlobalScope, context, block)
 }
 
+@Deprecated(
+    message = "CoroutineScope.rxSingle is deprecated in favour of top-level rxSingle",
+    level = DeprecationLevel.ERROR,
+    replaceWith = ReplaceWith("rxSingle(context, block)")
+) // Since 1.3.0, will be error in 1.3.1 and hidden in 1.4.0
+@LowPriorityInOverloadResolution
+public fun <T : Any> CoroutineScope.rxSingle(
+    context: CoroutineContext = EmptyCoroutineContext,
+    block: suspend CoroutineScope.() -> T
+): Single<T> = rxSingleInternal(this, context, block)
+
 private fun <T : Any> rxSingleInternal(
     scope: CoroutineScope, // support for legacy rxSingle in scope
     context: CoroutineContext,
@@ -39,7 +53,7 @@ private fun <T : Any> rxSingleInternal(
 private class RxSingleCoroutine<T: Any>(
     parentContext: CoroutineContext,
     private val subscriber: SingleEmitter<T>
-) : AbstractCoroutine<T>(parentContext, false, true) {
+) : AbstractCoroutine<T>(parentContext, true) {
     override fun onCompleted(value: T) {
         try {
             subscriber.onSuccess(value)
@@ -50,23 +64,11 @@ private class RxSingleCoroutine<T: Any>(
 
     override fun onCancelled(cause: Throwable, handled: Boolean) {
         try {
-            if (subscriber.tryOnError(cause)) {
-                return
+            if (!subscriber.tryOnError(cause)) {
+                handleUndeliverableException(cause, context)
             }
         } catch (e: Throwable) {
-            cause.addSuppressed(e)
+            handleUndeliverableException(e, context)
         }
-        handleUndeliverableException(cause, context)
     }
 }
-
-/** @suppress */
-@Deprecated(
-    message = "CoroutineScope.rxSingle is deprecated in favour of top-level rxSingle",
-    level = DeprecationLevel.HIDDEN,
-    replaceWith = ReplaceWith("rxSingle(context, block)")
-) // Since 1.3.0, will be error in 1.3.1 and hidden in 1.4.0
-public fun <T : Any> CoroutineScope.rxSingle(
-    context: CoroutineContext = EmptyCoroutineContext,
-    block: suspend CoroutineScope.() -> T
-): Single<T> = rxSingleInternal(this, context, block)

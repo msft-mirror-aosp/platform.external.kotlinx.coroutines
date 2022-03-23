@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 @file:Suppress("NAMED_ARGUMENTS_NOT_ALLOWED") // KT-21913
 
@@ -306,7 +306,7 @@ class SelectRendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testSelectReceiveCatchingWaitClosed() = runTest {
+    fun testSelectReceiveOrClosedWaitClosed() = runTest {
         expect(1)
         val channel = Channel<String>(Channel.RENDEZVOUS)
         launch {
@@ -316,10 +316,10 @@ class SelectRendezvousChannelTest : TestBase() {
         }
         expect(2)
         select<Unit> {
-            channel.onReceiveCatching {
+            channel.onReceiveOrClosed {
                 expect(5)
                 assertTrue(it.isClosed)
-                assertNull(it.exceptionOrNull())
+                assertNull(it.closeCause)
             }
         }
 
@@ -327,7 +327,7 @@ class SelectRendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testSelectReceiveCatchingWaitClosedWithCause() = runTest {
+    fun testSelectReceiveOrClosedWaitClosedWithCause() = runTest {
         expect(1)
         val channel = Channel<String>(Channel.RENDEZVOUS)
         launch {
@@ -337,10 +337,10 @@ class SelectRendezvousChannelTest : TestBase() {
         }
         expect(2)
         select<Unit> {
-            channel.onReceiveCatching {
+            channel.onReceiveOrClosed {
                 expect(5)
                 assertTrue(it.isClosed)
-                assertTrue(it.exceptionOrNull() is TestException)
+                assertTrue(it.closeCause is TestException)
             }
         }
 
@@ -348,31 +348,31 @@ class SelectRendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testSelectReceiveCatchingForClosedChannel() = runTest {
+    fun testSelectReceiveOrClosedForClosedChannel() = runTest {
         val channel = Channel<Unit>()
         channel.close()
         expect(1)
         select<Unit> {
             expect(2)
-            channel.onReceiveCatching {
+            channel.onReceiveOrClosed {
                 assertTrue(it.isClosed)
-                assertNull(it.exceptionOrNull())
+                assertNull(it.closeCause)
                 finish(3)
             }
         }
     }
 
     @Test
-    fun testSelectReceiveCatching() = runTest {
+    fun testSelectReceiveOrClosed() = runTest {
         val channel = Channel<Int>(Channel.RENDEZVOUS)
         val iterations = 10
         expect(1)
         val job = launch {
             repeat(iterations) {
                 select<Unit> {
-                    channel.onReceiveCatching { v ->
+                    channel.onReceiveOrClosed { v ->
                         expect(4 + it * 2)
-                        assertEquals(it, v.getOrThrow())
+                        assertEquals(it, v.value)
                     }
                 }
             }
@@ -390,15 +390,15 @@ class SelectRendezvousChannelTest : TestBase() {
     }
 
     @Test
-    fun testSelectReceiveCatchingDispatch() = runTest {
+    fun testSelectReceiveOrClosedDispatch() = runTest {
         val c = Channel<Int>(Channel.RENDEZVOUS)
         expect(1)
         launch {
             expect(3)
             val res = select<String> {
-                c.onReceiveCatching { v ->
+                c.onReceiveOrClosed { v ->
                     expect(6)
-                    assertEquals(42, v.getOrThrow())
+                    assertEquals(42, v.value)
                     yield() // back to main
                     expect(8)
                     "OK"

@@ -10,7 +10,6 @@ import kotlinx.coroutines.exceptions.*
 import kotlinx.coroutines.*
 import java.io.*
 
-@OptIn(DelicateCoroutinesApi::class)
 fun main() = runBlocking {
     val handler = CoroutineExceptionHandler { _, exception ->
         println("CoroutineExceptionHandler got $exception with suppressed ${exception.suppressed.contentToString()}")

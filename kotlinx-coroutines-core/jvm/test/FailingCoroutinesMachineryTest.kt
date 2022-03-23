@@ -33,7 +33,7 @@ class FailingCoroutinesMachineryTest(
 
     private var caught: Throwable? = null
     private val latch = CountDownLatch(1)
-    private var exceptionHandler = CoroutineExceptionHandler { _, t -> caught = t; latch.countDown() }
+    private var exceptionHandler = CoroutineExceptionHandler { _, t -> caught = t;latch.countDown() }
     private val lazyOuterDispatcher = lazy { newFixedThreadPoolContext(1, "") }
 
     private object FailingUpdate : ThreadContextElement<Unit> {
@@ -115,20 +115,14 @@ class FailingCoroutinesMachineryTest(
 
     @Test
     fun testElement() = runTest {
-        // Top-level throwing dispatcher may rethrow an exception right here
-        runCatching {
-            launch(NonCancellable + dispatcher.value + exceptionHandler + element) {}
-        }
+        launch(NonCancellable + dispatcher.value + exceptionHandler + element) {}
         checkException()
     }
 
     @Test
     fun testNestedElement() = runTest {
-        // Top-level throwing dispatcher may rethrow an exception right here
-        runCatching {
-            launch(NonCancellable + dispatcher.value + exceptionHandler) {
-                launch(element) { }
-            }
+        launch(NonCancellable + dispatcher.value + exceptionHandler) {
+            launch(element) {  }
         }
         checkException()
     }
