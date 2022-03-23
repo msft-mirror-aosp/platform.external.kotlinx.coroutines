@@ -14,15 +14,15 @@ class SelectTimeoutDurationTest : TestBase() {
     fun testBasic() = runTest {
         expect(1)
         val result = select<String> {
-            onTimeout(Duration.milliseconds(1000)) {
+            onTimeout(1000.milliseconds) {
                 expectUnreached()
                 "FAIL"
             }
-            onTimeout(Duration.milliseconds(100)) {
+            onTimeout(100.milliseconds) {
                 expect(2)
                 "OK"
             }
-            onTimeout(Duration.milliseconds(500)) {
+            onTimeout(500.milliseconds) {
                 expectUnreached()
                 "FAIL"
             }
@@ -35,7 +35,7 @@ class SelectTimeoutDurationTest : TestBase() {
     fun testZeroTimeout() = runTest {
         expect(1)
         val result = select<String> {
-            onTimeout(Duration.seconds(1)) {
+            onTimeout(1.seconds) {
                 expectUnreached()
                 "FAIL"
             }
@@ -52,11 +52,11 @@ class SelectTimeoutDurationTest : TestBase() {
     fun testNegativeTimeout() = runTest {
         expect(1)
         val result = select<String> {
-            onTimeout(Duration.seconds(1)) {
+            onTimeout(1.seconds) {
                 expectUnreached()
                 "FAIL"
             }
-            onTimeout(-Duration.milliseconds(10)) {
+            onTimeout(-10.milliseconds) {
                 expect(2)
                 "OK"
             }
@@ -71,13 +71,13 @@ class SelectTimeoutDurationTest : TestBase() {
         val iterations =10_000
         for (i in 0..iterations) {
             val result = selectUnbiased<Int> {
-                onTimeout(-Duration.seconds(1)) {
+                onTimeout(-1.seconds) {
                     0
                 }
                 onTimeout(Duration.ZERO) {
                     1
                 }
-                onTimeout(Duration.seconds(1)) {
+                onTimeout(1.seconds) {
                     expectUnreached()
                     2
                 }
