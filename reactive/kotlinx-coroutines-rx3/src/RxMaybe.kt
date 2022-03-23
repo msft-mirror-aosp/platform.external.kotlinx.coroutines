@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.rx3
@@ -40,7 +40,7 @@ private fun <T> rxMaybeInternal(
 private class RxMaybeCoroutine<T>(
     parentContext: CoroutineContext,
     private val subscriber: MaybeEmitter<T>
-) : AbstractCoroutine<T>(parentContext, false, true) {
+) : AbstractCoroutine<T>(parentContext, true) {
     override fun onCompleted(value: T) {
         try {
             if (value == null) subscriber.onComplete() else subscriber.onSuccess(value)
@@ -51,12 +51,11 @@ private class RxMaybeCoroutine<T>(
 
     override fun onCancelled(cause: Throwable, handled: Boolean) {
         try {
-            if (subscriber.tryOnError(cause)) {
-                return
+            if (!subscriber.tryOnError(cause)) {
+                handleUndeliverableException(cause, context)
             }
         } catch (e: Throwable) {
-            cause.addSuppressed(e)
+            handleUndeliverableException(e, context)
         }
-        handleUndeliverableException(cause, context)
     }
 }

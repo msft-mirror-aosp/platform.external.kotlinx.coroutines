@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -11,10 +11,8 @@ import kotlin.coroutines.*
 internal open class ChannelCoroutine<E>(
     parentContext: CoroutineContext,
     protected val _channel: Channel<E>,
-    initParentJob: Boolean,
     active: Boolean
-) : AbstractCoroutine<Unit>(parentContext, initParentJob, active), Channel<E> by _channel {
-
+) : AbstractCoroutine<Unit>(parentContext, active), Channel<E> by _channel {
     val channel: Channel<E> get() = this
 
     override fun cancel() {
@@ -28,7 +26,6 @@ internal open class ChannelCoroutine<E>(
     }
 
     final override fun cancel(cause: CancellationException?) {
-        if (isCancelled) return // Do not create an exception if the coroutine (-> the channel) is already cancelled
         cancelInternal(cause ?: defaultCancellationException())
     }
 
