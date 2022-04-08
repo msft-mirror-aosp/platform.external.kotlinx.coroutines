@@ -1,5 +1,20 @@
-<!--- TEST_NAME SharedStateGuideTest -->
- 
+<!--- INCLUDE .*/example-([a-z]+)-([0-9a-z]+)\.kt 
+/*
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ */
+
+// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
+package kotlinx.coroutines.guide.$$1$$2
+-->
+<!--- KNIT     ../kotlinx-coroutines-core/jvm/test/guide/.*\.kt -->
+<!--- TEST_OUT ../kotlinx-coroutines-core/jvm/test/guide/test/SharedStateGuideTest.kt
+// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
+package kotlinx.coroutines.guide.test
+
+import org.junit.Test
+
+class SharedStateGuideTest {
+--> 
 **Table of contents**
 
 <!--- TOC -->
@@ -13,7 +28,7 @@
   * [Mutual exclusion](#mutual-exclusion)
   * [Actors](#actors)
 
-<!--- END -->
+<!--- END_TOC -->
 
 ## Shared mutable state and concurrency
 
@@ -24,7 +39,7 @@ but others are unique.
 
 ### The problem
 
-Let us launch a hundred coroutines all doing the same action a thousand times. 
+Let us launch a hundred coroutines all doing the same action thousand times. 
 We'll also measure their completion time for further comparisons:
 
 <div class="sample" markdown="1" theme="idea" data-highlight-only>
@@ -90,7 +105,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-01.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-01.kt).
 
 <!--- TEST LINES_START
 Completed 100000 actions in
@@ -102,7 +117,7 @@ increment the `counter` concurrently from multiple threads without any synchroni
 
 ### Volatiles are of no help
 
-There is a common misconception that making a variable `volatile` solves concurrency problem. Let us try it:
+There is common misconception that making a variable `volatile` solves concurrency problem. Let us try it:
 
 <!--- CLEAR -->
 
@@ -144,7 +159,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-02.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-02.kt).
 
 <!--- TEST LINES_START
 Completed 100000 actions in
@@ -158,7 +173,7 @@ do not provide atomicity of larger actions (increment in our case).
 ### Thread-safe data structures
 
 The general solution that works both for threads and for coroutines is to use a thread-safe (aka synchronized,
-linearizable, or atomic) data structure that provides all the necessary synchronization for the corresponding 
+linearizable, or atomic) data structure that provides all the necessarily synchronization for the corresponding 
 operations that needs to be performed on a shared state. 
 In the case of a simple counter we can use `AtomicInteger` class which has atomic `incrementAndGet` operations:
 
@@ -187,7 +202,7 @@ suspend fun massiveRun(action: suspend () -> Unit) {
 }
 
 //sampleStart
-val counter = AtomicInteger()
+var counter = AtomicInteger()
 
 fun main() = runBlocking {
     withContext(Dispatchers.Default) {
@@ -202,7 +217,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-03.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-03.kt).
 
 <!--- TEST ARBITRARY_TIME
 Completed 100000 actions in xxx ms
@@ -263,7 +278,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-04.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-04.kt).
 
 <!--- TEST ARBITRARY_TIME
 Completed 100000 actions in xxx ms
@@ -321,7 +336,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-05.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-05.kt).
 
 <!--- TEST ARBITRARY_TIME
 Completed 100000 actions in xxx ms
@@ -384,7 +399,7 @@ fun main() = runBlocking {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-06.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-06.kt).
 
 <!--- TEST ARBITRARY_TIME
 Completed 100000 actions in xxx ms
@@ -504,7 +519,7 @@ fun main() = runBlocking<Unit> {
 
 </div>
 
-> You can get the full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-07.kt).
+> You can get full code [here](../kotlinx-coroutines-core/jvm/test/guide/example-sync-07.kt).
 
 <!--- TEST ARBITRARY_TIME
 Completed 100000 actions in xxx ms

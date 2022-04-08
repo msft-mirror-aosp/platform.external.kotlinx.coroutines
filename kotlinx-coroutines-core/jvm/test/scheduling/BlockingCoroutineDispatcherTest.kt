@@ -6,15 +6,11 @@ package kotlinx.coroutines.scheduling
 
 import kotlinx.coroutines.*
 import org.junit.*
-import org.junit.rules.*
 import java.util.concurrent.*
 
 class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
 
-    @get:Rule
-    val timeout = Timeout.seconds(10L)!!
-
-    @Test
+    @Test(timeout = 1_000)
     fun testNonBlockingWithBlockingExternal() = runBlocking {
         val barrier = CyclicBarrier(2)
 
@@ -28,10 +24,10 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
 
         nonBlockingJob.join()
         blockingJob.join()
-        checkPoolThreadsCreated(2..3)
+        checkPoolThreadsCreated(2)
     }
 
-    @Test
+    @Test(timeout = 10_000)
     fun testNonBlockingFromBlocking() = runBlocking {
         val barrier = CyclicBarrier(2)
 
@@ -45,10 +41,10 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
         }
 
         blocking.join()
-        checkPoolThreadsCreated(2..3)
+        checkPoolThreadsCreated(2)
     }
 
-    @Test
+    @Test(timeout = 1_000)
     fun testScheduleBlockingThreadCount() = runTest {
         // After first iteration pool is idle, repeat, no new threads should be created
         repeat(2) {
@@ -63,7 +59,7 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
         }
     }
 
-    @Test
+    @Test(timeout = 1_000)
     fun testNoCpuStarvation() = runBlocking {
         val tasksNum = 100
         val barrier = CyclicBarrier(tasksNum + 1)
@@ -77,9 +73,10 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
         tasks.forEach { require(it.isActive) }
         barrier.await()
         tasks.joinAll()
+        checkPoolThreadsCreated(101)
     }
 
-    @Test
+    @Test(timeout = 1_000)
     fun testNoCpuStarvationWithMultipleBlockingContexts() = runBlocking {
         val firstBarrier = CyclicBarrier(11)
         val secondBarrier = CyclicBarrier(11)
@@ -104,7 +101,7 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
         checkPoolThreadsCreated(21..22)
     }
 
-    @Test
+    @Test(timeout = 1_000)
     fun testNoExcessThreadsCreated() = runBlocking {
         corePoolSize = 4
 
@@ -194,10 +191,10 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
     fun testYield() = runBlocking {
         corePoolSize = 1
         maxPoolSize = 1
-        val bd = blockingDispatcher(1)
-        val outerJob = launch(bd) {
+        val ds = blockingDispatcher(1)
+        val outerJob = launch(ds) {
             expect(1)
-            val innerJob = launch(bd) {
+            val innerJob = launch(ds) {
                 // Do nothing
                 expect(3)
             }
@@ -213,21 +210,6 @@ class BlockingCoroutineDispatcherTest : SchedulerTestBase() {
 
         outerJob.join()
         finish(5)
-    }
-
-    @Test
-    fun testUndispatchedYield() = runTest {
-        expect(1)
-        corePoolSize = 1
-        maxPoolSize = 1
-        val blockingDispatcher = blockingDispatcher(1)
-        val job = launch(blockingDispatcher, CoroutineStart.UNDISPATCHED) {
-            expect(2)
-            yield()
-        }
-        expect(3)
-        job.join()
-        finish(4)
     }
 
     @Test(expected = IllegalArgumentException::class)

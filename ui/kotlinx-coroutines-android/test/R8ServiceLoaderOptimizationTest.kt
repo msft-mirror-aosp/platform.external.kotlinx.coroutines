@@ -4,19 +4,18 @@
 
 package kotlinx.coroutines.android
 
-import kotlinx.coroutines.*
 import org.jf.dexlib2.*
 import org.junit.Test
 import java.io.*
 import java.util.stream.*
 import kotlin.test.*
 
-class R8ServiceLoaderOptimizationTest : TestBase() {
+class R8ServiceLoaderOptimizationTest {
     private val r8Dex = File(System.getProperty("dexPath")!!).asDexFile()
     private val r8DexNoOptim = File(System.getProperty("noOptimDexPath")!!).asDexFile()
 
     @Test
-    fun testNoServiceLoaderCalls() {
+    fun noServiceLoaderCalls() {
         val serviceLoaderInvocations = r8Dex.types.any {
             it.type == "Ljava/util/ServiceLoader;"
         }
@@ -28,7 +27,7 @@ class R8ServiceLoaderOptimizationTest : TestBase() {
     }
 
     @Test
-    fun testAndroidDispatcherIsKept() {
+    fun androidDispatcherIsKept() {
         val hasAndroidDispatcher = r8DexNoOptim.classes.any {
             it.type == "Lkotlinx/coroutines/android/AndroidDispatcherFactory;"
         }
@@ -37,8 +36,7 @@ class R8ServiceLoaderOptimizationTest : TestBase() {
     }
 
     @Test
-    @Ignore
-    fun testNoOptimRulesMatch() {
+    fun noOptimRulesMatch() {
         val paths = listOf(
                 "META-INF/com.android.tools/proguard/coroutines.pro",
                 "META-INF/proguard/coroutines.pro",

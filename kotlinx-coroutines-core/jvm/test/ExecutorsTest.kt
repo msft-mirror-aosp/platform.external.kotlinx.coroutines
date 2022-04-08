@@ -1,13 +1,13 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
 
-import org.junit.Test
+import org.junit.*
+import org.junit.Assert.*
 import java.util.concurrent.*
 import kotlin.coroutines.*
-import kotlin.test.*
 
 class ExecutorsTest : TestBase() {
     private fun checkThreadName(prefix: String) {
@@ -29,8 +29,6 @@ class ExecutorsTest : TestBase() {
         val context = newFixedThreadPoolContext(2, "TestPool")
         runBlocking(context) {
             checkThreadName("TestPool")
-            delay(10)
-            checkThreadName("TestPool") // should dispatch on the right thread
         }
         context.close()
     }
@@ -40,8 +38,6 @@ class ExecutorsTest : TestBase() {
         val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "TestExecutor") }
         runBlocking(executor.asCoroutineDispatcher()) {
             checkThreadName("TestExecutor")
-            delay(10)
-            checkThreadName("TestExecutor") // should dispatch on the right thread
         }
         executor.shutdown()
     }

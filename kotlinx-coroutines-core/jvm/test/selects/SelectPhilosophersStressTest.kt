@@ -6,8 +6,8 @@ package kotlinx.coroutines.selects
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.*
-import org.junit.Test
-import kotlin.test.*
+import org.junit.*
+import org.junit.Assert.*
 
 class SelectPhilosophersStressTest : TestBase() {
     private val TEST_DURATION = 3000L * stressTestMultiplier
@@ -59,7 +59,7 @@ class SelectPhilosophersStressTest : TestBase() {
         val eats = withTimeout(5 * TEST_DURATION) { philosophers.map { it.await() } }
         debugJob.cancel()
         eats.withIndex().forEach { (id, eats) ->
-            assertTrue(eats > 0, "$id shall not starve")
+            assertTrue("$id shall not starve", eats > 0)
         }
     }
 }

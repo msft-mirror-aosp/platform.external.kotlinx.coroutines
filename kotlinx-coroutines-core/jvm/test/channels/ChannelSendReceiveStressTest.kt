@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -7,11 +7,10 @@ package kotlinx.coroutines.channels
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.*
 import org.junit.*
-import org.junit.Test
+import org.junit.Assert.*
 import org.junit.runner.*
 import org.junit.runners.*
 import java.util.concurrent.atomic.*
-import kotlin.test.*
 
 @RunWith(Parameterized::class)
 class ChannelSendReceiveStressTest(
@@ -35,7 +34,7 @@ class ChannelSendReceiveStressTest(
 
     private val maxBuffer = 10_000 // artificial limit for LinkedListChannel
 
-    val channel = kind.create<Int>()
+    val channel = kind.create()
     private val sendersCompleted = AtomicInteger()
     private val receiversCompleted = AtomicInteger()
     private val dupes = AtomicInteger()
@@ -44,20 +43,12 @@ class ChannelSendReceiveStressTest(
     private val receivedTotal = AtomicInteger()
     private val receivedBy = IntArray(nReceivers)
 
-    private val pool =
-        newFixedThreadPoolContext(nSenders + nReceivers, "ChannelSendReceiveStressTest")
-
-    @After
-    fun tearDown() {
-        pool.close()
-    }
-
     @Test
     fun testSendReceiveStress() = runBlocking {
         println("--- ChannelSendReceiveStressTest $kind with nSenders=$nSenders, nReceivers=$nReceivers")
         val receivers = List(nReceivers) { receiverIndex ->
             // different event receivers use different code
-            launch(pool + CoroutineName("receiver$receiverIndex")) {
+            launch(Dispatchers.Default + CoroutineName("receiver$receiverIndex")) {
                 when (receiverIndex % 5) {
                     0 -> doReceive(receiverIndex)
                     1 -> doReceiveOrNull(receiverIndex)
@@ -69,7 +60,7 @@ class ChannelSendReceiveStressTest(
             }
         }
         val senders = List(nSenders) { senderIndex ->
-            launch(pool + CoroutineName("sender$senderIndex")) {
+            launch(Dispatchers.Default + CoroutineName("sender$senderIndex")) {
                 when (senderIndex % 2) {
                     0 -> doSend(senderIndex)
                     1 -> doSendSelect(senderIndex)
@@ -110,7 +101,7 @@ class ChannelSendReceiveStressTest(
         assertEquals(nEvents, sentTotal.get())
         if (!kind.isConflated) assertEquals(nEvents, receivedTotal.get())
         repeat(nReceivers) { receiveIndex ->
-            assertTrue(receivedBy[receiveIndex] > 0, "Each receiver should have received something")
+            assertTrue("Each receiver should have received something", receivedBy[receiveIndex] > 0)
         }
     }
 

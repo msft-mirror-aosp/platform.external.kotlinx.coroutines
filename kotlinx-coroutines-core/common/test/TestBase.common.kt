@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.*
 import kotlin.coroutines.*
 import kotlin.test.*
 
-public expect val isStressTest: Boolean
-public expect val stressTestMultiplier: Int
-
 public expect open class TestBase constructor() {
+    public val isStressTest: Boolean
+    public val stressTestMultiplier: Int
+
     public fun error(message: Any, cause: Throwable? = null): Nothing
     public fun expect(index: Int)
     public fun expectUnreached()
@@ -50,7 +50,7 @@ public suspend inline fun <reified T : Throwable> assertFailsWith(flow: Flow<*>)
         flow.collect()
         fail("Should be unreached")
     } catch (e: Throwable) {
-        assertTrue(e is T, "Expected exception ${T::class}, but had $e instead")
+        assertTrue(e is T)
     }
 }
 
@@ -71,17 +71,11 @@ public class RecoverableTestCancellationException(message: String? = null) : Can
 public fun wrapperDispatcher(context: CoroutineContext): CoroutineContext {
     val dispatcher = context[ContinuationInterceptor] as CoroutineDispatcher
     return object : CoroutineDispatcher() {
-        override fun isDispatchNeeded(context: CoroutineContext): Boolean =
-            dispatcher.isDispatchNeeded(context)
-        override fun dispatch(context: CoroutineContext, block: Runnable) =
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
             dispatcher.dispatch(context, block)
+        }
     }
 }
 
 public suspend fun wrapperDispatcher(): CoroutineContext = wrapperDispatcher(coroutineContext)
 
-class BadClass {
-    override fun equals(other: Any?): Boolean = error("equals")
-    override fun hashCode(): Int = error("hashCode")
-    override fun toString(): String = error("toString")
-}

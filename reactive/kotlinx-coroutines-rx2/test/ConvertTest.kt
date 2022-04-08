@@ -6,10 +6,8 @@ package kotlinx.coroutines.rx2
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.flow.*
-import org.junit.Assert
-import org.junit.Test
-import kotlin.test.*
+import org.junit.*
+import org.junit.Assert.*
 
 class ConvertTest : TestBase() {
     @Test
@@ -66,9 +64,9 @@ class ConvertTest : TestBase() {
             null
         }
         val maybe1 = d.asMaybe(Dispatchers.Unconfined)
-        checkMaybeValue(maybe1, Assert::assertNull)
+        checkMaybeValue(maybe1, ::assertNull)
         val maybe2 = d.asMaybe(Dispatchers.Unconfined)
-        checkMaybeValue(maybe2, Assert::assertNull)
+        checkMaybeValue(maybe2, ::assertNull)
     }
 
     @Test
@@ -127,7 +125,7 @@ class ConvertTest : TestBase() {
             delay(50)
             send("K")
         }
-        val observable = c.consumeAsFlow().asObservable(Dispatchers.Unconfined)
+        val observable = c.asObservable(Dispatchers.Unconfined)
         checkSingleValue(observable.reduce { t1, t2 -> t1 + t2 }.toSingle()) {
             assertEquals("OK", it)
         }
@@ -141,7 +139,7 @@ class ConvertTest : TestBase() {
             delay(50)
             throw TestException("K")
         }
-        val observable = c.consumeAsFlow().asObservable(Dispatchers.Unconfined)
+        val observable = c.asObservable(Dispatchers.Unconfined)
         val single = rxSingle(Dispatchers.Unconfined) {
             var result = ""
             try {

@@ -1,10 +1,9 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
 
-import kotlin.coroutines.*
 import kotlin.system.*
 
 internal actual abstract class EventLoopImplPlatform: EventLoop() {
@@ -14,7 +13,7 @@ internal actual abstract class EventLoopImplPlatform: EventLoop() {
 }
 
 internal class EventLoopImpl: EventLoopImplBase() {
-    override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle =
+    override fun invokeOnTimeout(timeMillis: Long, block: Runnable): DisposableHandle =
         scheduleInvokeOnTimeout(timeMillis, block)
 }
 

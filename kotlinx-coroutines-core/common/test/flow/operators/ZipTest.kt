@@ -23,7 +23,7 @@ class ZipTest : TestBase() {
     fun testUnevenZip() = runTest {
         val f1 = flowOf("a", "b", "c", "d", "e")
         val f2 = flowOf(1, 2, 3)
-        assertEquals(listOf("a1", "b2", "c3"), f1.zip(f2) { i, j -> i + j }.toList())
+        assertEquals(listOf("a1", "b2", "c3"), f1.zip(f2, { i, j -> i + j }).toList())
         assertEquals(listOf("a1", "b2", "c3"), f2.zip(f1) { i, j -> j + i }.toList())
     }
 
@@ -67,26 +67,7 @@ class ZipTest : TestBase() {
         val f1 = flow<String> {
             emit("1")
             emit("2")
-        }
-
-        val f2 = flow<String> {
-            emit("a")
-            emit("b")
-            expectUnreached()
-        }
-        assertEquals(listOf("1a", "2b"), f1.zip(f2) { s1, s2 -> s1 + s2 }.toList())
-        finish(1)
-    }
-
-    @Test
-    fun testCancelWhenFlowIsDone2() = runTest {
-        val f1 = flow<String> {
-            emit("1")
-            emit("2")
-            try {
-                emit("3")
-                expectUnreached()
-            } finally {
+            hang {
                 expect(1)
             }
         }
@@ -106,13 +87,27 @@ class ZipTest : TestBase() {
             }
         }
 
-        val f2 = flow<String> {
-            emit("a")
-            emit("b")
-            yield()
+        val f2 = flowOf("a", "b")
+        assertEquals(listOf("a1", "b2"), f2.zip(f1) { s1, s2 -> s1 + s2 }.toList())
+        finish(2)
+    }
+
+    @Test
+    fun testCancelWhenFlowIsDone2() = runTest {
+        val f1 = flow<String> {
+            emit("1")
+            emit("2")
+            try {
+                emit("3")
+                expectUnreached()
+            } finally {
+                expect(1)
+            }
+
         }
 
-        assertEquals(listOf("a1", "b2"), f2.zip(f1) { s1, s2 -> s1 + s2 }.toList())
+        val f2 = flowOf("a", "b")
+        assertEquals(listOf("1a", "2b"), f1.zip(f2) { s1, s2 -> s1 + s2 }.toList())
         finish(2)
     }
 
@@ -121,19 +116,19 @@ class ZipTest : TestBase() {
         val f1 = flow {
             emit("a")
             assertEquals("first", NamedDispatchers.name())
-            expect(3)
+            expect(1)
         }.flowOn(NamedDispatchers("first")).onEach {
             assertEquals("with", NamedDispatchers.name())
-            expect(4)
+            expect(2)
         }.flowOn(NamedDispatchers("with"))
 
         val f2 = flow {
             emit(1)
             assertEquals("second", NamedDispatchers.name())
-            expect(1)
+            expect(3)
         }.flowOn(NamedDispatchers("second")).onEach {
             assertEquals("nested", NamedDispatchers.name())
-            expect(2)
+            expect(4)
         }.flowOn(NamedDispatchers("nested"))
 
         val value = withContext(NamedDispatchers("main")) {
@@ -153,14 +148,14 @@ class ZipTest : TestBase() {
         val f1 = flow {
             emit("a")
             hang {
-                expect(3)
+                expect(2)
             }
         }.flowOn(NamedDispatchers("first"))
 
         val f2 = flow {
             emit(1)
             hang {
-                expect(2)
+                expect(3)
             }
         }.flowOn(NamedDispatchers("second"))
 
@@ -200,18 +195,19 @@ class ZipTest : TestBase() {
         val f1 = flow {
             expect(1)
             emit(1)
-            expect(5)
+            yield()
+            expect(4)
             throw CancellationException("")
         }
 
         val f2 = flow {
             expect(2)
             emit(1)
-            expect(3)
+            expect(5)
             hang { expect(6) }
         }
 
-        val flow = f1.zip(f2) { _, _ -> 1 }.onEach { expect(4) }
+        val flow = f1.zip(f2, { _, _ -> 1 }).onEach { expect(3) }
         assertFailsWith<CancellationException>(flow)
         finish(7)
     }
@@ -221,37 +217,24 @@ class ZipTest : TestBase() {
         val f1 = flow {
             expect(1)
             emit(1)
-            expectUnreached() // Will throw CE
+            yield()
+            expect(4)
+            hang { expect(6) }
         }
 
         val f2 = flow {
             expect(2)
             emit(1)
-            expect(3)
-            hang { expect(5) }
+            expect(5)
+            hang { expect(7) }
         }
 
         val flow = f1.zip(f2, { _, _ -> 1 }).onEach {
-            expect(4)
+            expect(3)
             yield()
             throw CancellationException("")
         }
         assertFailsWith<CancellationException>(flow)
-        finish(6)
-    }
-
-    @Test
-    fun testCancellationOfCollector() = runTest {
-        val f1 = flow {
-            emit("1")
-            awaitCancellation()
-        }
-
-        val f2 = flow {
-            emit("2")
-            yield()
-        }
-
-        f1.zip(f2) { a, b -> a + b }.collect { }
+        finish(8)
     }
 }

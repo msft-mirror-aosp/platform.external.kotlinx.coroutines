@@ -1,17 +1,13 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
-// This file was automatically generated from channels.md by Knit tool. Do not edit.
+// This file was automatically generated from coroutines-guide.md by Knit tool. Do not edit.
 package kotlinx.coroutines.guide.test
 
-import kotlinx.coroutines.knit.*
 import org.junit.Test
 
 class ChannelsGuideTest {
+
     @Test
-    fun testExampleChannel01() {
-        test("ExampleChannel01") { kotlinx.coroutines.guide.exampleChannel01.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel01() {
+        test("KotlinxCoroutinesGuideChannel01") { kotlinx.coroutines.guide.channel01.main() }.verifyLines(
             "1",
             "4",
             "9",
@@ -22,8 +18,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel02() {
-        test("ExampleChannel02") { kotlinx.coroutines.guide.exampleChannel02.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel02() {
+        test("KotlinxCoroutinesGuideChannel02") { kotlinx.coroutines.guide.channel02.main() }.verifyLines(
             "1",
             "4",
             "9",
@@ -34,8 +30,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel03() {
-        test("ExampleChannel03") { kotlinx.coroutines.guide.exampleChannel03.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel03() {
+        test("KotlinxCoroutinesGuideChannel03") { kotlinx.coroutines.guide.channel03.main() }.verifyLines(
             "1",
             "4",
             "9",
@@ -46,8 +42,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel04() {
-        test("ExampleChannel04") { kotlinx.coroutines.guide.exampleChannel04.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel04() {
+        test("KotlinxCoroutinesGuideChannel04") { kotlinx.coroutines.guide.channel04.main() }.verifyLines(
             "1",
             "4",
             "9",
@@ -58,8 +54,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel05() {
-        test("ExampleChannel05") { kotlinx.coroutines.guide.exampleChannel05.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel05() {
+        test("KotlinxCoroutinesGuideChannel05") { kotlinx.coroutines.guide.channel05.main() }.verifyLines(
             "2",
             "3",
             "5",
@@ -74,15 +70,15 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel06() {
-        test("ExampleChannel06") { kotlinx.coroutines.guide.exampleChannel06.main() }.also { lines ->
+    fun testKotlinxCoroutinesGuideChannel06() {
+        test("KotlinxCoroutinesGuideChannel06") { kotlinx.coroutines.guide.channel06.main() }.also { lines ->
             check(lines.size == 10 && lines.withIndex().all { (i, line) -> line.startsWith("Processor #") && line.endsWith(" received ${i + 1}") })
         }
     }
 
     @Test
-    fun testExampleChannel07() {
-        test("ExampleChannel07") { kotlinx.coroutines.guide.exampleChannel07.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel07() {
+        test("KotlinxCoroutinesGuideChannel07") { kotlinx.coroutines.guide.channel07.main() }.verifyLines(
             "foo",
             "foo",
             "BAR!",
@@ -93,8 +89,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel08() {
-        test("ExampleChannel08") { kotlinx.coroutines.guide.exampleChannel08.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel08() {
+        test("KotlinxCoroutinesGuideChannel08") { kotlinx.coroutines.guide.channel08.main() }.verifyLines(
             "Sending 0",
             "Sending 1",
             "Sending 2",
@@ -104,8 +100,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel09() {
-        test("ExampleChannel09") { kotlinx.coroutines.guide.exampleChannel09.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel09() {
+        test("KotlinxCoroutinesGuideChannel09") { kotlinx.coroutines.guide.channel09.main() }.verifyLines(
             "ping Ball(hits=1)",
             "pong Ball(hits=2)",
             "ping Ball(hits=3)",
@@ -114,8 +110,8 @@ class ChannelsGuideTest {
     }
 
     @Test
-    fun testExampleChannel10() {
-        test("ExampleChannel10") { kotlinx.coroutines.guide.exampleChannel10.main() }.verifyLines(
+    fun testKotlinxCoroutinesGuideChannel10() {
+        test("KotlinxCoroutinesGuideChannel10") { kotlinx.coroutines.guide.channel10.main() }.verifyLines(
             "Initial element is available immediately: kotlin.Unit",
             "Next element is not ready in 50 ms: null",
             "Next element is ready in 100 ms: kotlin.Unit",

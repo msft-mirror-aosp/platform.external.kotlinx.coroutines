@@ -5,8 +5,6 @@
 package kotlinx.coroutines.rx2
 
 import io.reactivex.*
-import io.reactivex.functions.Consumer
-import io.reactivex.plugins.*
 
 fun <T> checkSingleValue(
     observable: Observable<T>,
@@ -66,12 +64,3 @@ fun checkErroneous(
     }
 }
 
-inline fun withExceptionHandler(noinline handler: (Throwable) -> Unit, block: () -> Unit) {
-    val original = RxJavaPlugins.getErrorHandler()
-    RxJavaPlugins.setErrorHandler { handler(it) }
-    try {
-        block()
-    } finally {
-        RxJavaPlugins.setErrorHandler(original)
-    }
-}

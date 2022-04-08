@@ -5,9 +5,10 @@
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
-import org.junit.Test
+import org.hamcrest.MatcherAssert.*
+import org.hamcrest.core.*
+import org.junit.*
 import java.util.concurrent.atomic.*
-import kotlin.test.*
 
 class ConflatedBroadcastChannelNotifyStressTest : TestBase() {
     private val nSenders = 2
@@ -75,9 +76,9 @@ class ConflatedBroadcastChannelNotifyStressTest : TestBase() {
         println("Completed successfully ${receiversCompleted.get()} receiver coroutines")
         println("                  Sent ${sentTotal.get()} events")
         println("              Received ${receivedTotal.get()} events")
-        assertEquals(nSenders, sendersCompleted.get())
-        assertEquals(nReceivers, receiversCompleted.get())
-        assertEquals(nEvents, sentTotal.get())
+        assertThat(sendersCompleted.get(), IsEqual(nSenders))
+        assertThat(receiversCompleted.get(), IsEqual(nReceivers))
+        assertThat(sentTotal.get(), IsEqual(nEvents))
     }
 
     private suspend fun waitForEvent(): Int =

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
@@ -12,9 +12,15 @@ import kotlin.coroutines.*
 import kotlin.internal.*
 
 /**
- * Creates cold [Completable] that runs a given [block] in a coroutine and emits its result.
+ * Creates cold [Completable] that runs a given [block] in a coroutine.
  * Every time the returned completable is subscribed, it starts a new coroutine.
  * Unsubscribing cancels running coroutine.
+ *
+ * | **Coroutine action**                  | **Signal to subscriber**
+ * | ------------------------------------- | ------------------------
+ * | Completes successfully                | `onCompleted`
+ * | Failure with exception or unsubscribe | `onError`
+ *
  * Coroutine context can be specified with [context] argument.
  * If the context does not have any dispatcher nor any other [ContinuationInterceptor], then [Dispatchers.Default] is used.
  * Method throws [IllegalArgumentException] if provided [context] contains a [Job] instance.
@@ -30,7 +36,7 @@ public fun rxCompletable(
 
 @Deprecated(
     message = "CoroutineScope.rxCompletable is deprecated in favour of top-level rxCompletable",
-    level = DeprecationLevel.ERROR,
+    level = DeprecationLevel.WARNING,
     replaceWith = ReplaceWith("rxCompletable(context, block)")
 ) // Since 1.3.0, will be error in 1.3.1 and hidden in 1.4.0
 @LowPriorityInOverloadResolution
@@ -56,19 +62,21 @@ private class RxCompletableCoroutine(
 ) : AbstractCoroutine<Unit>(parentContext, true) {
     override fun onCompleted(value: Unit) {
         try {
-            subscriber.onComplete()
+            if (!subscriber.isDisposed) subscriber.onComplete()
         } catch (e: Throwable) {
-            handleUndeliverableException(e, context)
+            handleCoroutineException(context, e)
         }
     }
 
     override fun onCancelled(cause: Throwable, handled: Boolean) {
-        try {
-            if (!subscriber.tryOnError(cause)) {
-                handleUndeliverableException(cause, context)
+        if (!subscriber.isDisposed) {
+            try {
+                subscriber.onError(cause)
+            } catch (e: Throwable) {
+                handleCoroutineException(context, e)
             }
-        } catch (e: Throwable) {
-            handleUndeliverableException(e, context)
+        } else if (!handled) {
+            handleCoroutineException(context, cause)
         }
     }
 }

@@ -5,8 +5,9 @@
 package kotlinx.coroutines.reactive
 
 import kotlinx.coroutines.*
-import org.junit.Test
-import kotlin.test.*
+import org.hamcrest.core.*
+import org.junit.*
+import org.junit.Assert.*
 
 class PublisherMultiTest : TestBase() {
     @Test
@@ -26,6 +27,6 @@ class PublisherMultiTest : TestBase() {
         observable.collect {
             assertTrue(resultSet.add(it))
         }
-        assertEquals(n, resultSet.size)
+        assertThat(resultSet.size, IsEqual(n))
     }
 }

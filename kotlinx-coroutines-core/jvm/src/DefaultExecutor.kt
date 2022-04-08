@@ -1,11 +1,10 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
 
 import java.util.concurrent.*
-import kotlin.coroutines.*
 
 internal actual val DefaultDelay: Delay = DefaultExecutor
 
@@ -55,7 +54,7 @@ internal actual object DefaultExecutor : EventLoopImplBase(), Runnable {
      * Livelock is possible only if `runBlocking` is called on internal default executed (which is used by default [delay]),
      * but it's not exposed as public API.
      */
-    override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle =
+    override fun invokeOnTimeout(timeMillis: Long, block: Runnable): DisposableHandle =
         scheduleInvokeOnTimeout(timeMillis, block)
 
     override fun run() {
@@ -69,13 +68,15 @@ internal actual object DefaultExecutor : EventLoopImplBase(), Runnable {
                 var parkNanos = processNextEvent()
                 if (parkNanos == Long.MAX_VALUE) {
                     // nothing to do, initialize shutdown timeout
-                    val now = nanoTime()
-                    if (shutdownNanos == Long.MAX_VALUE) shutdownNanos = now + KEEP_ALIVE_NANOS
-                    val tillShutdown = shutdownNanos - now
-                    if (tillShutdown <= 0) return // shut thread down
-                    parkNanos = parkNanos.coerceAtMost(tillShutdown)
-                } else
-                    shutdownNanos = Long.MAX_VALUE
+                    if (shutdownNanos == Long.MAX_VALUE) {
+                        val now = nanoTime()
+                        if (shutdownNanos == Long.MAX_VALUE) shutdownNanos = now + KEEP_ALIVE_NANOS
+                        val tillShutdown = shutdownNanos - now
+                        if (tillShutdown <= 0) return // shut thread down
+                        parkNanos = parkNanos.coerceAtMost(tillShutdown)
+                    } else
+                        parkNanos = parkNanos.coerceAtMost(KEEP_ALIVE_NANOS) // limit wait time anyway
+                }
                 if (parkNanos > 0) {
                     // check if shutdown was requested and bail out in this case
                     if (isShutdownRequested) return
@@ -141,7 +142,4 @@ internal actual object DefaultExecutor : EventLoopImplBase(), Runnable {
         resetAll() // clear queues
         (this as Object).notifyAll()
     }
-
-    internal val isThreadPresent
-        get() = _thread != null
 }

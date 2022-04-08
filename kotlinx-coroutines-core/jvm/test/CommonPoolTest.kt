@@ -4,10 +4,11 @@
 
 package kotlinx.coroutines
 
-import org.junit.Test
+import kotlinx.coroutines.*
+import org.junit.*
+import org.junit.Assert.*
 import java.lang.reflect.*
 import java.util.concurrent.*
-import kotlin.test.*
 
 @Suppress("DEPRECATION")
 class CommonPoolTest {

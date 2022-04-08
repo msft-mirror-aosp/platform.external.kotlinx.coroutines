@@ -1,11 +1,9 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 package kotlinx.coroutines.debug
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.debug.internal.*
 import org.junit.Test
 import java.util.concurrent.*
 import kotlin.test.*
@@ -22,7 +20,7 @@ class RunningThreadStackMergeTest : DebugTestBase() {
         verifyDump(
             "Coroutine \"coroutine#1\":BlockingCoroutine{Active}@62230679", // <- this one is ignored
             "Coroutine \"coroutine#2\":StandaloneCoroutine{Active}@50284dc4, state: RUNNING\n" +
-                    "\tat jdk.internal.misc.Unsafe.park(Native Method)\n" +
+                    "\tat sun.misc.Unsafe.park(Native Method)\n" +
                     "\tat java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)\n" +
                     "\tat java.util.concurrent.locks.AbstractQueuedSynchronizer\$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)\n" +
                     "\tat java.util.concurrent.CyclicBarrier.dowait(CyclicBarrier.java:234)\n" +
@@ -35,9 +33,8 @@ class RunningThreadStackMergeTest : DebugTestBase() {
                     "\t(Coroutine creation stacktrace)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt:116)",
             ignoredCoroutine = ":BlockingCoroutine"
-        ) {
-            coroutineBlocker.await()
-        }
+        )
+        coroutineBlocker.await()
     }
 
     private fun awaitCoroutineStarted() {
@@ -77,7 +74,7 @@ class RunningThreadStackMergeTest : DebugTestBase() {
         verifyDump(
             "Coroutine \"coroutine#1\":BlockingCoroutine{Active}@62230679", // <- this one is ignored
             "Coroutine \"coroutine#2\":StandaloneCoroutine{Active}@3aea3c67, state: RUNNING\n" +
-                    "\tat jdk.internal.misc.Unsafe.park(Native Method)\n" +
+                    "\tat sun.misc.Unsafe.park(Native Method)\n" +
                     "\tat java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)\n" +
                     "\tat java.util.concurrent.locks.AbstractQueuedSynchronizer\$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)\n" +
                     "\tat java.util.concurrent.CyclicBarrier.dowait(CyclicBarrier.java:234)\n" +
@@ -90,9 +87,8 @@ class RunningThreadStackMergeTest : DebugTestBase() {
                     "\t(Coroutine creation stacktrace)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt:116)",
             ignoredCoroutine = ":BlockingCoroutine"
-        ) {
-            coroutineBlocker.await()
-        }
+        )
+        coroutineBlocker.await()
     }
 
     private fun CoroutineScope.launchEscapingCoroutine() {
@@ -118,7 +114,7 @@ class RunningThreadStackMergeTest : DebugTestBase() {
         verifyDump(
             "Coroutine \"coroutine#1\":BlockingCoroutine{Active}@62230679", // <- this one is ignored
             "Coroutine \"coroutine#2\":StandaloneCoroutine{Active}@3aea3c67, state: RUNNING\n" +
-                    "\tat jdk.internal.misc.Unsafe.park(Native Method)\n" +
+                    "\tat sun.misc.Unsafe.park(Native Method)\n" +
                     "\tat java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)\n" +
                     "\tat java.util.concurrent.locks.AbstractQueuedSynchronizer\$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)\n" +
                     "\tat java.util.concurrent.CyclicBarrier.dowait(CyclicBarrier.java:234)\n" +
@@ -129,13 +125,12 @@ class RunningThreadStackMergeTest : DebugTestBase() {
                     "\t(Coroutine creation stacktrace)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt:116)",
             ignoredCoroutine = ":BlockingCoroutine"
-        ) {
-            coroutineBlocker.await()
-        }
+        )
+        coroutineBlocker.await()
     }
 
     private fun CoroutineScope.launchEscapingCoroutineWithoutContext() {
-        launch(Dispatchers.IO) {
+        launch(Dispatchers.Default) {
             suspendingFunctionWithoutContext()
             assertTrue(true)
         }
@@ -150,16 +145,16 @@ class RunningThreadStackMergeTest : DebugTestBase() {
     @Test
     fun testRunBlocking() = runBlocking {
         verifyDump("Coroutine \"coroutine#1\":BlockingCoroutine{Active}@4bcd176c, state: RUNNING\n" +
-                "\tat java.lang.Thread.getStackTrace(Thread.java)\n" +
-                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.enhanceStackTraceWithThreadDumpImpl(DebugProbesImpl.kt)\n" +
-                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.dumpCoroutinesSynchronized(DebugProbesImpl.kt)\n" +
-                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.dumpCoroutines(DebugProbesImpl.kt)\n" +
-                "\tat kotlinx.coroutines.debug.DebugProbes.dumpCoroutines(DebugProbes.kt)\n" +
-                "\tat kotlinx.coroutines.debug.StacktraceUtilsKt.verifyDump(StacktraceUtils.kt)\n" +
-                "\tat kotlinx.coroutines.debug.StacktraceUtilsKt.verifyDump\$default(StacktraceUtils.kt)\n" +
-                "\tat kotlinx.coroutines.debug.RunningThreadStackMergeTest\$testRunBlocking\$1.invokeSuspend(RunningThreadStackMergeTest.kt)\n" +
+                "\tat java.lang.Thread.getStackTrace(Thread.java:1552)\n" +
+                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.enhanceStackTraceWithThreadDump(DebugProbesImpl.kt:147)\n" +
+                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.dumpCoroutines(DebugProbesImpl.kt:122)\n" +
+                "\tat kotlinx.coroutines.debug.internal.DebugProbesImpl.dumpCoroutines(DebugProbesImpl.kt:109)\n" +
+                "\tat kotlinx.coroutines.debug.DebugProbes.dumpCoroutines(DebugProbes.kt:122)\n" +
+                "\tat kotlinx.coroutines.debug.StracktraceUtilsKt.verifyDump(StracktraceUtils.kt)\n" +
+                "\tat kotlinx.coroutines.debug.StracktraceUtilsKt.verifyDump\$default(StracktraceUtils.kt)\n" +
+                "\tat kotlinx.coroutines.debug.RunningThreadStackMergeTest\$testRunBlocking\$1.invokeSuspend(RunningThreadStackMergeTest.kt:112)\n" +
                 "\t(Coroutine creation stacktrace)\n" +
-                "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt)\n")
+                "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt:116)\n")
     }
 
 
@@ -177,9 +172,10 @@ class RunningThreadStackMergeTest : DebugTestBase() {
     fun testActiveThread() = runBlocking<Unit> {
         launchCoroutine()
         awaitCoroutineStarted()
-        val info = DebugProbesImpl.dumpDebuggerInfo().find { it.state == "RUNNING" }
+        val info = DebugProbes.dumpCoroutinesInfo().find { it.state == State.RUNNING }
         assertNotNull(info)
-        assertNotNull(info.lastObservedThreadName)
+        @Suppress("INVISIBLE_MEMBER") // IDEA bug
+        assertNotNull(info.lastObservedThread)
         coroutineBlocker.await()
     }
 }

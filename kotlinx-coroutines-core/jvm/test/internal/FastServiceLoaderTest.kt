@@ -1,9 +1,10 @@
 package kotlinx.coroutines.internal
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Delay
 import kotlin.test.*
 
-class FastServiceLoaderTest : TestBase() {
+class FastServiceLoaderTest {
     @Test
     fun testCrossModuleService() {
         val providers = CoroutineScope::class.java.let { FastServiceLoader.loadProviders(it, it.classLoader) }

@@ -5,10 +5,12 @@
 package kotlinx.coroutines.reactor
 
 import kotlinx.coroutines.*
+import org.hamcrest.core.IsEqual
+import org.hamcrest.core.IsNot
+import org.junit.Assert.assertThat
 import org.junit.Before
 import org.junit.Test
 import reactor.core.scheduler.Schedulers
-import kotlin.test.*
 
 class SchedulerTest : TestBase() {
     @Before
@@ -22,11 +24,11 @@ class SchedulerTest : TestBase() {
         val mainThread = Thread.currentThread()
         withContext(Schedulers.single().asCoroutineDispatcher()) {
             val t1 = Thread.currentThread()
-            assertNotSame(t1, mainThread)
+            assertThat(t1, IsNot(IsEqual(mainThread)))
             expect(2)
             delay(100)
             val t2 = Thread.currentThread()
-            assertNotSame(t2, mainThread)
+            assertThat(t2, IsNot(IsEqual(mainThread)))
             expect(3)
         }
         finish(4)

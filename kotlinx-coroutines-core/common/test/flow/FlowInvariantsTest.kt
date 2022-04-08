@@ -6,6 +6,7 @@ package kotlinx.coroutines.flow
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.intrinsics.*
 import kotlin.coroutines.*
 import kotlin.reflect.*
 import kotlin.test.*
@@ -39,33 +40,54 @@ class FlowInvariantsTest : TestBase() {
     @Test
     fun testWithContextContract() = runParametrizedTest<Int>(IllegalStateException::class) { flow ->
         flow {
-            withContext(NonCancellable) {
+            kotlinx.coroutines.withContext(NonCancellable) {
                 emit(1)
             }
         }.collect {
-            expectUnreached()
+            assertEquals(1, it)
         }
     }
 
     @Test
     fun testWithDispatcherContractViolated() = runParametrizedTest<Int>(IllegalStateException::class) { flow ->
         flow {
-            withContext(NamedDispatchers("foo")) {
+            kotlinx.coroutines.withContext(NamedDispatchers("foo")) {
                 emit(1)
             }
         }.collect {
-            expectUnreached()
+            fail()
         }
+    }
+
+    @Test
+    fun testCachedInvariantCheckResult() = runParametrizedTest<Int> { flow ->
+        flow {
+            emit(1)
+
+            try {
+                kotlinx.coroutines.withContext(NamedDispatchers("foo")) {
+                    emit(1)
+                }
+                fail()
+            } catch (e: IllegalStateException) {
+                expect(2)
+            }
+
+            emit(3)
+        }.collect {
+            expect(it)
+        }
+        finish(4)
     }
 
     @Test
     fun testWithNameContractViolated() = runParametrizedTest<Int>(IllegalStateException::class) { flow ->
         flow {
-            withContext(CoroutineName("foo")) {
+            kotlinx.coroutines.withContext(CoroutineName("foo")) {
                 emit(1)
             }
         }.collect {
-            expectUnreached()
+            fail()
         }
     }
 
@@ -85,6 +107,7 @@ class FlowInvariantsTest : TestBase() {
                     }
                 }.join()
         }
+
         assertEquals("original", result)
     }
 
@@ -93,6 +116,7 @@ class FlowInvariantsTest : TestBase() {
         flow { emit(1) }.buffer(EmptyCoroutineContext, flow).collect {
             expect(1)
         }
+
         finish(2)
     }
 
@@ -101,6 +125,7 @@ class FlowInvariantsTest : TestBase() {
         flow { emit(1) }.buffer(Dispatchers.Unconfined, flow).collect {
             expect(1)
         }
+
         finish(2)
     }
 
@@ -126,9 +151,9 @@ class FlowInvariantsTest : TestBase() {
             }
         }
 
-        val flowInstance = flowOf(1)
-        assertFailsWith<IllegalStateException> { flowInstance.merge(flowInstance).toList() }
-        assertFailsWith<IllegalStateException> { flowInstance.trickyMerge(flowInstance).toList() }
+        val flow = flowOf(1)
+        assertFailsWith<IllegalStateException> { flow.merge(flow).toList() }
+        assertFailsWith<IllegalStateException> { flow.trickyMerge(flow).toList() }
     }
 
     @Test
@@ -192,7 +217,7 @@ class FlowInvariantsTest : TestBase() {
     }
 
     @Test
-    fun testEmptyCoroutineContextMap() = runTest {
+    fun testEmptyCoroutineContext() = runTest {
         emptyContextTest {
             map {
                 expect(it)
@@ -212,44 +237,14 @@ class FlowInvariantsTest : TestBase() {
     }
 
     @Test
-    fun testEmptyCoroutineContextTransformWhile() = runTest {
-        emptyContextTest {
-            transformWhile {
-                expect(it)
-                emit(it + 1)
-                true
-            }
-        }
-    }
-
-    @Test
-    fun testEmptyCoroutineContextViolationTransform() = runTest {
+    fun testEmptyCoroutineContextViolation() = runTest {
         try {
             emptyContextTest {
                 transform {
                     expect(it)
-                    withContext(Dispatchers.Unconfined) {
+                    kotlinx.coroutines.withContext(Dispatchers.Unconfined) {
                         emit(it + 1)
                     }
-                }
-            }
-            expectUnreached()
-        } catch (e: IllegalStateException) {
-            assertTrue(e.message!!.contains("Flow invariant is violated"))
-            finish(2)
-        }
-    }
-
-    @Test
-    fun testEmptyCoroutineContextViolationTransformWhile() = runTest {
-        try {
-            emptyContextTest {
-                transformWhile {
-                    expect(it)
-                    withContext(Dispatchers.Unconfined) {
-                        emit(it + 1)
-                    }
-                    true
                 }
             }
             expectUnreached()
@@ -272,8 +267,16 @@ class FlowInvariantsTest : TestBase() {
             return result
         }
 
-        val result = withEmptyContext { collector() }
+        val result = runSuspendFun { collector() }
         assertEquals(2, result)
         finish(3)
+    }
+
+    private suspend fun runSuspendFun(block: suspend () -> Int): Int {
+        val baseline = Result.failure<Int>(IllegalStateException("Block was suspended"))
+        var result: Result<Int> = baseline
+        block.startCoroutineUnintercepted(Continuation(EmptyCoroutineContext) { result = it })
+        while (result == baseline) yield()
+        return result.getOrThrow()
     }
 }

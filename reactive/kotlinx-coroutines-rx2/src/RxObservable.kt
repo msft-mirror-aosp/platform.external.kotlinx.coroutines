@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
@@ -19,14 +19,16 @@ import kotlin.internal.*
 /**
  * Creates cold [observable][Observable] that will run a given [block] in a coroutine.
  * Every time the returned observable is subscribed, it starts a new coroutine.
- *
- * Coroutine emits ([ObservableEmitter.onNext]) values with `send`, completes ([ObservableEmitter.onComplete])
- * when the coroutine completes or channel is explicitly closed and emits error ([ObservableEmitter.onError])
- * if coroutine throws an exception or closes channel with a cause.
- * Unsubscribing cancels running coroutine.
+ * Coroutine emits items with `send`. Unsubscribing cancels running coroutine.
  *
  * Invocations of `send` are suspended appropriately to ensure that `onNext` is not invoked concurrently.
- * Note that Rx 2.x [Observable] **does not support backpressure**.
+ * Note that Rx 2.x [Observable] **does not support backpressure**. Use [rxFlowable].
+ *
+ * | **Coroutine action**                         | **Signal to subscriber**
+ * | -------------------------------------------- | ------------------------
+ * | `send`                                       | `onNext`
+ * | Normal completion or `close` without cause   | `onComplete`
+ * | Failure with exception or `close` with cause | `onError`
  *
  * Coroutine context can be specified with [context] argument.
  * If the context does not have any dispatcher nor any other [ContinuationInterceptor], then [Dispatchers.Default] is used.
@@ -44,7 +46,7 @@ public fun <T : Any> rxObservable(
 
 @Deprecated(
     message = "CoroutineScope.rxObservable is deprecated in favour of top-level rxObservable",
-    level = DeprecationLevel.ERROR,
+    level = DeprecationLevel.WARNING,
     replaceWith = ReplaceWith("rxObservable(context, block)")
 ) // Since 1.3.0, will be error in 1.3.1 and hidden in 1.4.0
 @LowPriorityInOverloadResolution
@@ -168,9 +170,9 @@ private class RxObservableCoroutine<T: Any>(
                          * by coroutines machinery, anyway, they should not be present in regular program flow,
                          * thus our goal here is just to expose it as soon as possible.
                          */
-                        subscriber.tryOnError(cause)
+                        subscriber.onError(cause)
                         if (!handled && cause.isFatal()) {
-                            handleUndeliverableException(cause, context)
+                            handleCoroutineException(context, cause)
                         }
                     }
                     else {
@@ -178,7 +180,7 @@ private class RxObservableCoroutine<T: Any>(
                     }
                 } catch (e: Throwable) {
                     // Unhandled exception (cannot handle in other way, since we are already complete)
-                    handleUndeliverableException(e, context)
+                    handleCoroutineException(context, e)
                 }
             }
         } finally {

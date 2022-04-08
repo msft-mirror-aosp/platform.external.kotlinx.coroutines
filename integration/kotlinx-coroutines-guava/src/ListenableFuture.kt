@@ -1,15 +1,16 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.guava
 
 import com.google.common.util.concurrent.*
-import com.google.common.util.concurrent.internal.*
-import kotlinx.coroutines.*
+import com.google.common.util.concurrent.internal.InternalFutureFailureAccess
+import com.google.common.util.concurrent.internal.InternalFutures
 import java.util.concurrent.*
-import java.util.concurrent.CancellationException
 import kotlin.coroutines.*
+import kotlinx.coroutines.*
+import java.util.concurrent.CancellationException
 
 /**
  * Starts [block] in a new coroutine and returns a [ListenableFuture] pointing to its result.
@@ -46,14 +47,14 @@ public fun <T> CoroutineScope.future(
 ): ListenableFuture<T> {
     require(!start.isLazy) { "$start start is not supported" }
     val newContext = newCoroutineContext(context)
+    // TODO: It'd be nice not to leak this SettableFuture reference, which is easily blind-cast.
     val future = SettableFuture.create<T>()
     val coroutine = ListenableFutureCoroutine(newContext, future)
     future.addListener(
       coroutine,
       MoreExecutors.directExecutor())
     coroutine.start(start, coroutine, block)
-    // Return hides the SettableFuture. This should prevent casting.
-    return object: ListenableFuture<T> by future {}
+    return future
 }
 
 /**
@@ -119,7 +120,14 @@ public fun <T> ListenableFuture<T>.asDeferred(): Deferred<T> {
     // handle interruption.
     if (isDone) {
         return try {
-            CompletableDeferred(Uninterruptibles.getUninterruptibly(this))
+            val value = Uninterruptibles.getUninterruptibly(this)
+            if (value == null) {
+                CompletableDeferred<T>().also {
+                    it.completeExceptionally(KotlinNullPointerException())
+                }
+            } else {
+                CompletableDeferred(value)
+            }
         } catch (e: CancellationException) {
             CompletableDeferred<T>().also { it.cancel(e) }
         } catch (e: ExecutionException) {
@@ -134,9 +142,7 @@ public fun <T> ListenableFuture<T>.asDeferred(): Deferred<T> {
     val deferred = CompletableDeferred<T>()
     Futures.addCallback(this, object : FutureCallback<T> {
         override fun onSuccess(result: T?) {
-            // Here we work with flexible types, so we unchecked cast to trick the type system
-            @Suppress("UNCHECKED_CAST")
-            deferred.complete(result as T)
+            deferred.complete(result!!)
         }
 
         override fun onFailure(t: Throwable) {

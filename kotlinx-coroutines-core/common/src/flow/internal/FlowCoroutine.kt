@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.flow.internal
@@ -48,7 +48,8 @@ internal suspend fun <R> flowScope(@BuilderInference block: suspend CoroutineSco
  */
 internal fun <R> scopedFlow(@BuilderInference block: suspend CoroutineScope.(FlowCollector<R>) -> Unit): Flow<R> =
     flow {
-        flowScope { block(this@flow) }
+        val collector = this
+        flowScope { block(collector) }
     }
 
 internal fun <T> CoroutineScope.flowProduce(
@@ -59,7 +60,7 @@ internal fun <T> CoroutineScope.flowProduce(
     val channel = Channel<T>(capacity)
     val newContext = newCoroutineContext(context)
     val coroutine = FlowProduceCoroutine(newContext, channel)
-    coroutine.start(CoroutineStart.ATOMIC, coroutine, block)
+    coroutine.start(CoroutineStart.DEFAULT, coroutine, block)
     return coroutine
 }
 

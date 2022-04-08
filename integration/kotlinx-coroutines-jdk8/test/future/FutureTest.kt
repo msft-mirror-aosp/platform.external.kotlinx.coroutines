@@ -6,8 +6,9 @@ package kotlinx.coroutines.future
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
+import org.hamcrest.core.*
 import org.junit.*
-import org.junit.Test
+import org.junit.Assert.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.*
 import java.util.concurrent.locks.*
@@ -15,7 +16,6 @@ import java.util.function.*
 import kotlin.concurrent.*
 import kotlin.coroutines.*
 import kotlin.reflect.*
-import kotlin.test.*
 
 class FutureTest : TestBase() {
     @Before
@@ -30,7 +30,7 @@ class FutureTest : TestBase() {
                 "O"
             }.await() + "K"
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -40,7 +40,7 @@ class FutureTest : TestBase() {
         val future = GlobalScope.future {
             toAwait.await() + "K"
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -51,7 +51,7 @@ class FutureTest : TestBase() {
         val future = GlobalScope.future {
             toAwait.await() + "K"
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -62,7 +62,7 @@ class FutureTest : TestBase() {
         }
         assertFalse(future.isDone)
         toAwait.complete("O")
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -74,7 +74,7 @@ class FutureTest : TestBase() {
         }
         assertFalse(future.isDone)
         completable.complete("O")
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -88,7 +88,7 @@ class FutureTest : TestBase() {
                 e.message!!
             } + "K"
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -104,7 +104,7 @@ class FutureTest : TestBase() {
                 e.message!!
             } + "K"
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -125,7 +125,7 @@ class FutureTest : TestBase() {
         assertFalse(future.isDone)
         toAwait.completeExceptionally(TestException("O"))
         yield() // to future coroutine
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
         finish(5)
     }
 
@@ -142,7 +142,7 @@ class FutureTest : TestBase() {
         }
         assertFalse(future.isDone)
         completable.completeExceptionally(TestException("O"))
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test
@@ -158,7 +158,7 @@ class FutureTest : TestBase() {
             fail("'get' should've throw an exception")
         } catch (e: ExecutionException) {
             assertTrue(e.cause is IllegalStateException)
-            assertEquals("OK", e.cause!!.message)
+            assertThat(e.cause!!.message, IsEqual("OK"))
         }
     }
 
@@ -191,22 +191,22 @@ class FutureTest : TestBase() {
             it()
             depth.andDecrement
         }) {
-            assertEquals(1, depth.get(), "Part before first suspension must be wrapped")
+            assertEquals("Part before first suspension must be wrapped", 1, depth.get())
             val result =
                     CompletableFuture.supplyAsync {
                         while (depth.get() > 0);
-                        assertEquals(0, depth.get(), "Part inside suspension point should not be wrapped")
+                        assertEquals("Part inside suspension point should not be wrapped", 0, depth.get())
                         "OK"
                     }.await()
-            assertEquals(1, depth.get(), "Part after first suspension should be wrapped")
+            assertEquals("Part after first suspension should be wrapped", 1, depth.get())
             CompletableFuture.supplyAsync {
                 while (depth.get() > 0);
-                assertEquals(0, depth.get(), "Part inside suspension point should not be wrapped")
+                assertEquals("Part inside suspension point should not be wrapped", 0, depth.get())
                 "ignored"
             }.await()
             result
         }
-        assertEquals("OK", future.get())
+        assertThat(future.get(), IsEqual("OK"))
     }
 
     @Test

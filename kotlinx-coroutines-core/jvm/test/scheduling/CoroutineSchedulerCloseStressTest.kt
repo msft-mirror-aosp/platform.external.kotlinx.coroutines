@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.*
 import org.junit.runners.*
 import java.util.*
+import java.util.concurrent.*
 import kotlin.test.*
 
 @RunWith(Parameterized::class)
@@ -78,10 +79,6 @@ class CoroutineSchedulerCloseStressTest(private val mode: Mode) : TestBase() {
             } else {
                 if (rnd.nextBoolean()) {
                     delay(1000)
-                    val t = Thread.currentThread()
-                    if (!t.name.contains("DefaultDispatcher-worker")) {
-                        val a = 2
-                    }
                 } else {
                     yield()
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -9,11 +9,9 @@ import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
 import kotlinx.coroutines.intrinsics.*
 import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.*
 
 /**
  * Broadcasts all elements of the channel.
- * This function [consumes][ReceiveChannel.consume] all elements of the original [ReceiveChannel].
  *
  * The kind of the resulting channel depends on the specified [capacity] parameter:
  * when `capacity` is positive (1 by default), but less than [UNLIMITED] -- uses `ArrayBroadcastChannel` with a buffer of given capacity,
@@ -21,38 +19,17 @@ import kotlin.coroutines.intrinsics.*
  *   Note that resulting channel behaves like [ConflatedBroadcastChannel] but is not an instance of [ConflatedBroadcastChannel].
  *   otherwise -- throws [IllegalArgumentException].
  *
- * ### Cancelling broadcast
- *
- * **To stop broadcasting from the underlying channel call [cancel][BroadcastChannel.cancel] on the result.**
- *
- * Do not use [close][BroadcastChannel.close] on the resulting channel.
- * It causes eventual failure of the broadcast coroutine and cancellation of the underlying channel, too,
- * but it is not as prompt.
- *
- * ### Future replacement
- *
- * This function has an inappropriate result type of [BroadcastChannel] which provides
- * [send][BroadcastChannel.send] and [close][BroadcastChannel.close] operations that interfere with
- * the broadcasting coroutine in hard-to-specify ways.
- *
- * **Note: This API is obsolete.** It will be deprecated and replaced with the
- * [Flow.shareIn][kotlinx.coroutines.flow.shareIn] operator when it becomes stable.
- *
  * @param start coroutine start option. The default value is [CoroutineStart.LAZY].
  */
-public fun <E> ReceiveChannel<E>.broadcast(
+fun <E> ReceiveChannel<E>.broadcast(
     capacity: Int = 1,
     start: CoroutineStart = CoroutineStart.LAZY
-): BroadcastChannel<E> {
-    val scope = GlobalScope + Dispatchers.Unconfined + CoroutineExceptionHandler { _, _ -> }
-    // We can run this coroutine in the context that ignores all exceptions, because of `onCompletion = consume()`
-    // which passes all exceptions upstream to the source ReceiveChannel
-    return scope.broadcast(capacity = capacity, start = start, onCompletion = { cancelConsumed(it) }) {
+): BroadcastChannel<E> =
+    GlobalScope.broadcast(Dispatchers.Unconfined, capacity = capacity, start = start, onCompletion = consumes()) {
         for (e in this@broadcast) {
             send(e)
         }
     }
-}
 
 /**
  * Launches new coroutine to produce a stream of values by sending them to a broadcast channel
@@ -67,7 +44,7 @@ public fun <E> ReceiveChannel<E>.broadcast(
  * Coroutine context is inherited from a [CoroutineScope], additional context elements can be specified with [context] argument.
  * If the context does not have any dispatcher nor any other [ContinuationInterceptor], then [Dispatchers.Default] is used.
  * The parent job is inherited from a [CoroutineScope] as well, but it can also be overridden
- * with corresponding [context] element.
+ * with corresponding [coroutineContext] element.
  *
  * Uncaught exceptions in this coroutine close the channel with this exception as a cause and
  * the resulting channel becomes _failed_, so that any attempt to receive from such a channel throws exception.
@@ -84,21 +61,6 @@ public fun <E> ReceiveChannel<E>.broadcast(
  * However, later subscribers may miss elements.
  *
  * See [newCoroutineContext] for a description of debugging facilities that are available for newly created coroutine.
- *
- * ### Cancelling broadcast
- *
- * **To stop broadcasting from the underlying channel call [cancel][BroadcastChannel.cancel] on the result.**
- *
- * Do not use [close][BroadcastChannel.close] on the resulting channel.
- * It causes  failure of the `send` operation in broadcast coroutine and would not cancel it if the
- * coroutine is doing something else.
- *
- * ### Future replacement
- *
- * This function has an inappropriate result type of [BroadcastChannel] which provides
- * [send][BroadcastChannel.send] and [close][BroadcastChannel.close] operations that interfere with
- * the broadcasting coroutine in hard-to-specify ways. It will be replaced with
- * sharing operators on [Flow][kotlinx.coroutines.flow.Flow] in the future.
  *
  * @param context additional to [CoroutineScope.coroutineContext] context of the coroutine.
  * @param capacity capacity of the channel's buffer (1 by default).
@@ -134,19 +96,17 @@ private open class BroadcastCoroutine<E>(
         get() = this
 
     @Deprecated(level = DeprecationLevel.HIDDEN, message = "Since 1.2.0, binary compatibility with versions <= 1.1.x")
-    final override fun cancel(cause: Throwable?): Boolean {
-        cancelInternal(cause ?: defaultCancellationException())
-        return true
-    }
+    final override fun cancel(cause: Throwable?): Boolean =
+        cancelInternal(cause)
 
     final override fun cancel(cause: CancellationException?) {
-        cancelInternal(cause ?: defaultCancellationException())
+        cancelInternal(cause)
     }
 
-    override fun cancelInternal(cause: Throwable) {
-        val exception = cause.toCancellationException()
-        _channel.cancel(exception) // cancel the channel
-        cancelCoroutine(exception) // cancel the job
+    override fun cancelInternal(cause: Throwable?): Boolean {
+        _channel.cancel(cause?.toCancellationException()) // cancel the channel
+        cancelCoroutine(cause) // cancel the job
+        return true // does not matter - result is used in DEPRECATED functions only
     }
 
     override fun onCompleted(value: Unit) {
@@ -157,13 +117,6 @@ private open class BroadcastCoroutine<E>(
         val processed = _channel.close(cause)
         if (!processed && !handled) handleCoroutineException(context, cause)
     }
-
-    // The BroadcastChannel could be also closed
-    override fun close(cause: Throwable?): Boolean {
-        val result = _channel.close(cause)
-        start() // start coroutine if it was not started yet
-        return result
-    }
 }
 
 private class LazyBroadcastCoroutine<E>(
@@ -171,7 +124,7 @@ private class LazyBroadcastCoroutine<E>(
     channel: BroadcastChannel<E>,
     block: suspend ProducerScope<E>.() -> Unit
 ) : BroadcastCoroutine<E>(parentContext, channel, active = false) {
-    private val continuation = block.createCoroutineUnintercepted(this, this)
+    private var block: (suspend ProducerScope<E>.() -> Unit)? = block
 
     override fun openSubscription(): ReceiveChannel<E> {
         // open subscription _first_
@@ -182,6 +135,8 @@ private class LazyBroadcastCoroutine<E>(
     }
 
     override fun onStart() {
-        continuation.startCoroutineCancellable(this)
+        val block = checkNotNull(this.block) { "Already started" }
+        this.block = null
+        block.startCoroutineCancellable(this, this)
     }
 }

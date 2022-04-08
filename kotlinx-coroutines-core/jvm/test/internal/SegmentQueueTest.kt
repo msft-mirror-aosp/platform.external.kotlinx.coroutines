@@ -1,20 +1,21 @@
 package kotlinx.coroutines.internal
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.TestBase
 import org.junit.Test
 import java.util.*
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.random.Random
-import kotlin.test.*
+import kotlin.test.assertEquals
 
 class SegmentQueueTest : TestBase() {
+
     @Test
-    fun testSimpleTest() {
+    fun simpleTest() {
         val q = SegmentBasedQueue<Int>()
-        assertEquals(1, q.numberOfSegments)
-        assertNull(q.dequeue())
+        assertEquals( 1, q.numberOfSegments)
+        assertEquals(null, q.dequeue())
         q.enqueue(1)
         assertEquals(1, q.numberOfSegments)
         q.enqueue(2)
@@ -23,7 +24,7 @@ class SegmentQueueTest : TestBase() {
         assertEquals(2, q.numberOfSegments)
         assertEquals(2, q.dequeue())
         assertEquals(1, q.numberOfSegments)
-        assertNull(q.dequeue())
+        assertEquals(null, q.dequeue())
     }
 
     @Test
@@ -33,11 +34,11 @@ class SegmentQueueTest : TestBase() {
         val s = q.enqueue(2)
         q.enqueue(3)
         assertEquals(3, q.numberOfSegments)
-        s!!.removeSegment()
+        s.removeSegment()
         assertEquals(2, q.numberOfSegments)
         assertEquals(1, q.dequeue())
         assertEquals(3, q.dequeue())
-        assertNull(q.dequeue())
+        assertEquals(null, q.dequeue())
     }
 
     @Test
@@ -47,18 +48,8 @@ class SegmentQueueTest : TestBase() {
         val s = q.enqueue(2)
         assertEquals(1, q.dequeue())
         q.enqueue(3)
-        s!!.removeSegment()
+        s.removeSegment()
         assertEquals(3, q.dequeue())
-        assertNull(q.dequeue())
-    }
-
-    @Test
-    fun testClose() {
-        val q = SegmentBasedQueue<Int>()
-        q.enqueue(1)
-        assertEquals(0, q.close().id)
-        assertEquals(null, q.enqueue(2))
-        assertEquals(1, q.dequeue())
         assertEquals(null, q.dequeue())
     }
 
@@ -74,22 +65,21 @@ class SegmentQueueTest : TestBase() {
                 expectedQueue.add(el)
             } else { // remove
                 assertEquals(expectedQueue.poll(), q.dequeue())
-                q.checkHeadPrevIsCleaned()
             }
         }
     }
 
     @Test
-    fun testRemoveSegmentsSerial() = stressTestRemoveSegments(false)
+    fun stressTestRemoveSegmentsSerial() = stressTestRemoveSegments(false)
 
     @Test
-    fun testRemoveSegmentsRandom() = stressTestRemoveSegments(true)
+    fun stressTestRemoveSegmentsRandom() = stressTestRemoveSegments(true)
 
     private fun stressTestRemoveSegments(random: Boolean) {
         val N = 100_000 * stressTestMultiplier
         val T = 10
         val q = SegmentBasedQueue<Int>()
-        val segments = (1..N).map { q.enqueue(it)!! }.toMutableList()
+        val segments = (1..N).map { q.enqueue(it) }.toMutableList()
         if (random) segments.shuffle()
         assertEquals(N, q.numberOfSegments)
         val nextSegmentIndex = AtomicInteger()

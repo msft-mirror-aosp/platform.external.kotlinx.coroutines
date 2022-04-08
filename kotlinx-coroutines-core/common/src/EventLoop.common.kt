@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines
@@ -8,7 +8,6 @@ import kotlinx.atomicfu.*
 import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
-import kotlin.native.concurrent.*
 
 /**
  * Extended by [CoroutineDispatcher] implementations that have event loop inside and can
@@ -52,7 +51,7 @@ internal abstract class EventLoop : CoroutineDispatcher() {
      */
     public open fun processNextEvent(): Long {
         if (!processUnconfinedEvent()) return Long.MAX_VALUE
-        return 0
+        return nextTime
     }
 
     protected open val isEmpty: Boolean get() = isUnconfinedQueueEmpty
@@ -118,7 +117,7 @@ internal abstract class EventLoop : CoroutineDispatcher() {
     protected open fun shutdown() {}
 }
 
-@ThreadLocal
+@NativeThreadLocal
 internal object ThreadLocalEventLoop {
     private val ref = CommonThreadLocal<EventLoop?>()
 
@@ -183,16 +182,15 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
     // Allocated only only once
     private val _delayed = atomic<DelayedTaskQueue?>(null)
 
-    private val _isCompleted = atomic(false)
-    private var isCompleted
-        get() = _isCompleted.value
-        set(value) { _isCompleted.value = value }
+    @Volatile
+    private var isCompleted = false
 
     override val isEmpty: Boolean get() {
         if (!isUnconfinedQueueEmpty) return false
         val delayed = _delayed.value
         if (delayed != null && !delayed.isEmpty) return false
-        return when (val queue = _queue.value) {
+        val queue = _queue.value
+        return when (queue) {
             null -> true
             is Queue<*> -> queue.isEmpty
             else -> queue === CLOSED_EMPTY
@@ -251,7 +249,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
 
     override fun processNextEvent(): Long {
         // unconfined events take priority
-        if (processUnconfinedEvent()) return 0
+        if (processUnconfinedEvent()) return nextTime
         // queue all delayed tasks that are due to be executed
         val delayed = _delayed.value
         if (delayed != null && !delayed.isEmpty) {
@@ -269,11 +267,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
             }
         }
         // then process one event from queue
-        val task = dequeue()
-        if (task != null) {
-            task.run()
-            return 0
-        }
+        dequeue()?.run()
         return nextTime
     }
 

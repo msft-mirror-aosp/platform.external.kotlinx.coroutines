@@ -1,6 +1,5 @@
 package kotlinx.coroutines.exceptions
 
-import kotlinx.coroutines.*
 import java.io.*
 import kotlin.test.*
 
@@ -18,12 +17,6 @@ public fun verifyStackTrace(e: Throwable, vararg traces: String) {
     val causes = stacktrace.count("Caused by")
     assertNotEquals(0, causes)
     assertEquals(traces.map { it.count("Caused by") }.sum(), causes)
-}
-
-public fun verifyStackTrace(path: String, e: Throwable) {
-    val resource = Job::class.java.classLoader.getResourceAsStream("stacktraces/$path.txt")
-    val lines = resource.reader().readLines()
-    verifyStackTrace(e, *lines.toTypedArray())
 }
 
 public fun toStackTrace(t: Throwable): String {

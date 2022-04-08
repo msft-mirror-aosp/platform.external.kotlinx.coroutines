@@ -44,7 +44,7 @@ class RendezvousChannelTest : TestBase() {
             expect(3)
             assertEquals(42, q.receiveOrNull())
             expect(4)
-            assertNull(q.receiveOrNull())
+            assertEquals(null, q.receiveOrNull())
             expect(6)
         }
         expect(2)
@@ -86,11 +86,11 @@ class RendezvousChannelTest : TestBase() {
         expect(1)
         launch {
             expect(3)
-            assertNull(q.poll())
+            assertEquals(null, q.poll())
             expect(4)
             assertEquals(2, q.receive())
             expect(7)
-            assertNull(q.poll())
+            assertEquals(null, q.poll())
             yield()
             expect(9)
             assertEquals(3, q.poll())
@@ -239,6 +239,12 @@ class RendezvousChannelTest : TestBase() {
         expect(10)
         yield() // to sender, it was resumed!
         finish(12)
+    }
+
+    class BadClass {
+        override fun equals(other: Any?): Boolean = error("equals")
+        override fun hashCode(): Int = error("hashCode")
+        override fun toString(): String = error("toString")
     }
 
     @Test

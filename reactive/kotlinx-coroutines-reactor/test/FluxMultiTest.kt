@@ -7,10 +7,9 @@ package kotlinx.coroutines.reactor
 import kotlinx.coroutines.*
 import kotlinx.coroutines.reactive.*
 import org.junit.*
-import org.junit.Test
+import org.junit.Assert.*
 import reactor.core.publisher.*
 import java.io.*
-import kotlin.test.*
 
 class FluxMultiTest : TestBase() {
     @Test
@@ -74,7 +73,7 @@ class FluxMultiTest : TestBase() {
         val mono = mono {
             var result = ""
             try {
-                flux.collect { result += it }
+                flux.consumeEach { result += it }
             } catch(e: IOException) {
                 result += e.message
             }

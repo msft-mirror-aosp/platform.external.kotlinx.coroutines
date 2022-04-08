@@ -7,18 +7,11 @@ package kotlinx.coroutines.reactor
 import kotlinx.coroutines.*
 import kotlinx.coroutines.reactive.*
 import org.junit.*
-import org.junit.Test
+import org.junit.Assert.*
 import reactor.core.publisher.*
 import java.time.Duration.*
-import kotlin.test.*
 
-class FluxSingleTest : TestBase() {
-
-    @Before
-    fun setup() {
-        ignoreLostThreads("parallel-")
-    }
-
+class FluxSingleTest {
     @Test
     fun testSingleNoWait() {
         val flux = flux {
@@ -61,72 +54,6 @@ class FluxSingleTest : TestBase() {
     fun testSingleException() {
         val flux = flux {
             send(Flux.just("O", "K").awaitSingle() + "K")
-        }
-
-        checkErroneous(flux) {
-            assert(it is IllegalArgumentException)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrDefault() {
-        val flux = flux {
-            send(Flux.empty<String>().awaitSingleOrDefault("O") + "K")
-        }
-
-        checkSingleValue(flux) {
-            assertEquals("OK", it)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrDefaultException() {
-        val flux = flux {
-            send(Flux.just("O", "#").awaitSingleOrDefault("!") + "K")
-        }
-
-        checkErroneous(flux) {
-            assert(it is IllegalArgumentException)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrNull() {
-        val flux = flux<String?> {
-            send(Flux.empty<String>().awaitSingleOrNull() ?: "OK")
-        }
-
-        checkSingleValue(flux) {
-            assertEquals("OK", it)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrNullException() {
-        val flux = flux {
-            send((Flux.just("O", "#").awaitSingleOrNull() ?: "!") + "K")
-        }
-
-        checkErroneous(flux) {
-            assert(it is IllegalArgumentException)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrElse() {
-        val flux = flux {
-            send(Flux.empty<String>().awaitSingleOrElse { "O" } + "K")
-        }
-
-        checkSingleValue(flux) {
-            assertEquals("OK", it)
-        }
-    }
-
-    @Test
-    fun testAwaitSingleOrElseException() {
-        val flux = flux {
-            send(Flux.just("O", "#").awaitSingleOrElse { "!" } + "K")
         }
 
         checkErroneous(flux) {
@@ -240,7 +167,7 @@ class FluxSingleTest : TestBase() {
     @Test
     fun testExceptionFromCoroutine() {
         val flux = flux<String> {
-            throw IllegalStateException(Flux.just("O").awaitSingle() + "K")
+            error(Flux.just("O").awaitSingle() + "K")
         }
 
         checkErroneous(flux) {

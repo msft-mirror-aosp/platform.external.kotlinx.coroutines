@@ -7,16 +7,15 @@ import kotlinx.coroutines.reactive.*
 import org.junit.Test
 import reactor.core.publisher.*
 import reactor.util.context.*
-import kotlin.coroutines.*
 import kotlin.test.*
 
-class ReactorContextTest : TestBase() {
+class ReactorContextTest {
     @Test
     fun testMonoHookedContext() = runBlocking {
         val mono = mono(Context.of(1, "1", 7, "7").asCoroutineContext()) {
-            val ctx = reactorContext()
+            val ctx = coroutineContext[ReactorContext]?.context
             buildString {
-                (1..7).forEach { append(ctx.getOrDefault(it, "noValue")) }
+                (1..7).forEach { append(ctx?.getOrDefault(it, "noValue")) }
             }
         }  .subscriberContext(Context.of(2, "2", 3, "3", 4, "4", 5, "5"))
            .subscriberContext { ctx -> ctx.put(6, "6") }
@@ -24,23 +23,22 @@ class ReactorContextTest : TestBase() {
     }
 
     @Test
-    fun testFluxContext() {
+    fun testFluxContext() = runBlocking<Unit> {
         val flux = flux(Context.of(1, "1", 7, "7").asCoroutineContext()) {
-            val ctx = reactorContext()
+            val ctx = coroutineContext[ReactorContext]!!.context
             (1..7).forEach { send(ctx.getOrDefault(it, "noValue")) }
-        }
-            .subscriberContext(Context.of(2, "2", 3, "3", 4, "4", 5, "5"))
+        }   .subscriberContext(Context.of(2, "2", 3, "3", 4, "4", 5, "5"))
             .subscriberContext { ctx -> ctx.put(6, "6") }
-        val list = flux.collectList().block()!!
-        assertEquals((1..7).map { it.toString() }, list)
+        var i = 0
+        flux.subscribe { str -> i++; assertEquals(str, i.toString()) }
     }
 
     @Test
     fun testAwait() = runBlocking(Context.of(3, "3").asCoroutineContext()) {
         val result = mono(Context.of(1, "1").asCoroutineContext()) {
-            val ctx = reactorContext()
+            val ctx = coroutineContext[ReactorContext]?.context
             buildString {
-                (1..3).forEach { append(ctx.getOrDefault(it, "noValue")) }
+                (1..3).forEach { append(ctx?.getOrDefault(it, "noValue")) }
             }
         }  .subscriberContext(Context.of(2, "2"))
             .awaitFirst()
@@ -49,34 +47,36 @@ class ReactorContextTest : TestBase() {
 
     @Test
     fun testMonoAwaitContextPropagation() = runBlocking(Context.of(7, "7").asCoroutineContext()) {
-        assertEquals(createMono().awaitFirst(), "7")
-        assertEquals(createMono().awaitFirstOrDefault("noValue"), "7")
-        assertEquals(createMono().awaitFirstOrNull(), "7")
-        assertEquals(createMono().awaitFirstOrElse { "noValue" }, "7")
-        assertEquals(createMono().awaitLast(), "7")
-        assertEquals(createMono().awaitSingle(), "7")
+        assertEquals(m().awaitFirst(), "7")
+        assertEquals(m().awaitFirstOrDefault("noValue"), "7")
+        assertEquals(m().awaitFirstOrNull(), "7")
+        assertEquals(m().awaitFirstOrElse { "noValue" }, "7")
+        assertEquals(m().awaitLast(), "7")
+        assertEquals(m().awaitSingle(), "7")
     }
 
     @Test
     fun testFluxAwaitContextPropagation() = runBlocking<Unit>(
         Context.of(1, "1", 2, "2", 3, "3").asCoroutineContext()
     ) {
-        assertEquals(createFlux().awaitFirst(), "1")
-        assertEquals(createFlux().awaitFirstOrDefault("noValue"), "1")
-        assertEquals(createFlux().awaitFirstOrNull(), "1")
-        assertEquals(createFlux().awaitFirstOrElse { "noValue" }, "1")
-        assertEquals(createFlux().awaitLast(), "3")
+        assertEquals(f().awaitFirst(), "1")
+        assertEquals(f().awaitFirstOrDefault("noValue"), "1")
+        assertEquals(f().awaitFirstOrNull(), "1")
+        assertEquals(f().awaitFirstOrElse { "noValue" }, "1")
+        assertEquals(f().awaitLast(), "3")
+        var i = 0
+        f().subscribe { str -> i++; assertEquals(str, i.toString()) }
     }
 
-    private fun createMono(): Mono<String> = mono {
-        val ctx = reactorContext()
-        ctx.getOrDefault(7, "noValue")
+    private fun m(): Mono<String> = mono {
+        val ctx = coroutineContext[ReactorContext]?.context
+        ctx?.getOrDefault(7, "noValue")
     }
 
 
-    private fun createFlux(): Flux<String?> = flux {
-        val ctx = reactorContext()
-        (1..3).forEach { send(ctx.getOrDefault(it, "noValue")) }
+    private fun f(): Flux<String?> = flux {
+        val ctx = coroutineContext[ReactorContext]?.context
+        (1..3).forEach { send(ctx?.getOrDefault(it, "noValue")) }
     }
 
     @Test
@@ -95,17 +95,17 @@ class ReactorContextTest : TestBase() {
     fun testFlowToFluxDirectContextPropagation() = runBlocking(
         Context.of(1, "1", 2, "2", 3, "3").asCoroutineContext()
     ) {
+        var i = 0
         // convert resulting flow to channel using "produceIn"
         val channel = bar().produceIn(this)
-        val list = channel.toList()
-        assertEquals(listOf("1", "2", "3"), list)
+        channel.consumeEach { str ->
+            i++; assertEquals(str, i.toString())
+        }
+        assertEquals(i, 3)
     }
 
     private fun bar(): Flow<String> = flux {
-        val ctx = reactorContext()
+        val ctx = coroutineContext[ReactorContext]!!.context
         (1..3).forEach { send(ctx.getOrDefault(it, "noValue")) }
     }.asFlow()
-
-    private suspend fun reactorContext() =
-        coroutineContext[ReactorContext]!!.context
 }

@@ -1,15 +1,13 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:JvmMultifileClass
 @file:JvmName("BuildersKt")
-@file:OptIn(ExperimentalContracts::class)
 
 package kotlinx.coroutines
 
 import java.util.concurrent.locks.*
-import kotlin.contracts.*
 import kotlin.coroutines.*
 
 /**
@@ -36,9 +34,6 @@ import kotlin.coroutines.*
  */
 @Throws(InterruptedException::class)
 public fun <T> runBlocking(context: CoroutineContext = EmptyCoroutineContext, block: suspend CoroutineScope.() -> T): T {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
     val currentThread = Thread.currentThread()
     val contextInterceptor = context[ContinuationInterceptor]
     val eventLoop: EventLoop?
@@ -66,7 +61,7 @@ private class BlockingCoroutine<T>(
 ) : AbstractCoroutine<T>(parentContext, true) {
     override val isScopedCoroutine: Boolean get() = true
 
-    override fun afterCompletion(state: Any?) {
+    override fun afterCompletionInternal(state: Any?, mode: Int) {
         // wake up blocked thread
         if (Thread.currentThread() != blockedThread)
             LockSupport.unpark(blockedThread)

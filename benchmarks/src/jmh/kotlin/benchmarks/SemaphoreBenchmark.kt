@@ -1,10 +1,5 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package benchmarks
 
-import benchmarks.common.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.scheduling.ExperimentalCoroutineDispatcher
@@ -12,6 +7,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit
 
 @Warmup(iterations = 3, time = 500, timeUnit = TimeUnit.MICROSECONDS)
@@ -54,9 +50,9 @@ open class SemaphoreBenchmark {
             jobs += GlobalScope.launch {
                 repeat(n) {
                     semaphore.withPermit {
-                        doGeomDistrWork(WORK_INSIDE)
+                        doWork(WORK_INSIDE)
                     }
-                    doGeomDistrWork(WORK_OUTSIDE)
+                    doWork(WORK_OUTSIDE)
                 }
             }
         }
@@ -72,9 +68,9 @@ open class SemaphoreBenchmark {
             jobs += GlobalScope.launch {
                 repeat(n) {
                     semaphore.send(Unit) // acquire
-                    doGeomDistrWork(WORK_INSIDE)
+                    doWork(WORK_INSIDE)
                     semaphore.receive() // release
-                    doGeomDistrWork(WORK_OUTSIDE)
+                    doWork(WORK_OUTSIDE)
                 }
             }
         }
@@ -85,6 +81,15 @@ open class SemaphoreBenchmark {
 enum class SemaphoreBenchDispatcherCreator(val create: (parallelism: Int) -> CoroutineDispatcher) {
     FORK_JOIN({ parallelism -> ForkJoinPool(parallelism).asCoroutineDispatcher() }),
     EXPERIMENTAL({ parallelism -> ExperimentalCoroutineDispatcher(corePoolSize = parallelism, maxPoolSize = parallelism) })
+}
+
+private fun doWork(work: Int) {
+    // We use geometric distribution here
+    val p = 1.0 / work
+    val r = ThreadLocalRandom.current()
+    while (true) {
+        if (r.nextDouble() < p) break
+    }
 }
 
 private const val WORK_INSIDE = 80

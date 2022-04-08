@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:JvmMultifileClass
@@ -8,14 +8,16 @@
 
 package kotlinx.coroutines.flow
 
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.internal.*
-import kotlinx.coroutines.internal.Symbol
+import kotlinx.coroutines.flow.internal.unsafeFlow as flow
 import kotlin.jvm.*
 
 /**
  * Accumulates value starting with the first element and applying [operation] to current accumulator value and each element.
- * Throws [NoSuchElementException] if flow was empty.
+ * Throws [UnsupportedOperationException] if flow was empty.
  */
+@ExperimentalCoroutinesApi
 public suspend fun <S, T : S> Flow<T>.reduce(operation: suspend (accumulator: S, value: T) -> S): S {
     var accumulator: Any? = NULL
 
@@ -28,7 +30,7 @@ public suspend fun <S, T : S> Flow<T>.reduce(operation: suspend (accumulator: S,
         }
     }
 
-    if (accumulator === NULL) throw NoSuchElementException("Empty flow can't be reduced")
+    if (accumulator === NULL) throw UnsupportedOperationException("Empty flow can't be reduced")
     @Suppress("UNCHECKED_CAST")
     return accumulator as S
 }
@@ -36,6 +38,7 @@ public suspend fun <S, T : S> Flow<T>.reduce(operation: suspend (accumulator: S,
 /**
  * Accumulates value starting with [initial] value and applying [operation] current accumulator value and each element
  */
+@ExperimentalCoroutinesApi
 public suspend inline fun <T, R> Flow<T>.fold(
     initial: R,
     crossinline operation: suspend (acc: R, value: T) -> R
@@ -48,39 +51,34 @@ public suspend inline fun <T, R> Flow<T>.fold(
 }
 
 /**
- * The terminal operator that awaits for one and only one value to be emitted.
+ * The terminal operator, that awaits for one and only one value to be published.
  * Throws [NoSuchElementException] for empty flow and [IllegalStateException] for flow
  * that contains more than one element.
  */
 public suspend fun <T> Flow<T>.single(): T {
     var result: Any? = NULL
     collect { value ->
-        require(result === NULL) { "Flow has more than one element" }
+        if (result !== NULL) error("Expected only one element")
         result = value
     }
 
-    if (result === NULL) throw NoSuchElementException("Flow is empty")
+    if (result === NULL) throw NoSuchElementException("Expected at least one element")
+    @Suppress("UNCHECKED_CAST")
     return result as T
 }
 
 /**
- * The terminal operator that awaits for one and only one value to be emitted.
- * Returns the single value or `null`, if the flow was empty or emitted more than one value.
+ * The terminal operator, that awaits for one and only one value to be published.
+ * Throws [IllegalStateException] for flow that contains more than one element.
  */
-public suspend fun <T> Flow<T>.singleOrNull(): T? {
-    var result: Any? = NULL
-    collectWhile {
-        // No values yet, update result
-        if (result === NULL) {
-            result = it
-            true
-        } else {
-            // Second value, reset result and bail out
-            result = NULL
-            false
-        }
+public suspend fun <T: Any> Flow<T>.singleOrNull(): T? {
+    var result: T? = null
+    collect { value ->
+        if (result != null) error("Expected only one element")
+        result = value
     }
-    return if (result === NULL) null else result as T
+
+    return result
 }
 
 /**
@@ -89,10 +87,15 @@ public suspend fun <T> Flow<T>.singleOrNull(): T? {
  */
 public suspend fun <T> Flow<T>.first(): T {
     var result: Any? = NULL
-    collectWhile {
-        result = it
-        false
+    try {
+        collect { value ->
+            result = value
+            throw AbortFlowException()
+        }
+    } catch (e: AbortFlowException) {
+        // Do nothing
     }
+
     if (result === NULL) throw NoSuchElementException("Expected at least one element")
     return result as T
 }
@@ -103,44 +106,17 @@ public suspend fun <T> Flow<T>.first(): T {
  */
 public suspend fun <T> Flow<T>.first(predicate: suspend (T) -> Boolean): T {
     var result: Any? = NULL
-    collectWhile {
-        if (predicate(it)) {
-            result = it
-            false
-        } else {
-            true
+    try {
+        collect { value ->
+            if (predicate(value)) {
+                result = value
+                throw AbortFlowException()
+            }
         }
+    } catch (e: AbortFlowException) {
+        // Do nothing
     }
+
     if (result === NULL) throw NoSuchElementException("Expected at least one element matching the predicate $predicate")
     return result as T
-}
-
-/**
- * The terminal operator that returns the first element emitted by the flow and then cancels flow's collection.
- * Returns `null` if the flow was empty.
- */
-public suspend fun <T> Flow<T>.firstOrNull(): T? {
-    var result: T? = null
-    collectWhile {
-        result = it
-        false
-    }
-    return result
-}
-
-/**
- * The terminal operator that returns the first element emitted by the flow matching the given [predicate] and then cancels flow's collection.
- * Returns `null` if the flow did not contain an element matching the [predicate].
- */
-public suspend fun <T> Flow<T>.firstOrNull(predicate: suspend (T) -> Boolean): T? {
-    var result: T? = null
-    collectWhile {
-        if (predicate(it)) {
-            result = it
-            false
-        } else {
-            true
-        }
-    }
-    return result
 }

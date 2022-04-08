@@ -2,14 +2,13 @@
 
 This module builds references documentation.
 
-## Building docs
+## Building
 
-* Install [Docker](https://www.docker.com/)
-* In the project root directory run `./gradlew site`
-* The resulting HTML pages are generated in `site/build/dist`
-* For continuous testing of the documentation run `./gradlew serve` and navigate
-  to the URL that is printed on the screen
-  * Update the docs via `./gradlew copyDocs` while `serve` is running
-
-For release use [`deploy.sh`](deploy.sh) that performs clean build of the site and pushes the results
-into `gh-pages` branch of the project.
+* Install [Jekyll](https://jekyllrb.com)
+* If you already have Ruby/Jekyll installed you might need to update its version:
+  * `cd site/docs`
+  * `bundle install`
+* In project root directory do:
+  * Run `./gradlew site`
+* The result is in `site/build/gh-pages/_site`
+* Upload it to github pages (`gh-pages` branch) 

@@ -11,7 +11,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
 import org.junit.*
 import kotlin.coroutines.*
-import kotlin.test.*
 
 abstract class SchedulerTestBase : TestBase() {
     companion object {
@@ -23,20 +22,17 @@ abstract class SchedulerTestBase : TestBase() {
          */
         fun checkPoolThreadsCreated(expectedThreadsCount: Int = CORES_COUNT) {
             val threadsCount = maxSequenceNumber()!!
-            assertEquals(expectedThreadsCount, threadsCount, "Expected $expectedThreadsCount pool threads, but has $threadsCount")
+            require(threadsCount == expectedThreadsCount)
+                { "Expected $expectedThreadsCount pool threads, but has $threadsCount" }
         }
 
         /**
          * Asserts that any number of pool worker threads in [range] were created.
          * Note that 'created' doesn't mean 'exists' because pool supports dynamic shrinking
          */
-        fun checkPoolThreadsCreated(range: IntRange, base: Int = CORES_COUNT) {
+        fun checkPoolThreadsCreated(range: IntRange) {
             val maxSequenceNumber = maxSequenceNumber()!!
-            val r = (range.first)..(range.last + base)
-            assertTrue(
-                maxSequenceNumber in r,
-                "Expected pool threads to be in interval $r, but has $maxSequenceNumber"
-            )
+            require(maxSequenceNumber in range) { "Expected pool threads to be in interval $range, but has $maxSequenceNumber" }
         }
 
         /**
@@ -44,7 +40,7 @@ abstract class SchedulerTestBase : TestBase() {
          */
         fun checkPoolThreadsExist(range: IntRange) {
             val threads = Thread.getAllStackTraces().keys.asSequence().filter { it is CoroutineScheduler.Worker }.count()
-            assertTrue(threads in range, "Expected threads in $range interval, but has $threads")
+            require(threads in range) { "Expected threads in $range interval, but has $threads" }
         }
 
         private fun maxSequenceNumber(): Int? {
@@ -65,12 +61,15 @@ abstract class SchedulerTestBase : TestBase() {
         suspend fun Iterable<Job>.joinAll() = forEach { it.join() }
     }
 
-    protected var corePoolSize = CORES_COUNT
+    private val exception = atomic<Throwable?>(null)
+    private val handler = CoroutineExceptionHandler { _, e -> exception.value = e }
+
+    protected var corePoolSize = 1
     protected var maxPoolSize = 1024
     protected var idleWorkerKeepAliveNs = IDLE_WORKER_KEEP_ALIVE_NS
 
     private var _dispatcher: ExperimentalCoroutineDispatcher? = null
-    protected val dispatcher: CoroutineDispatcher
+    protected val dispatcher: CoroutineContext
         get() {
             if (_dispatcher == null) {
                 _dispatcher = ExperimentalCoroutineDispatcher(
@@ -80,21 +79,21 @@ abstract class SchedulerTestBase : TestBase() {
                 )
             }
 
-            return _dispatcher!!
+            return _dispatcher!! + handler
         }
 
     protected var blockingDispatcher = lazy {
         blockingDispatcher(1000)
     }
 
-    protected fun blockingDispatcher(parallelism: Int): CoroutineDispatcher {
+    protected fun blockingDispatcher(parallelism: Int): CoroutineContext {
         val intitialize = dispatcher
-        return _dispatcher!!.blocking(parallelism)
+        return _dispatcher!!.blocking(parallelism) + handler
     }
 
-    protected fun view(parallelism: Int): CoroutineDispatcher {
+    protected fun view(parallelism: Int): CoroutineContext {
         val intitialize = dispatcher
-        return _dispatcher!!.limited(parallelism)
+        return _dispatcher!!.limited(parallelism) + handler
     }
 
     @After
@@ -104,5 +103,6 @@ abstract class SchedulerTestBase : TestBase() {
                 _dispatcher?.close()
             }
         }
+        exception.value?.let { throw it }
     }
 }

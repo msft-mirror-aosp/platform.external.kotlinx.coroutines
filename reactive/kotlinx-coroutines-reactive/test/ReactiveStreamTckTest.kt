@@ -11,7 +11,7 @@ import org.testng.*
 import org.testng.annotations.*
 
 
-class ReactiveStreamTckTest : TestBase() {
+class ReactiveStreamTckTest {
 
     @Factory(dataProvider = "dispatchers")
     fun createTests(dispatcher: Dispatcher): Array<Any> {

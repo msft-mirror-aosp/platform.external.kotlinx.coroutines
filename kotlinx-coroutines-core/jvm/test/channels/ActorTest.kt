@@ -5,11 +5,12 @@
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
-import org.junit.Test
+import org.hamcrest.core.*
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.*
 import org.junit.runners.*
 import java.io.*
-import kotlin.test.*
 
 @RunWith(Parameterized::class)
 class ActorTest(private val capacity: Int) : TestBase() {
@@ -27,14 +28,14 @@ class ActorTest(private val capacity: Int) : TestBase() {
             expect(3)
         }
         actor as Job // type assertion
-        assertTrue(actor.isActive)
-        assertFalse(actor.isCompleted)
-        assertFalse(actor.isClosedForSend)
+        assertThat(actor.isActive, IsEqual(true))
+        assertThat(actor.isCompleted, IsEqual(false))
+        assertThat(actor.isClosedForSend, IsEqual(false))
         expect(2)
         yield() // to actor code
-        assertFalse(actor.isActive)
-        assertTrue(actor.isCompleted)
-        assertTrue(actor.isClosedForSend)
+        assertThat(actor.isActive, IsEqual(false))
+        assertThat(actor.isCompleted, IsEqual(true))
+        assertThat(actor.isClosedForSend, IsEqual(true))
         finish(4)
     }
 
@@ -43,26 +44,26 @@ class ActorTest(private val capacity: Int) : TestBase() {
         expect(1)
         val actor = actor<String>(capacity = capacity) {
             expect(3)
-            assertEquals("OK", receive())
+            assertThat(receive(), IsEqual("OK"))
             expect(6)
         }
         actor as Job // type assertion
-        assertTrue(actor.isActive)
-        assertFalse(actor.isCompleted)
-        assertFalse(actor.isClosedForSend)
+        assertThat(actor.isActive, IsEqual(true))
+        assertThat(actor.isCompleted, IsEqual(false))
+        assertThat(actor.isClosedForSend, IsEqual(false))
         expect(2)
         yield() // to actor code
-        assertTrue(actor.isActive)
-        assertFalse(actor.isCompleted)
-        assertFalse(actor.isClosedForSend)
+        assertThat(actor.isActive, IsEqual(true))
+        assertThat(actor.isCompleted, IsEqual(false))
+        assertThat(actor.isClosedForSend, IsEqual(false))
         expect(4)
         // send message to actor
         actor.send("OK")
         expect(5)
         yield() // to actor code
-        assertFalse(actor.isActive)
-        assertTrue(actor.isCompleted)
-        assertTrue(actor.isClosedForSend)
+        assertThat(actor.isActive, IsEqual(false))
+        assertThat(actor.isCompleted, IsEqual(true))
+        assertThat(actor.isClosedForSend, IsEqual(true))
         finish(7)
     }
 
@@ -127,7 +128,7 @@ class ActorTest(private val capacity: Int) : TestBase() {
             job.await()
             expectUnreached()
         } catch (e: CancellationException) {
-            assertTrue(e.message?.contains("DeferredCoroutine was cancelled") ?: false)
+            assertTrue(e.message?.contains("Job was cancelled") ?: false)
         }
 
         finish(3)

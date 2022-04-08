@@ -19,7 +19,7 @@ class WithTimeoutOrNullJvmTest : TestBase() {
             expectUnreached() // should not be reached, because it is outer timeout
         }
         // outer timeout results in null
-        assertNull(result)
+        assertEquals(null, result)
     }
 
     @Test

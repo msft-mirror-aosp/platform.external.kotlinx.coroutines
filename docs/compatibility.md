@@ -1,3 +1,9 @@
+<!--- 
+/*
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ */
+---> 
+
 <!--- TOC -->
 
 * [Compatibility](#compatibility)
@@ -13,7 +19,7 @@
   * [Gradle](#gradle)
   * [Maven](#maven)
 
-<!--- END -->
+<!--- END_TOC -->
 
 ## Compatibility
 This document describes the compatibility policy of `kotlinx.coroutines` library since version 1.0.0 and semantics of compatibility-specific annotations.

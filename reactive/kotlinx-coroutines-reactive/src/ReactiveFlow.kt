@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.reactive
@@ -17,85 +17,64 @@ import kotlin.coroutines.*
 /**
  * Transforms the given reactive [Publisher] into [Flow].
  * Use [buffer] operator on the resulting flow to specify the size of the backpressure.
- * More precisely, it specifies the value of the subscription's [request][Subscription.request].
- * [buffer] default capacity is used by default.
+ * More precisely, to it specifies the value of the subscription's [request][Subscription.request].
+ * `1` is used by default.
  *
- * If any of the resulting flow transformations fails, subscription is immediately cancelled and all in-flight elements
+ * If any of the resulting flow transformations fails, subscription is immediately cancelled and all in-flights elements
  * are discarded.
- *
- * This function is integrated with `ReactorContext` from `kotlinx-coroutines-reactor` module,
- * see its documentation for additional details.
  */
+@ExperimentalCoroutinesApi
 public fun <T : Any> Publisher<T>.asFlow(): Flow<T> =
-    PublisherAsFlow(this)
+    PublisherAsFlow(this, 1)
 
 /**
- * Transforms the given flow to a reactive specification compliant [Publisher].
- *
- * This function is integrated with `ReactorContext` from `kotlinx-coroutines-reactor` module,
- * see its documentation for additional details.
- *
- * An optional [context] can be specified to control the execution context of calls to [Subscriber] methods.
- * You can set a [CoroutineDispatcher] to confine them to a specific thread and/or various [ThreadContextElement] to
- * inject additional context into the caller thread. By default, the [Unconfined][Dispatchers.Unconfined] dispatcher
- * is used, so calls are performed from an arbitrary thread.
+ * Transforms the given flow to a spec-compliant [Publisher].
  */
-@JvmOverloads // binary compatibility
-public fun <T : Any> Flow<T>.asPublisher(context: CoroutineContext = EmptyCoroutineContext): Publisher<T> =
-    FlowAsPublisher(this, Dispatchers.Unconfined + context)
+@ExperimentalCoroutinesApi
+public fun <T : Any> Flow<T>.asPublisher(): Publisher<T> = FlowAsPublisher(this)
 
 private class PublisherAsFlow<T : Any>(
     private val publisher: Publisher<T>,
-    context: CoroutineContext = EmptyCoroutineContext,
-    capacity: Int = Channel.BUFFERED,
-    onBufferOverflow: BufferOverflow = BufferOverflow.SUSPEND
-) : ChannelFlow<T>(context, capacity, onBufferOverflow) {
-    override fun create(context: CoroutineContext, capacity: Int, onBufferOverflow: BufferOverflow): ChannelFlow<T> =
-        PublisherAsFlow(publisher, context, capacity, onBufferOverflow)
+    capacity: Int
+) : ChannelFlow<T>(EmptyCoroutineContext, capacity) {
+    override fun create(context: CoroutineContext, capacity: Int): ChannelFlow<T> =
+        PublisherAsFlow(publisher, capacity)
 
-    /*
-     * Suppress for Channel.CHANNEL_DEFAULT_CAPACITY.
-     * It's too counter-intuitive to be public and moving it to Flow companion
-     * will also create undesired effect.
-     */
-    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-    private val requestSize: Long
-        get() =
-            if (onBufferOverflow != BufferOverflow.SUSPEND) {
-                Long.MAX_VALUE // request all, since buffering strategy is to never suspend
-            } else when (capacity) {
-                Channel.RENDEZVOUS -> 1L // need to request at least one anyway
-                Channel.UNLIMITED -> Long.MAX_VALUE // reactive streams way to say "give all", must be Long.MAX_VALUE
-                Channel.BUFFERED -> Channel.CHANNEL_DEFAULT_CAPACITY.toLong()
-                else -> capacity.toLong().also { check(it >= 1) }
+    override fun produceImpl(scope: CoroutineScope): ReceiveChannel<T> {
+        // use another channel for conflation (cannot do openSubscription)
+        if (capacity < 0) return super.produceImpl(scope)
+        // Open subscription channel directly
+        val channel = publisher
+            .injectCoroutineContext(scope.coroutineContext)
+            .openSubscription(capacity)
+        val handle = scope.coroutineContext[Job]?.invokeOnCompletion(onCancelling = true) { cause ->
+            channel.cancel(cause?.let {
+                it as? CancellationException ?: CancellationException("Job was cancelled", it)
+            })
+        }
+        if (handle != null && handle !== NonDisposableHandle) {
+            (channel as SendChannel<*>).invokeOnClose {
+                handle.dispose()
             }
+        }
+        return channel
+    }
+
+    private val requestSize: Long
+        get() = when (capacity) {
+            Channel.CONFLATED -> Long.MAX_VALUE // request all and conflate incoming
+            Channel.RENDEZVOUS -> 1L // need to request at least one anyway
+            Channel.UNLIMITED -> Long.MAX_VALUE // reactive streams way to say "give all" must be Long.MAX_VALUE
+            else -> capacity.toLong().also { check(it >= 1) }
+        }
 
     override suspend fun collect(collector: FlowCollector<T>) {
-        val collectContext = coroutineContext
-        val newDispatcher = context[ContinuationInterceptor]
-        if (newDispatcher == null || newDispatcher == collectContext[ContinuationInterceptor]) {
-            // fast path -- subscribe directly in this dispatcher
-            return collectImpl(collectContext + context, collector)
-        }
-        // slow path -- produce in a separate dispatcher
-        collectSlowPath(collector)
-    }
-
-    private suspend fun collectSlowPath(collector: FlowCollector<T>) {
-        coroutineScope {
-            collector.emitAll(produceImpl(this + context))
-        }
-    }
-
-    private suspend fun collectImpl(injectContext: CoroutineContext, collector: FlowCollector<T>) {
-        val subscriber = ReactiveSubscriber<T>(capacity, onBufferOverflow, requestSize)
-        // inject subscribe context into publisher
-        publisher.injectCoroutineContext(injectContext).subscribe(subscriber)
+        val subscriber = ReactiveSubscriber<T>(capacity, requestSize)
+        publisher.injectCoroutineContext(coroutineContext).subscribe(subscriber)
         try {
             var consumed = 0L
             while (true) {
                 val value = subscriber.takeNextOrNull() ?: break
-                coroutineContext.ensureActive()
                 collector.emit(value)
                 if (++consumed == requestSize) {
                     consumed = 0L
@@ -107,22 +86,18 @@ private class PublisherAsFlow<T : Any>(
         }
     }
 
-    // The second channel here is used for produceIn/broadcastIn and slow-path (dispatcher change)
+    // The second channel here is used only for broadcast
     override suspend fun collectTo(scope: ProducerScope<T>) =
-        collectImpl(scope.coroutineContext, SendingCollector(scope.channel))
+        collect(SendingCollector(scope.channel))
 }
 
 @Suppress("SubscriberImplementation")
 private class ReactiveSubscriber<T : Any>(
     capacity: Int,
-    onBufferOverflow: BufferOverflow,
     private val requestSize: Long
 ) : Subscriber<T> {
     private lateinit var subscription: Subscription
-
-    // This implementation of ReactiveSubscriber always uses "offer" in its onNext implementation and it cannot
-    // be reliable with rendezvous channel, so a rendezvous channel is replaced with buffer=1 channel
-    private val channel = Channel<T>(if (capacity == Channel.RENDEZVOUS) 1 else capacity, onBufferOverflow)
+    private val channel = Channel<T>(capacity)
 
     suspend fun takeNextOrNull(): T? = channel.receiveOrNull()
 
@@ -155,41 +130,35 @@ private class ReactiveSubscriber<T : Any>(
 
 // ContextInjector service is implemented in `kotlinx-coroutines-reactor` module only.
 // If `kotlinx-coroutines-reactor` module is not included, the list is empty.
-private val contextInjectors: Array<ContextInjector> =
-    ServiceLoader.load(ContextInjector::class.java, ContextInjector::class.java.classLoader)
-        .iterator().asSequence()
-        .toList().toTypedArray() // R8 opto
+private val contextInjectors: List<ContextInjector> =
+    ServiceLoader.load(ContextInjector::class.java, ContextInjector::class.java.classLoader).toList()
 
-internal fun <T> Publisher<T>.injectCoroutineContext(coroutineContext: CoroutineContext) =
+private fun <T> Publisher<T>.injectCoroutineContext(coroutineContext: CoroutineContext) =
     contextInjectors.fold(this) { pub, contextInjector -> contextInjector.injectCoroutineContext(pub, coroutineContext) }
+
 
 /**
  * Adapter that transforms [Flow] into TCK-complaint [Publisher].
  * [cancel] invocation cancels the original flow.
  */
-@Suppress("ReactiveStreamsPublisherImplementation")
-private class FlowAsPublisher<T : Any>(
-    private val flow: Flow<T>,
-    private val context: CoroutineContext
-) : Publisher<T> {
+@Suppress("PublisherImplementation")
+private class FlowAsPublisher<T : Any>(private val flow: Flow<T>) : Publisher<T> {
     override fun subscribe(subscriber: Subscriber<in T>?) {
         if (subscriber == null) throw NullPointerException()
-        subscriber.onSubscribe(FlowSubscription(flow, subscriber, context))
+        subscriber.onSubscribe(FlowSubscription(flow, subscriber))
     }
 }
 
 /** @suppress */
 @InternalCoroutinesApi
 public class FlowSubscription<T>(
-    @JvmField public val flow: Flow<T>,
-    @JvmField public val subscriber: Subscriber<in T>,
-    context: CoroutineContext
-) : Subscription, AbstractCoroutine<Unit>(context, true) {
+    @JvmField val flow: Flow<T>,
+    @JvmField val subscriber: Subscriber<in T>
+) : Subscription, AbstractCoroutine<Unit>(Dispatchers.Unconfined, false) {
     private val requested = atomic(0L)
-    private val producer = atomic<Continuation<Unit>?>(createInitialContinuation())
+    private val producer = atomic<CancellableContinuation<Unit>?>(null)
 
-    // This code wraps startCoroutineCancellable into continuation
-    private fun createInitialContinuation(): Continuation<Unit> = Continuation(coroutineContext) {
+    override fun onStart() {
         ::flowProcessing.startCoroutineCancellable(this)
     }
 
@@ -216,17 +185,19 @@ public class FlowSubscription<T>(
      */
     private suspend fun consumeFlow() {
         flow.collect { value ->
-            // Emit the value
-            subscriber.onNext(value)
-            // Suspend if needed before requesting the next value
-            if (requested.decrementAndGet() <= 0) {
+            /*
+             * Flow is scopeless, thus if it's not active, its subscription was cancelled.
+             * No intermediate "child failed, but flow coroutine is not" states are allowed.
+             */
+            coroutineContext.ensureActive()
+            if (requested.value <= 0L) {
                 suspendCancellableCoroutine<Unit> {
                     producer.value = it
+                    if (requested.value != 0L) it.resumeSafely()
                 }
-            } else {
-                // check for cancellation if we don't suspend
-                coroutineContext.ensureActive()
             }
+            requested.decrementAndGet()
+            subscriber.onNext(value)
         }
     }
 
@@ -235,19 +206,22 @@ public class FlowSubscription<T>(
     }
 
     override fun request(n: Long) {
-        if (n <= 0) return
-        val old = requested.getAndUpdate { value ->
+        if (n <= 0) {
+            return
+        }
+        start()
+        requested.update { value ->
             val newValue = value + n
             if (newValue <= 0L) Long.MAX_VALUE else newValue
         }
-        if (old <= 0L) {
-            assert(old == 0L)
-            // Emitter is not started yet or has suspended -- spin on race with suspendCancellableCoroutine
-            while(true) {
-                val producer = producer.getAndSet(null) ?: continue // spin if not set yet
-                producer.resume(Unit)
-                break
-            }
+        val producer = producer.getAndSet(null) ?: return
+        producer.resumeSafely()
+    }
+
+    private fun CancellableContinuation<Unit>.resumeSafely() {
+        val token = tryResume(Unit)
+        if (token != null) {
+            completeResume(token)
         }
     }
 }

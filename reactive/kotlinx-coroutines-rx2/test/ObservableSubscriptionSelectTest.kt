@@ -6,8 +6,8 @@ package kotlinx.coroutines.rx2
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.*
-import org.junit.Test
-import kotlin.test.*
+import org.junit.*
+import org.junit.Assert.*
 
 class ObservableSubscriptionSelectTest : TestBase() {
     @Test

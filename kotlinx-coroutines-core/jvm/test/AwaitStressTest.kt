@@ -11,8 +11,12 @@ import java.util.concurrent.*
 class AwaitStressTest : TestBase() {
 
     private val iterations = 50_000 * stressTestMultiplier
-    @get:Rule
-    public val pool =  ExecutorRule(4)
+    private val pool = newFixedThreadPoolContext(4, "AwaitStressTest")
+
+    @After
+    fun tearDown() {
+        pool.close()
+    }
 
     @Test
     fun testMultipleExceptions() = runTest {

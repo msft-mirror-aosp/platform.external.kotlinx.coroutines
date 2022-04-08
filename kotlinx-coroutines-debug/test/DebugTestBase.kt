@@ -18,7 +18,6 @@ open class DebugTestBase : TestBase() {
     open fun setUp() {
         before()
         DebugProbes.sanitizeStackTraces = false
-        DebugProbes.enableCreationStackTraces = true
         DebugProbes.install()
     }
 

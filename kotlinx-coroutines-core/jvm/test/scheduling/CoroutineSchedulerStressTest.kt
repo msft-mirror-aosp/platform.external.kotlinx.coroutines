@@ -4,10 +4,11 @@
 
 package kotlinx.coroutines.scheduling
 
-import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
+import kotlinx.coroutines.scheduling.SchedulerTestBase.Companion.checkPoolThreadsCreated
 import org.junit.*
+import org.junit.Ignore
 import org.junit.Test
 import java.util.concurrent.*
 import java.util.concurrent.atomic.*
@@ -36,27 +37,19 @@ class CoroutineSchedulerStressTest : TestBase() {
     }
 
     @Test
-    fun testInternalTasksSubmissionProgress() {
-      /*
-       * Run a lot of tasks and validate that
-       * 1) All of them are completed successfully
-       * 2) Every thread executed task at least once
-       */
-        dispatcher.dispatch(EmptyCoroutineContext, Runnable {
-            for (i in 1..tasksNum) {
-                dispatcher.dispatch(EmptyCoroutineContext, ValidatingRunnable())
-            }
-        })
-
-        finishLatch.await()
-        val observed = observedThreads.size
-        // on slow machines not all threads can be observed
-        assertTrue(observed in (AVAILABLE_PROCESSORS - 1)..(AVAILABLE_PROCESSORS + 1), "Observed $observed threads with $AVAILABLE_PROCESSORS available processors")
-        validateResults()
+    @Suppress("DEPRECATION")
+    @Ignore // this test often fails on windows, todo: figure out how to fix it. See issue #904
+    fun testExternalTasksSubmission() {
+        stressTest(CommonPool)
     }
 
     @Test
-    fun testStealingFromNonProgressing() {
+    fun testInternalTasksSubmission() {
+        stressTest(dispatcher)
+    }
+
+    @Test
+    fun testStealingFromBlocking() {
         /*
          * Work-stealing stress test,
          * one thread submits pack of tasks, waits until they are completed (to avoid work offloading)
@@ -70,24 +63,50 @@ class CoroutineSchedulerStressTest : TestBase() {
             while (submittedTasks < tasksNum) {
 
                 ++submittedTasks
-                dispatcher.dispatch(EmptyCoroutineContext, ValidatingRunnable())
+                dispatcher.dispatch(EmptyCoroutineContext, Runnable {
+                    processTask()
+                })
+
                 while (submittedTasks - processed.get() > 100) {
                     Thread.yield()
                 }
             }
+
             // Block current thread
             finishLatch.await()
         })
 
         finishLatch.await()
 
-        assertFalse(observedThreads.containsKey(blockingThread!!))
+        require(!observedThreads.containsKey(blockingThread!!))
+        validateResults()
+    }
+
+    private fun stressTest(submissionInitiator: CoroutineDispatcher) {
+        /*
+         * Run 2 million tasks and validate that
+         * 1) All of them are completed successfully
+         * 2) Every thread executed task at least once
+         */
+        submissionInitiator.dispatch(EmptyCoroutineContext, Runnable {
+            for (i in 1..tasksNum) {
+                dispatcher.dispatch(EmptyCoroutineContext, Runnable {
+                    processTask()
+                })
+            }
+        })
+
+        finishLatch.await()
+        val observed = observedThreads.size
+        // on slow machines not all threads can be observed
+        assertTrue(observed in (AVAILABLE_PROCESSORS - 1)..(AVAILABLE_PROCESSORS + 1), "Observed $observed threads with $AVAILABLE_PROCESSORS available processors")
         validateResults()
     }
 
     private fun processTask() {
         val counter = observedThreads[Thread.currentThread()] ?: 0L
         observedThreads[Thread.currentThread()] = counter + 1
+
         if (processed.incrementAndGet() == tasksNum) {
             finishLatch.countDown()
         }
@@ -96,13 +115,6 @@ class CoroutineSchedulerStressTest : TestBase() {
     private fun validateResults() {
         val result = observedThreads.values.sum()
         assertEquals(tasksNum.toLong(), result)
-    }
-
-    private inner class ValidatingRunnable : Runnable {
-        private val invoked = atomic(false)
-        override fun run() {
-            if (!invoked.compareAndSet(false, true)) error("The same runnable was invoked twice")
-            processTask()
-        }
+        checkPoolThreadsCreated(AVAILABLE_PROCESSORS)
     }
 }

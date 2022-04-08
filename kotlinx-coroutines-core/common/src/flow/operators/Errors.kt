@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 @file:JvmMultifileClass
@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.internal.unsafeFlow as flow
  * retry an original flow use [retryWhen] operator that can retry the flow multiple times without
  * introducing ever-growing stack of suspending calls.
  */
+@ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.catch(action: suspend FlowCollector<T>.(cause: Throwable) -> Unit): Flow<T> =
     flow {
         val exception = catchImpl(this)
@@ -116,6 +117,7 @@ public fun <T> Flow<T>.onErrorCollect(
  *
  * @throws IllegalArgumentException when [retries] is not positive.
  */
+@ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.retry(
     retries: Long = Long.MAX_VALUE,
     predicate: suspend (cause: Throwable) -> Boolean = { true }
@@ -167,6 +169,7 @@ public fun <T> Flow<T>.retry(
  *
  * See [catch] for more details.
  */
+@ExperimentalCoroutinesApi // tentatively stable in 1.3.0
 public fun <T> Flow<T>.retryWhen(predicate: suspend FlowCollector<T>.(cause: Throwable, attempt: Long) -> Boolean): Flow<T> =
     flow {
         var attempt = 0L

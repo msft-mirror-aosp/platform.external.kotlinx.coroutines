@@ -50,7 +50,7 @@ class CompletableDeferredTest : TestBase() {
         assertEquals(false, c.isCancelled)
         assertEquals(true, c.isCompleted)
         assertTrue(c.getCancellationException() is JobCancellationException)
-        assertNull(c.getCompletionExceptionOrNull())
+        assertEquals(null, c.getCompletionExceptionOrNull())
     }
 
     private fun checkCancel(c: CompletableDeferred<String>) {
@@ -77,26 +77,6 @@ class CompletableDeferredTest : TestBase() {
         assertTrue(c.getCancellationException() is JobCancellationException)
         assertThrows<TestException> { c.getCompleted() }
         assertTrue(c.getCompletionExceptionOrNull() is TestException)
-    }
-
-    @Test
-    fun testCompleteWithResultOK() {
-        val c = CompletableDeferred<String>()
-        assertEquals(true, c.completeWith(Result.success("OK")))
-        checkCompleteOk(c)
-        assertEquals("OK", c.getCompleted())
-        assertEquals(false, c.completeWith(Result.success("OK")))
-        checkCompleteOk(c)
-        assertEquals("OK", c.getCompleted())
-    }
-
-    @Test
-    fun testCompleteWithResultException() {
-        val c = CompletableDeferred<String>()
-        assertEquals(true, c.completeWith(Result.failure(TestException())))
-        checkCancelWithException(c)
-        assertEquals(false, c.completeWith(Result.failure(TestException())))
-        checkCancelWithException(c)
     }
 
     @Test

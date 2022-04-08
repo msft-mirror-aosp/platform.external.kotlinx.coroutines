@@ -26,7 +26,7 @@ class InitMainDispatcherBeforeRobolectricTestRunner(testClass: Class<*>) : Robol
 
 @Config(manifest = Config.NONE, sdk = [28])
 @RunWith(InitMainDispatcherBeforeRobolectricTestRunner::class)
-class CustomizedRobolectricTest : TestBase() {
+class CustomizedRobolectricTest {
     @Test
     fun testComponent()  {
         // Note that main is not set at all

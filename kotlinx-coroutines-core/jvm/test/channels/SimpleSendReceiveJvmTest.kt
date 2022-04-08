@@ -5,10 +5,12 @@
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
-import org.junit.Test
+import org.hamcrest.core.*
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.*
 import org.junit.runners.*
-import kotlin.test.*
+import kotlin.coroutines.*
 
 @RunWith(Parameterized::class)
 class SimpleSendReceiveJvmTest(
@@ -28,7 +30,7 @@ class SimpleSendReceiveJvmTest(
         }
     }
 
-    val channel = kind.create<Int>()
+    val channel = kind.create()
 
     @Test
     fun testSimpleSendReceive() = runBlocking {
@@ -40,14 +42,14 @@ class SimpleSendReceiveJvmTest(
         var expected = 0
         for (x in channel) {
             if (!kind.isConflated) {
-                assertEquals(expected++, x)
+                assertThat(x, IsEqual(expected++))
             } else {
                 assertTrue(x >= expected)
                 expected = x + 1
             }
         }
         if (!kind.isConflated) {
-            assertEquals(n, expected)
+            assertThat(expected, IsEqual(n))
         }
     }
 }
