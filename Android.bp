@@ -141,3 +141,8 @@ java_library {
         "//apex_available:anyapex"
     ],
 }
+
+filegroup {
+    name: "kotlinx-coroutines-play-services",
+    srcs: ["integration/kotlinx-coroutines-play-services/src/**/*.kt"],
+}
