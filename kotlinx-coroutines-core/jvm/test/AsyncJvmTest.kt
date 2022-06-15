@@ -8,10 +8,7 @@ import kotlin.test.*
 
 
 class AsyncJvmTest : TestBase() {
-    // We have the same test in common module, but the maintainer uses this particular file
-    // and semi-automatically types cmd+N + AsyncJvm in order to duck-tape any JVM samples/repros,
-    // please do not remove this test
-
+    // This must be a common test but it fails on JS because of KT-21961
     @Test
     fun testAsyncWithFinally() = runTest {
         expect(1)

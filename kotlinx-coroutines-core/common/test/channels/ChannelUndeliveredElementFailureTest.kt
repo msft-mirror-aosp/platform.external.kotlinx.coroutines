@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
+ * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
 package kotlinx.coroutines.channels
@@ -70,10 +70,36 @@ class ChannelUndeliveredElementFailureTest : TestBase() {
     }
 
     @Test
-    fun testReceiveCatchingCancelledFail() = runTest(unhandled = shouldBeUnhandled) {
+    fun testReceiveOrNullCancelledFail() = runTest(unhandled = shouldBeUnhandled) {
         val channel = Channel(onUndeliveredElement = onCancelFail)
         val job = launch(start = CoroutineStart.UNDISPATCHED) {
-            channel.receiveCatching()
+            channel.receiveOrNull()
+            expectUnreached() // will be cancelled before it dispatches
+        }
+        channel.send(item)
+        job.cancel()
+    }
+
+    @Test
+    fun testReceiveOrNullSelectCancelledFail() = runTest(unhandled = shouldBeUnhandled) {
+        val channel = Channel(onUndeliveredElement = onCancelFail)
+        val job = launch(start = CoroutineStart.UNDISPATCHED) {
+            select<Unit> {
+                channel.onReceiveOrNull {
+                    expectUnreached()
+                }
+            }
+            expectUnreached() // will be cancelled before it dispatches
+        }
+        channel.send(item)
+        job.cancel()
+    }
+
+    @Test
+    fun testReceiveOrClosedCancelledFail() = runTest(unhandled = shouldBeUnhandled) {
+        val channel = Channel(onUndeliveredElement = onCancelFail)
+        val job = launch(start = CoroutineStart.UNDISPATCHED) {
+            channel.receiveOrClosed()
             expectUnreached() // will be cancelled before it dispatches
         }
         channel.send(item)
@@ -85,7 +111,7 @@ class ChannelUndeliveredElementFailureTest : TestBase() {
         val channel = Channel(onUndeliveredElement = onCancelFail)
         val job = launch(start = CoroutineStart.UNDISPATCHED) {
             select<Unit> {
-                channel.onReceiveCatching {
+                channel.onReceiveOrClosed {
                     expectUnreached()
                 }
             }
