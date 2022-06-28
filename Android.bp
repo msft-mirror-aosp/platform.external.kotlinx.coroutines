@@ -38,10 +38,8 @@ license {
 java_library {
     name: "kotlinx_coroutines",
     host_supported: true,
-    // This should be "core_current", but that causes nullability issues
-    // for returned platform types that are explicitly marked @Nullable in
-    // SDK 29 and current.
-    sdk_version: "28",
+    sdk_version: "core_current",
+    min_sdk_version: "28",
     srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
     common_srcs: ["kotlinx-coroutines-core/common/src/**/*.kt"],
     exclude_srcs: [
@@ -71,7 +69,8 @@ java_library {
 
 java_library {
     name: "kotlinx_coroutines_android",
-    sdk_version: "28",
+    sdk_version: "current",
+    min_sdk_version: "28",
     srcs: ["ui/kotlinx-coroutines-android/src/**/*.kt"],
     java_resource_dirs: ["ui/kotlinx-coroutines-android/resources"],
     kotlincflags: [
@@ -111,7 +110,8 @@ java_library {
 java_library {
     name: "kotlinx-coroutines-core",
     host_supported: true,
-    sdk_version: "28",
+    sdk_version: "core_current",
+    min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
@@ -122,7 +122,8 @@ java_library {
 java_library {
     name: "kotlinx-coroutines-core-jvm",
     host_supported: true,
-    sdk_version: "28",
+    sdk_version: "core_current",
+    min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
@@ -132,7 +133,8 @@ java_library {
 
 java_library {
     name: "kotlinx-coroutines-android",
-    sdk_version: "28",
+    sdk_version: "current",
+    min_sdk_version: "28",
     static_libs: [
         "kotlinx_coroutines_android",
         "kotlinx_coroutines",
