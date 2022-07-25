@@ -13,7 +13,6 @@ import kotlinx.coroutines.selects.*
 import kotlinx.coroutines.sync.*
 import kotlin.coroutines.*
 import kotlinx.coroutines.internal.*
-import kotlinx.coroutines.intrinsics.*
 
 /**
  * Creates cold [observable][Observable] that will run a given [block] in a coroutine.
@@ -96,21 +95,9 @@ private class RxObservableCoroutine<T : Any>(
         element: T,
         block: suspend (SendChannel<T>) -> R
     ) {
-        val clause =  suspend {
+        mutex.onLock.registerSelectClause2(select, null) {
             doLockedNext(element)?.let { throw it }
             block(this)
-        }
-
-        // This is the default replacement proposed in onLock replacement
-        launch(start = CoroutineStart.UNDISPATCHED) {
-            mutex.lock()
-            // Already selected -- bail out
-            if (!select.trySelect()) {
-                mutex.unlock()
-                return@launch
-            }
-
-            clause.startCoroutineCancellable(select.completion)
         }
     }
 

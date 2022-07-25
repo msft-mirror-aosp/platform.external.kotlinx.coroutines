@@ -10,7 +10,7 @@ import java.util.*
 import java.util.concurrent.*
 
 class BlockingCoroutineDispatcherTerminationStressTest : TestBase() {
-    private val baseDispatcher = SchedulerCoroutineDispatcher(
+    private val baseDispatcher = ExperimentalCoroutineDispatcher(
         2, 20,
         TimeUnit.MILLISECONDS.toNanos(10)
     )
