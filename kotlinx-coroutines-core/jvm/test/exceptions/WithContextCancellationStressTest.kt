@@ -10,11 +10,10 @@ import org.junit.Test
 import java.util.concurrent.*
 import kotlin.coroutines.*
 import kotlin.test.*
-import kotlin.time.Duration.Companion.minutes
 
 class WithContextCancellationStressTest : TestBase() {
 
-    private val timeoutAfter = 1.minutes
+    private val iterations = 15_000 * stressTestMultiplier
     private val pool = newFixedThreadPoolContext(3, "WithContextCancellationStressTest")
 
     @After
@@ -29,54 +28,56 @@ class WithContextCancellationStressTest : TestBase() {
         var e1Cnt = 0
         var e2Cnt = 0
 
-        withTimeout(timeoutAfter) {
-            while (eCnt == 0 || e1Cnt == 0 || e2Cnt == 0) {
-                val barrier = CyclicBarrier(4)
-                val ctx = pool + NonCancellable
-                var e1 = false
-                var e2 = false
-                val jobWithContext = async(ctx) {
-                    withContext(wrapperDispatcher(coroutineContext)) {
-                        launch {
-                            barrier.await()
-                            e1 = true
-                            throw TestException1()
-                        }
-
-                        launch {
-                            barrier.await()
-                            e2 = true
-                            throw TestException2()
-                        }
-
+        repeat(iterations) {
+            val barrier = CyclicBarrier(4)
+            val ctx = pool + NonCancellable
+            var e1 = false
+            var e2 = false
+            val jobWithContext = async(ctx) {
+                withContext(wrapperDispatcher(coroutineContext)) {
+                    launch {
                         barrier.await()
-                        throw TestException()
+                        e1 = true
+                        throw TestException1()
                     }
+
+                    launch {
+                        barrier.await()
+                        e2 = true
+                        throw TestException2()
+                    }
+
+                    barrier.await()
+                    throw TestException()
                 }
+            }
 
-                barrier.await()
+            barrier.await()
 
-                try {
-                    jobWithContext.await()
-                } catch (e: Throwable) {
-                    when (e) {
-                        is TestException -> {
-                            eCnt++
-                            e.checkSuppressed(e1 = e1, e2 = e2)
-                        }
-                        is TestException1 -> {
-                            e1Cnt++
-                            e.checkSuppressed(ex = true, e2 = e2)
-                        }
-                        is TestException2 -> {
-                            e2Cnt++
-                            e.checkSuppressed(ex = true, e1 = e1)
-                        }
-                        else -> error("Unexpected exception $e")
+            try {
+                jobWithContext.await()
+            } catch (e: Throwable) {
+                when (e) {
+                    is TestException -> {
+                        eCnt++
+                        e.checkSuppressed(e1 = e1, e2 =  e2)
                     }
+                    is TestException1 -> {
+                        e1Cnt++
+                        e.checkSuppressed(ex = true, e2 = e2)
+                    }
+                    is TestException2 -> {
+                        e2Cnt++
+                        e.checkSuppressed(ex = true, e1 = e1)
+                    }
+                    else -> error("Unexpected exception $e")
                 }
             }
         }
+
+        require(eCnt > 0) { "At least one TestException expected" }
+        require(e1Cnt > 0) { "At least one TestException1 expected" }
+        require(e2Cnt > 0) { "At least one TestException2 expected" }
     }
 
     private fun wrapperDispatcher(context: CoroutineContext): CoroutineContext {
