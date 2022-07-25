@@ -4,6 +4,7 @@
 
 package kotlinx.coroutines.reactor
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlin.coroutines.*
 import kotlinx.coroutines.reactive.*
 import reactor.util.context.*
@@ -64,7 +65,11 @@ public class ReactorContext(public val context: Context) : AbstractCoroutineCont
  */
 public fun ContextView.asCoroutineContext(): ReactorContext = ReactorContext(this)
 
-/** @suppress */
+/**
+ * Wraps the given [Context] into [ReactorContext], so it can be added to the coroutine's context
+ * and later used via `coroutineContext[ReactorContext]`.
+ * @suppress
+ */
 @Deprecated("The more general version for ContextView should be used instead", level = DeprecationLevel.HIDDEN)
 public fun Context.asCoroutineContext(): ReactorContext = readOnly().asCoroutineContext() // `readOnly()` is zero-cost.
 

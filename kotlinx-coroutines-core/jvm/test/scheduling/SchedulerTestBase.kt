@@ -6,6 +6,7 @@
 
 package kotlinx.coroutines.scheduling
 
+import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
 import org.junit.*
@@ -60,11 +61,11 @@ abstract class SchedulerTestBase : TestBase() {
     protected var maxPoolSize = 1024
     protected var idleWorkerKeepAliveNs = IDLE_WORKER_KEEP_ALIVE_NS
 
-    private var _dispatcher: SchedulerCoroutineDispatcher? = null
+    private var _dispatcher: ExperimentalCoroutineDispatcher? = null
     protected val dispatcher: CoroutineDispatcher
         get() {
             if (_dispatcher == null) {
-                _dispatcher = SchedulerCoroutineDispatcher(
+                _dispatcher = ExperimentalCoroutineDispatcher(
                     corePoolSize,
                     maxPoolSize,
                     idleWorkerKeepAliveNs
@@ -85,7 +86,7 @@ abstract class SchedulerTestBase : TestBase() {
 
     protected fun view(parallelism: Int): CoroutineDispatcher {
         val intitialize = dispatcher
-        return _dispatcher!!.limitedParallelism(parallelism)
+        return _dispatcher!!.limited(parallelism)
     }
 
     @After
@@ -96,18 +97,4 @@ abstract class SchedulerTestBase : TestBase() {
             }
         }
     }
-}
-
-internal fun SchedulerCoroutineDispatcher.blocking(parallelism: Int = 16): CoroutineDispatcher {
-    return object : CoroutineDispatcher() {
-
-        @InternalCoroutinesApi
-        override fun dispatchYield(context: CoroutineContext, block: Runnable) {
-            this@blocking.dispatchWithContext(block, BlockingContext, true)
-        }
-
-        override fun dispatch(context: CoroutineContext, block: Runnable) {
-            this@blocking.dispatchWithContext(block, BlockingContext, false)
-        }
-    }.limitedParallelism(parallelism)
 }

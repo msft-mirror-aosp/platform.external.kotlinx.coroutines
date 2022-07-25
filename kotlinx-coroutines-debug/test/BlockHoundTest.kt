@@ -4,7 +4,6 @@ import kotlinx.coroutines.channels.*
 import org.junit.*
 import reactor.blockhound.*
 
-@Suppress("UnusedEquals", "DeferredResultUnused", "BlockingMethodInNonBlockingContext")
 class BlockHoundTest : TestBase() {
 
     @Before
@@ -13,21 +12,21 @@ class BlockHoundTest : TestBase() {
     }
 
     @Test(expected = BlockingOperationError::class)
-    fun testShouldDetectBlockingInDefault() = runTest {
+    fun shouldDetectBlockingInDefault() = runTest {
         withContext(Dispatchers.Default) {
             Thread.sleep(1)
         }
     }
 
     @Test
-    fun testShouldNotDetectBlockingInIO() = runTest {
+    fun shouldNotDetectBlockingInIO() = runTest {
         withContext(Dispatchers.IO) {
             Thread.sleep(1)
         }
     }
 
     @Test
-    fun testShouldNotDetectNonblocking() = runTest {
+    fun shouldNotDetectNonblocking() = runTest {
         withContext(Dispatchers.Default) {
             val a = 1
             val b = 2
@@ -55,7 +54,7 @@ class BlockHoundTest : TestBase() {
     }
 
     @Test
-    fun testChannelNotBeingConsideredBlocking() = runTest {
+    fun testChannelsNotBeingConsideredBlocking() = runTest {
         withContext(Dispatchers.Default) {
             // Copy of kotlinx.coroutines.channels.ArrayChannelTest.testSimple
             val q = Channel<Int>(1)
@@ -69,24 +68,6 @@ class BlockHoundTest : TestBase() {
             val receiver = launch {
                 q.receive() == 1
                 q.receive() == 2
-            }
-            sender.join()
-            receiver.join()
-        }
-    }
-
-    @Test
-    fun testConflatedChannelsNotBeingConsideredBlocking() = runTest {
-        withContext(Dispatchers.Default) {
-            val q = Channel<Int>(Channel.CONFLATED)
-            check(q.isEmpty)
-            check(!q.isClosedForReceive)
-            check(!q.isClosedForSend)
-            val sender = launch {
-                q.send(1)
-            }
-            val receiver = launch {
-                q.receive() == 1
             }
             sender.join()
             receiver.join()
