@@ -7,7 +7,7 @@ package kotlinx.coroutines.flow
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlin.test.*
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.*
 
 class DebounceTest : TestBase() {
     @Test
@@ -198,29 +198,31 @@ class DebounceTest : TestBase() {
         finish(4)
     }
 
+    @ExperimentalTime
     @Test
     fun testDurationBasic() = withVirtualTime {
         expect(1)
         val flow = flow {
             expect(3)
             emit("A")
-            delay(1500.milliseconds)
+            delay(Duration.milliseconds(1500))
             emit("B")
-            delay(500.milliseconds)
+            delay(Duration.milliseconds(500))
             emit("C")
-            delay(250.milliseconds)
+            delay(Duration.milliseconds(250))
             emit("D")
-            delay(2000.milliseconds)
+            delay(Duration.milliseconds(2000))
             emit("E")
             expect(4)
         }
 
         expect(2)
-        val result = flow.debounce(1000.milliseconds).toList()
+        val result = flow.debounce(Duration.milliseconds(1000)).toList()
         assertEquals(listOf("A", "D", "E"), result)
         finish(5)
     }
 
+    @ExperimentalTime
     @Test
     fun testDebounceSelectorBasic() = withVirtualTime {
         expect(1)
@@ -269,6 +271,7 @@ class DebounceTest : TestBase() {
         finish(5)
     }
 
+    @ExperimentalTime
     @Test
     fun testZeroDebounceTimeSelector() = withVirtualTime {
         expect(1)
@@ -286,19 +289,20 @@ class DebounceTest : TestBase() {
         finish(5)
     }
 
+    @ExperimentalTime
     @Test
     fun testDebounceDurationSelectorBasic() = withVirtualTime {
         expect(1)
         val flow = flow {
             expect(3)
             emit("A")
-            delay(1500.milliseconds)
+            delay(Duration.milliseconds(1500))
             emit("B")
-            delay(500.milliseconds)
+            delay(Duration.milliseconds(500))
             emit("C")
-            delay(250.milliseconds)
+            delay(Duration.milliseconds(250))
             emit("D")
-            delay(2000.milliseconds)
+            delay(Duration.milliseconds(2000))
             emit("E")
             expect(4)
         }
@@ -306,9 +310,9 @@ class DebounceTest : TestBase() {
         expect(2)
         val result = flow.debounce {
             if (it == "C") {
-                0.milliseconds
+                Duration.milliseconds(0)
             } else {
-                1000.milliseconds
+                Duration.milliseconds(1000)
             }
         }.toList()
 

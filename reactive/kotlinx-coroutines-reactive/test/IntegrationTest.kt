@@ -52,6 +52,9 @@ class IntegrationTest(
         assertEquals("ELSE", pub.awaitFirstOrElse { "ELSE" })
         assertFailsWith<NoSuchElementException> { pub.awaitLast() }
         assertFailsWith<NoSuchElementException> { pub.awaitSingle() }
+        assertEquals("OK", pub.awaitSingleOrDefault("OK"))
+        assertNull(pub.awaitSingleOrNull())
+        assertEquals("ELSE", pub.awaitSingleOrElse { "ELSE" })
         var cnt = 0
         pub.collect { cnt++ }
         assertEquals(0, cnt)
@@ -69,6 +72,9 @@ class IntegrationTest(
         assertEquals("OK", pub.awaitFirstOrElse { "ELSE" })
         assertEquals("OK", pub.awaitLast())
         assertEquals("OK", pub.awaitSingle())
+        assertEquals("OK", pub.awaitSingleOrDefault("!"))
+        assertEquals("OK", pub.awaitSingleOrNull())
+        assertEquals("OK", pub.awaitSingleOrElse { "ELSE" })
         var cnt = 0
         pub.collect {
             assertEquals("OK", it)
@@ -182,6 +188,10 @@ class IntegrationTest(
             onNext(1)
             onError(dummyThrowable)
             onComplete()
+        }
+        assertDetectsBadPublisher<Int>({ awaitSingleOrDefault(2) }, "terminal state") {
+            onComplete()
+            onError(dummyThrowable)
         }
         assertDetectsBadPublisher<Int>({ awaitFirst() }, "terminal state") {
             onNext(0)

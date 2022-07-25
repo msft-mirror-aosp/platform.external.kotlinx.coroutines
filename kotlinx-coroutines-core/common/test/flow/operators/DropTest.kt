@@ -48,9 +48,10 @@ class DropTest : TestBase() {
                 expectUnreached()
             }
         }.drop(1)
-            .map<Int, Int> {
+            .map {
                 expect(4)
                 throw TestException()
+                42
             }.catch { emit(42) }
 
         expect(1)

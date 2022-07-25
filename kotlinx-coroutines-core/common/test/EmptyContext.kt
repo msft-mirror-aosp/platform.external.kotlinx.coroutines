@@ -7,6 +7,10 @@ package kotlinx.coroutines
 import kotlinx.coroutines.intrinsics.*
 import kotlin.coroutines.*
 
-suspend fun <T> withEmptyContext(block: suspend () -> T): T = suspendCoroutine { cont ->
-    block.startCoroutineUnintercepted(Continuation(EmptyCoroutineContext) { cont.resumeWith(it) })
+suspend fun <T> withEmptyContext(block: suspend () -> T): T {
+    val baseline = Result.failure<T>(IllegalStateException("Block was suspended"))
+    var result: Result<T> = baseline
+    block.startCoroutineUnintercepted(Continuation(EmptyCoroutineContext) { result = it })
+    while (result == baseline) yield()
+    return result.getOrThrow()
 }

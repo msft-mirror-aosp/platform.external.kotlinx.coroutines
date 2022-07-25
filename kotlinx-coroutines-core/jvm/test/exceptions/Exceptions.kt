@@ -15,7 +15,7 @@ import kotlin.test.*
  * but run only under JDK 1.8
  */
 @Suppress("ConflictingExtensionProperty")
-actual val Throwable.suppressed: Array<Throwable> get() {
+val Throwable.suppressed: Array<Throwable> get() {
     val method = this::class.java.getMethod("getSuppressed") ?: error("This test can only be run using JDK 1.7")
     @Suppress("UNCHECKED_CAST")
     return method.invoke(this) as Array<Throwable>
