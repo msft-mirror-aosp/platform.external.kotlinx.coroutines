@@ -37,8 +37,12 @@ tasks.withType(DokkaTaskPartial::class).configureEach {
             packageListUrl.set(rootProject.projectDir.toPath().resolve("site/stdlib.package.list").toUri().toURL())
         }
 
-        if (!project.isMultiplatform) {
+        if (project.name != "kotlinx-coroutines-core") {
             dependsOn(project.configurations["compileClasspath"])
+            doFirst {
+                // resolve classpath only during execution
+                classpath.from(project.configurations["compileClasspath"].files)// + project.sourceSets.main.output.files)
+            }
         }
     }
 }
@@ -61,6 +65,10 @@ if (project.name == "kotlinx-coroutines-core") {
 
             val jvmMain by getting {
                 makeLinkMapping(project.file("jvm"))
+            }
+
+            configureEach {
+                classpath.from(project.configurations["jvmCompileClasspath"].files)
             }
         }
     }

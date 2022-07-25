@@ -4,21 +4,16 @@
 
 package kotlinx.coroutines
 
-import kotlinx.atomicfu.*
-
 public actual val isStressTest: Boolean = false
 public actual val stressTestMultiplier: Int = 1
-public actual val stressTestMultiplierSqrt: Int = 1
-
-public actual val isNative = true
 
 @Suppress("ACTUAL_WITHOUT_EXPECT")
 public actual typealias TestResult = Unit
 
 public actual open class TestBase actual constructor() {
     public actual val isBoundByJsTestTimeout = false
-    private var actionIndex = atomic(0)
-    private var finished = atomic(false)
+    private var actionIndex = 0
+    private var finished = false
     private var error: Throwable? = null
 
     /**
@@ -41,7 +36,7 @@ public actual open class TestBase actual constructor() {
      * Asserts that this invocation is `index`-th in the execution sequence (counting from one).
      */
     public actual fun expect(index: Int) {
-        val wasIndex = actionIndex.incrementAndGet()
+        val wasIndex = ++actionIndex
         check(index == wasIndex) { "Expecting action index $index but it is actually $wasIndex" }
     }
 
@@ -57,21 +52,21 @@ public actual open class TestBase actual constructor() {
      */
     public actual fun finish(index: Int) {
         expect(index)
-        check(!finished.value) { "Should call 'finish(...)' at most once" }
-        finished.value = true
+        check(!finished) { "Should call 'finish(...)' at most once" }
+        finished = true
     }
 
     /**
      * Asserts that [finish] was invoked
      */
-    actual fun ensureFinished() {
-        require(finished.value) { "finish(...) should be caller prior to this check" }
+    public actual fun ensureFinished() {
+        require(finished) { "finish(...) should be caller prior to this check" }
     }
 
-    actual fun reset() {
-        check(actionIndex.value == 0 || finished.value) { "Expecting that 'finish(...)' was invoked, but it was not" }
-        actionIndex.value = 0
-        finished.value = false
+    public actual fun reset() {
+        check(actionIndex == 0 || finished) { "Expecting that 'finish(...)' was invoked, but it was not" }
+        actionIndex = 0
+        finished = false
     }
 
     @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
@@ -83,7 +78,7 @@ public actual open class TestBase actual constructor() {
         var exCount = 0
         var ex: Throwable? = null
         try {
-            runBlocking(block = block, context = CoroutineExceptionHandler { _, e ->
+            runBlocking(block = block, context = CoroutineExceptionHandler { context, e ->
                 if (e is CancellationException) return@CoroutineExceptionHandler // are ignored
                 exCount++
                 when {

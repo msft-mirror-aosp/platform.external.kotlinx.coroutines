@@ -5,13 +5,9 @@
 package kotlinx.coroutines.reactive
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.*
 import org.junit.Test
 import org.reactivestreams.*
-import java.util.concurrent.*
 import kotlin.test.*
 
 class PublishTest : TestBase() {
@@ -282,40 +278,10 @@ class PublishTest : TestBase() {
         val publisher = publish {
             assertFailsWith<NullPointerException> { send(null) }
             assertFailsWith<NullPointerException> { trySend(null) }
+            @Suppress("DEPRECATION")
+            assertFailsWith<NullPointerException> { offer(null) }
             send("OK")
         }
         assertEquals("OK", publisher.awaitFirstOrNull())
-    }
-
-    @Test
-    fun testOnSendCancelled() = runTest {
-        val latch = CountDownLatch(1)
-        val published = publish(Dispatchers.Default) {
-            expect(2)
-            // Collector is ready
-            send(1)
-            try {
-                send(2)
-                expectUnreached()
-            } catch (e: CancellationException) {
-                // publisher cancellation is async
-                latch.countDown()
-                throw e
-            }
-        }
-
-        expect(1)
-        val collectorLatch = Mutex(true)
-        val job = launch {
-            published.asFlow().buffer(0).collect {
-                collectorLatch.unlock()
-                hang { expect(4) }
-            }
-        }
-        collectorLatch.lock()
-        expect(3)
-        job.cancelAndJoin()
-        latch.await()
-        finish(5)
     }
 }

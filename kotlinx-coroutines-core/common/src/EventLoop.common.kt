@@ -115,12 +115,7 @@ internal abstract class EventLoop : CoroutineDispatcher() {
         }
     }
 
-    final override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
-        parallelism.checkParallelism()
-        return this
-    }
-
-    open fun shutdown() {}
+    protected open fun shutdown() {}
 }
 
 @ThreadLocal
@@ -236,13 +231,8 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         if (timeNanos < MAX_DELAY_NS) {
             val now = nanoTime()
             DelayedResumeTask(now + timeNanos, continuation).also { task ->
-                /*
-                 * Order is important here: first we schedule the heap and only then
-                 * publish it to continuation. Otherwise, `DelayedResumeTask` would
-                 * have to know how to be disposed of even when it wasn't scheduled yet.
-                 */
-                schedule(now, task)
                 continuation.disposeOnCancellation(task)
+                schedule(now, task)
             }
         }
     }
@@ -281,7 +271,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         // then process one event from queue
         val task = dequeue()
         if (task != null) {
-            platformAutoreleasePool { task.run() }
+            task.run()
             return 0
         }
         return nextTime
@@ -289,7 +279,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
 
     public final override fun dispatch(context: CoroutineContext, block: Runnable) = enqueue(block)
 
-    open fun enqueue(task: Runnable) {
+    public fun enqueue(task: Runnable) {
         if (enqueueImpl(task)) {
             // todo: we should unpark only when this delayed task became first in the queue
             unpark()
@@ -415,7 +405,6 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
          */
         @JvmField var nanoTime: Long
     ) : Runnable, Comparable<DelayedTask>, DisposableHandle, ThreadSafeHeapNode {
-        @Volatile
         private var _heap: Any? = null // null | ThreadSafeHeap | DISPOSED_TASK
 
         override var heap: ThreadSafeHeap<*>?
@@ -537,13 +526,3 @@ internal expect object DefaultExecutor {
     public fun enqueue(task: Runnable)
 }
 
-/**
- * Used by Darwin targets to wrap a [Runnable.run] call in an Objective-C Autorelease Pool. It is a no-op on JVM, JS and
- * non-Darwin native targets.
- *
- * Coroutines on Darwin targets can call into the Objective-C world, where a callee may push a to-be-returned object to
- * the Autorelease Pool, so as to avoid a premature ARC release before it reaches the caller. This means the pool must
- * be eventually drained to avoid leaks. Since Kotlin Coroutines does not use [NSRunLoop], which provides automatic
- * pool management, it must manage the pool creation and pool drainage manually.
- */
-internal expect inline fun platformAutoreleasePool(crossinline block: () -> Unit)

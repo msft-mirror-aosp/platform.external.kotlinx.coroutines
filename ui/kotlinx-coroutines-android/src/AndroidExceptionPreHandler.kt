@@ -5,10 +5,12 @@
 package kotlinx.coroutines.android
 
 import android.os.*
+import androidx.annotation.*
 import kotlinx.coroutines.*
 import java.lang.reflect.*
 import kotlin.coroutines.*
 
+@Keep
 internal class AndroidExceptionPreHandler :
     AbstractCoroutineContextElement(CoroutineExceptionHandler), CoroutineExceptionHandler
 {
@@ -32,21 +34,20 @@ internal class AndroidExceptionPreHandler :
 
     override fun handleException(context: CoroutineContext, exception: Throwable) {
         /*
-         * Android Oreo introduced private API for a global pre-handler for uncaught exceptions, to ensure that the
-         * exceptions are logged even if the default uncaught exception handler is replaced by the app. The pre-handler
-         * is invoked from the Thread's private dispatchUncaughtException() method, so our manual invocation of the
-         * Thread's uncaught exception handler bypasses the pre-handler in Android Oreo, and uncaught coroutine
-         * exceptions are not logged. This issue was addressed in Android Pie, which added a check in the default
-         * uncaught exception handler to invoke the pre-handler if it was not invoked already (see
-         * https://android-review.googlesource.com/c/platform/frameworks/base/+/654578/). So the issue is present only
-         * in Android Oreo.
+         * If we are on old SDK, then use Android's `Thread.getUncaughtExceptionPreHandler()` that ensures that
+         * an exception is logged before crashing the application.
          *
-         * We're fixing this by manually invoking the pre-handler using reflection, if running on an Android Oreo SDK
-         * version (26 and 27).
+         * Since Android Pie default uncaught exception handler always ensures that exception is logged without interfering with
+         * pre-handler, so reflection hack is no longer needed.
+         *
+         * See https://android-review.googlesource.com/c/platform/frameworks/base/+/654578/
          */
-        if (Build.VERSION.SDK_INT in 26..27) {
+        val thread = Thread.currentThread()
+        if (Build.VERSION.SDK_INT >= 28) {
+            thread.uncaughtExceptionHandler.uncaughtException(thread, exception)
+        } else {
             (preHandler()?.invoke(null) as? Thread.UncaughtExceptionHandler)
-                ?.uncaughtException(Thread.currentThread(), exception)
+                ?.uncaughtException(thread, exception)
         }
     }
 }

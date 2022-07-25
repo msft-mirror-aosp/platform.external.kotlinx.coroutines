@@ -83,7 +83,7 @@ class FlowOnTest : TestBase() {
         }.map {
             expect(2)
             assertEquals("throwing", it)
-            throw TestException()
+            throw TestException(); it
         }.flowOn(NamedDispatchers("throwing"))
 
         assertFailsWith<TestException>(flow)
