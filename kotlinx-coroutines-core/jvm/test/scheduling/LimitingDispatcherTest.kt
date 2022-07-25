@@ -11,6 +11,11 @@ import java.util.concurrent.*
 class LimitingDispatcherTest : SchedulerTestBase() {
 
     @Test(expected = IllegalArgumentException::class)
+    fun testTooLargeView() {
+        view(corePoolSize + 1)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun testNegativeView() {
         view(-1)
     }

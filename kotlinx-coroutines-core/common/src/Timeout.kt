@@ -64,6 +64,7 @@ public suspend fun <T> withTimeout(timeMillis: Long, block: suspend CoroutineSco
  *
  * > Implementation note: how the time is tracked exactly is an implementation detail of the context's [CoroutineDispatcher].
  */
+@ExperimentalTime
 public suspend fun <T> withTimeout(timeout: Duration, block: suspend CoroutineScope.() -> T): T {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
@@ -130,6 +131,7 @@ public suspend fun <T> withTimeoutOrNull(timeMillis: Long, block: suspend Corout
  *
  * > Implementation note: how the time is tracked exactly is an implementation detail of the context's [CoroutineDispatcher].
  */
+@ExperimentalTime
 public suspend fun <T> withTimeoutOrNull(timeout: Duration, block: suspend CoroutineScope.() -> T): T? =
         withTimeoutOrNull(timeout.toDelayMillis(), block)
 
@@ -163,7 +165,7 @@ private class TimeoutCoroutine<U, in T: U>(
  */
 public class TimeoutCancellationException internal constructor(
     message: String,
-    @JvmField @Transient internal val coroutine: Job?
+    @JvmField internal val coroutine: Job?
 ) : CancellationException(message), CopyableThrowable<TimeoutCancellationException> {
     /**
      * Creates a timeout exception with the given message.
@@ -173,7 +175,7 @@ public class TimeoutCancellationException internal constructor(
     internal constructor(message: String) : this(message, null)
 
     // message is never null in fact
-    override fun createCopy(): TimeoutCancellationException =
+    override fun createCopy(): TimeoutCancellationException? =
         TimeoutCancellationException(message ?: "", coroutine).also { it.initCause(this) }
 }
 

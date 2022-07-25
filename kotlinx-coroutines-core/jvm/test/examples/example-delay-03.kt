@@ -7,7 +7,6 @@ package kotlinx.coroutines.examples.exampleDelay03
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlin.time.Duration.Companion.milliseconds
 
 fun main() = runBlocking {
 

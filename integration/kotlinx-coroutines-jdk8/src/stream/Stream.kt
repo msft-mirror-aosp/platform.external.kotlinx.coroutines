@@ -19,6 +19,7 @@ public fun <T> Stream<T>.consumeAsFlow(): Flow<T> = StreamFlow(this)
 private class StreamFlow<T>(private val stream: Stream<T>) : Flow<T> {
     private val consumed = atomic(false)
 
+    @InternalCoroutinesApi
     override suspend fun collect(collector: FlowCollector<T>) {
         if (!consumed.compareAndSet(false, true)) error("Stream.consumeAsFlow can be collected only once")
         try {

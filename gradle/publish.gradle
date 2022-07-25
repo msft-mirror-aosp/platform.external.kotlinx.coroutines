@@ -6,18 +6,17 @@ import org.gradle.util.VersionNumber
 
 // Configures publishing of Maven artifacts to Maven Central
 
+apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 // ------------- tasks
 
-def isMultiplatform = project.name == "kotlinx-coroutines-core" || project.name == "kotlinx-coroutines-test"
+def isMultiplatform = project.name == "kotlinx-coroutines-core"
 def isBom = project.name == "kotlinx-coroutines-bom"
 
 if (!isBom) {
-    if (project.name == "kotlinx-coroutines-debug") {
-        apply plugin: "com.github.johnrengelman.shadow"
-    }
+    apply plugin: "com.github.johnrengelman.shadow"
 
     // empty xxx-javadoc.jar
     task javadocJar(type: Jar) {
@@ -45,7 +44,11 @@ publishing {
         // Configure java publications for regular non-MPP modules
         publications {
             maven(MavenPublication) {
-                from components.java
+                if (project.name == "kotlinx-coroutines-debug") {
+                    project.shadow.component(it)
+                } else {
+                    from components.java
+                }
                 artifact sourcesJar
             }
         }

@@ -39,9 +39,10 @@ class MapNotNullTest : TestBase() {
                 }
                 emit(1)
             }
-        }.mapNotNull<Int, Int> {
+        }.mapNotNull {
             latch.receive()
             throw TestException()
+            it + 1
         }.catch { emit(42) }
 
         assertEquals(42, flow.single())

@@ -260,7 +260,7 @@ public fun <T> Flow<T>.skip(count: Int): Flow<T> = noImpl()
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'forEach' is 'collect'",
-    replaceWith = ReplaceWith("collect(action)")
+    replaceWith = ReplaceWith("collect(block)")
 )
 public fun <T> Flow<T>.forEach(action: suspend (value: T) -> Unit): Unit = noImpl()
 
@@ -354,7 +354,6 @@ public fun <T> Flow<T>.concatWith(value: T): Flow<T> = noImpl()
 )
 public fun <T> Flow<T>.concatWith(other: Flow<T>): Flow<T> = noImpl()
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'combineLatest' is 'combine'",
@@ -363,7 +362,6 @@ public fun <T> Flow<T>.concatWith(other: Flow<T>): Flow<T> = noImpl()
 public fun <T1, T2, R> Flow<T1>.combineLatest(other: Flow<T2>, transform: suspend (T1, T2) -> R): Flow<R> =
     combine(this, other, transform)
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'combineLatest' is 'combine'",
@@ -375,7 +373,6 @@ public fun <T1, T2, T3, R> Flow<T1>.combineLatest(
     transform: suspend (T1, T2, T3) -> R
 ) = combine(this, other, other2, transform)
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'combineLatest' is 'combine'",
@@ -388,7 +385,6 @@ public fun <T1, T2, T3, T4, R> Flow<T1>.combineLatest(
     transform: suspend (T1, T2, T3, T4) -> R
 ) = combine(this, other, other2, other3, transform)
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'combineLatest' is 'combine'",
@@ -426,7 +422,6 @@ public fun <T> Flow<T>.delayFlow(timeMillis: Long): Flow<T> = onStart { delay(ti
 )
 public fun <T> Flow<T>.delayEach(timeMillis: Long): Flow<T> = onEach { delay(timeMillis) }
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogues of 'switchMap' are 'transformLatest', 'flatMapLatest' and 'mapLatest'",
@@ -434,7 +429,6 @@ public fun <T> Flow<T>.delayEach(timeMillis: Long): Flow<T> = onEach { delay(tim
 )
 public fun <T, R> Flow<T>.switchMap(transform: suspend (value: T) -> Flow<R>): Flow<R> = flatMapLatest(transform)
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR, // Warning since 1.3.8, was experimental when deprecated, ERROR since 1.5.0
     message = "'scanReduce' was renamed to 'runningReduce' to be consistent with Kotlin standard library",
@@ -442,7 +436,6 @@ public fun <T, R> Flow<T>.switchMap(transform: suspend (value: T) -> Flow<R>): F
 )
 public fun <T> Flow<T>.scanReduce(operation: suspend (accumulator: T, value: T) -> T): Flow<T> = runningReduce(operation)
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'publish()' is 'shareIn'. \n" +
@@ -453,7 +446,6 @@ public fun <T> Flow<T>.scanReduce(operation: suspend (accumulator: T, value: T) 
 )
 public fun <T> Flow<T>.publish(): Flow<T> = noImpl()
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'publish(bufferSize)' is 'buffer' followed by 'shareIn'. \n" +
@@ -464,7 +456,6 @@ public fun <T> Flow<T>.publish(): Flow<T> = noImpl()
 )
 public fun <T> Flow<T>.publish(bufferSize: Int): Flow<T> = noImpl()
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'replay()' is 'shareIn' with unlimited replay. \n" +
@@ -475,7 +466,6 @@ public fun <T> Flow<T>.publish(bufferSize: Int): Flow<T> = noImpl()
 )
 public fun <T> Flow<T>.replay(): Flow<T> = noImpl()
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'replay(bufferSize)' is 'shareIn' with the specified replay parameter. \n" +
@@ -486,7 +476,6 @@ public fun <T> Flow<T>.replay(): Flow<T> = noImpl()
 )
 public fun <T> Flow<T>.replay(bufferSize: Int): Flow<T> = noImpl()
 
-/** @suppress */
 @Deprecated(
     level = DeprecationLevel.ERROR,
     message = "Flow analogue of 'cache()' is 'shareIn' with unlimited replay and 'started = SharingStared.Lazily' argument'",

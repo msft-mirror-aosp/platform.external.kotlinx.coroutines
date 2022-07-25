@@ -13,7 +13,6 @@ import kotlin.internal.InlineOnly
 /**
  * Applying [cancellable][Flow.cancellable] to a [SharedFlow] has no effect.
  * See the [SharedFlow] documentation on Operator Fusion.
- * @suppress
  */
 @Deprecated(
     level = DeprecationLevel.ERROR,
@@ -25,7 +24,6 @@ public fun <T> SharedFlow<T>.cancellable(): Flow<T> = noImpl()
 /**
  * Applying [flowOn][Flow.flowOn] to [SharedFlow] has no effect.
  * See the [SharedFlow] documentation on Operator Fusion.
- * @suppress
  */
 @Deprecated(
     level = DeprecationLevel.ERROR,
@@ -37,7 +35,6 @@ public fun <T> SharedFlow<T>.flowOn(context: CoroutineContext): Flow<T> = noImpl
 /**
  * Applying [conflate][Flow.conflate] to [StateFlow] has no effect.
  * See the [StateFlow] documentation on Operator Fusion.
- * @suppress
  */
 @Deprecated(
     level = DeprecationLevel.ERROR,
@@ -49,7 +46,6 @@ public fun <T> StateFlow<T>.conflate(): Flow<T> = noImpl()
 /**
  * Applying [distinctUntilChanged][Flow.distinctUntilChanged] to [StateFlow] has no effect.
  * See the [StateFlow] documentation on Operator Fusion.
- * @suppress
  */
 @Deprecated(
     level = DeprecationLevel.ERROR,
@@ -58,9 +54,6 @@ public fun <T> StateFlow<T>.conflate(): Flow<T> = noImpl()
 )
 public fun <T> StateFlow<T>.distinctUntilChanged(): Flow<T> = noImpl()
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "isActive is resolved into the extension of outer CoroutineScope which is likely to be an error." +
         "Use currentCoroutineContext().isActive or cancellable() operator instead " +
@@ -72,9 +65,6 @@ public fun <T> StateFlow<T>.distinctUntilChanged(): Flow<T> = noImpl()
 public val FlowCollector<*>.isActive: Boolean
     get() = noImpl()
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "cancel() is resolved into the extension of outer CoroutineScope which is likely to be an error." +
         "Use currentCoroutineContext().cancel() instead or specify the receiver of cancel() explicitly",
@@ -83,9 +73,6 @@ public val FlowCollector<*>.isActive: Boolean
 )
 public fun FlowCollector<*>.cancel(cause: CancellationException? = null): Unit = noImpl()
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "coroutineContext is resolved into the property of outer CoroutineScope which is likely to be an error." +
         "Use currentCoroutineContext() instead or specify the receiver of coroutineContext explicitly",
@@ -95,9 +82,6 @@ public fun FlowCollector<*>.cancel(cause: CancellationException? = null): Unit =
 public val FlowCollector<*>.coroutineContext: CoroutineContext
     get() = noImpl()
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "SharedFlow never completes, so this operator typically has not effect, it can only " +
         "catch exceptions from 'onSubscribe' operator",
@@ -108,9 +92,6 @@ public val FlowCollector<*>.coroutineContext: CoroutineContext
 public inline fun <T> SharedFlow<T>.catch(noinline action: suspend FlowCollector<T>.(cause: Throwable) -> Unit): Flow<T> =
     (this as Flow<T>).catch(action)
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "SharedFlow never completes, so this operator has no effect.",
     level = DeprecationLevel.WARNING,
@@ -123,9 +104,6 @@ public inline fun <T> SharedFlow<T>.retry(
 ): Flow<T> =
     (this as Flow<T>).retry(retries, predicate)
 
-/**
- * @suppress
- */
 @Deprecated(
     message = "SharedFlow never completes, so this operator has no effect.",
     level = DeprecationLevel.WARNING,
@@ -135,9 +113,6 @@ public inline fun <T> SharedFlow<T>.retry(
 public inline fun <T> SharedFlow<T>.retryWhen(noinline predicate: suspend FlowCollector<T>.(cause: Throwable, attempt: Long) -> Boolean): Flow<T> =
     (this as Flow<T>).retryWhen(predicate)
 
-/**
- * @suppress
- */
 @Suppress("DeprecatedCallableAddReplaceWith")
 @Deprecated(
     message = "SharedFlow never completes, so this terminal operation never completes.",
@@ -147,9 +122,6 @@ public inline fun <T> SharedFlow<T>.retryWhen(noinline predicate: suspend FlowCo
 public suspend inline fun <T> SharedFlow<T>.toList(): List<T> =
     (this as Flow<T>).toList()
 
-/**
- * @suppress
- */
 @Suppress("DeprecatedCallableAddReplaceWith")
 @Deprecated(
     message = "SharedFlow never completes, so this terminal operation never completes.",
@@ -159,9 +131,6 @@ public suspend inline fun <T> SharedFlow<T>.toList(): List<T> =
 public suspend inline fun <T> SharedFlow<T>.toSet(): Set<T> =
     (this as Flow<T>).toSet()
 
-/**
- * @suppress
- */
 @Suppress("DeprecatedCallableAddReplaceWith")
 @Deprecated(
     message = "SharedFlow never completes, so this terminal operation never completes.",

@@ -106,22 +106,22 @@ class CoroutineSchedulerTest : TestBase() {
 
     @Test(expected = IllegalArgumentException::class)
     fun testNegativeCorePoolSize() {
-        SchedulerCoroutineDispatcher(-1, 4)
+        ExperimentalCoroutineDispatcher(-1, 4)
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun testNegativeMaxPoolSize() {
-        SchedulerCoroutineDispatcher(1, -4)
+        ExperimentalCoroutineDispatcher(1, -4)
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun testCorePoolSizeGreaterThanMaxPoolSize() {
-        SchedulerCoroutineDispatcher(4, 1)
+        ExperimentalCoroutineDispatcher(4, 1)
     }
 
     @Test
     fun testSelfClose() {
-        val dispatcher = SchedulerCoroutineDispatcher(1, 1)
+        val dispatcher = ExperimentalCoroutineDispatcher(1, 1)
         val latch = CountDownLatch(1)
         dispatcher.dispatch(EmptyCoroutineContext, Runnable {
             dispatcher.close(); latch.countDown()
@@ -131,7 +131,7 @@ class CoroutineSchedulerTest : TestBase() {
 
     @Test
     fun testInterruptionCleanup() {
-        SchedulerCoroutineDispatcher(1, 1).use {
+        ExperimentalCoroutineDispatcher(1, 1).use {
             val executor = it.executor
             var latch = CountDownLatch(1)
             executor.execute {

@@ -6,10 +6,13 @@ package benchmarks
 
 import benchmarks.common.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.sync.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.scheduling.ExperimentalCoroutineDispatcher
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.openjdk.jmh.annotations.*
-import java.util.concurrent.*
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 
 @Warmup(iterations = 3, time = 500, timeUnit = TimeUnit.MICROSECONDS)
 @Measurement(iterations = 10, time = 500, timeUnit = TimeUnit.MICROSECONDS)
@@ -81,7 +84,7 @@ open class SemaphoreBenchmark {
 
 enum class SemaphoreBenchDispatcherCreator(val create: (parallelism: Int) -> CoroutineDispatcher) {
     FORK_JOIN({ parallelism -> ForkJoinPool(parallelism).asCoroutineDispatcher() }),
-    EXPERIMENTAL({ parallelism -> Dispatchers.Default }) // TODO doesn't take parallelism into account
+    EXPERIMENTAL({ parallelism -> ExperimentalCoroutineDispatcher(corePoolSize = parallelism, maxPoolSize = parallelism) })
 }
 
 private const val WORK_INSIDE = 80

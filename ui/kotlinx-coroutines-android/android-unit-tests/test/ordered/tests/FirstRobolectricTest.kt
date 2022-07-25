@@ -15,7 +15,6 @@ import kotlin.test.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [28])
-@LooperMode(LooperMode.Mode.LEGACY)
 open class FirstRobolectricTest {
     @Test
     fun testComponent()  {
