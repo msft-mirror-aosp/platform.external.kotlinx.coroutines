@@ -69,14 +69,19 @@ class FlatMapMergeTest : FlatMapMergeBaseTest() {
 
     @Test
     fun testCancellationExceptionDownstream() = runTest {
-        val flow = flowOf(1, 2, 3).flatMapMerge {
+        val flow = flow {
+            emit(1)
+            hang { expect(2) }
+        }.flatMapMerge {
             flow {
                 emit(it)
+                expect(1)
                 throw CancellationException("")
             }
         }
 
-        assertEquals(listOf(1, 2, 3), flow.toList())
+        assertFailsWith<CancellationException>(flow)
+        finish(3)
     }
 
     @Test

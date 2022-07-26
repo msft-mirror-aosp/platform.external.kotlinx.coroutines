@@ -106,7 +106,7 @@ public suspend fun <T> Publisher<T>.awaitSingle(): T = awaitOne(Mode.SINGLE)
 @Deprecated(
     message = "Deprecated without a replacement due to its name incorrectly conveying the behavior. " +
         "Please consider using awaitFirstOrDefault().",
-    level = DeprecationLevel.ERROR
+    level = DeprecationLevel.WARNING
 ) // Warning since 1.5, error in 1.6, hidden in 1.7
 public suspend fun <T> Publisher<T>.awaitSingleOrDefault(default: T): T = awaitOne(Mode.SINGLE_OR_DEFAULT, default)
 
@@ -135,7 +135,7 @@ public suspend fun <T> Publisher<T>.awaitSingleOrDefault(default: T): T = awaitO
     message = "Deprecated without a replacement due to its name incorrectly conveying the behavior. " +
         "There is a specialized version for Reactor's Mono, please use that where applicable. " +
         "Alternatively, please consider using awaitFirstOrNull().",
-    level = DeprecationLevel.ERROR,
+    level = DeprecationLevel.WARNING,
     replaceWith = ReplaceWith("this.awaitSingleOrNull()", "kotlinx.coroutines.reactor")
 ) // Warning since 1.5, error in 1.6, hidden in 1.7
 public suspend fun <T> Publisher<T>.awaitSingleOrNull(): T? = awaitOne(Mode.SINGLE_OR_DEFAULT)
@@ -164,7 +164,7 @@ public suspend fun <T> Publisher<T>.awaitSingleOrNull(): T? = awaitOne(Mode.SING
 @Deprecated(
     message = "Deprecated without a replacement due to its name incorrectly conveying the behavior. " +
         "Please consider using awaitFirstOrElse().",
-    level = DeprecationLevel.ERROR
+    level = DeprecationLevel.WARNING
 ) // Warning since 1.5, error in 1.6, hidden in 1.7
 public suspend fun <T> Publisher<T>.awaitSingleOrElse(defaultValue: () -> T): T =
     awaitOne(Mode.SINGLE_OR_DEFAULT) ?: defaultValue()
@@ -198,20 +198,12 @@ private suspend fun <T> Publisher<T>.awaitOne(
             /** cancelling the new subscription due to rule 2.5, though the publisher would either have to
              * subscribe more than once, which would break 2.12, or leak this [Subscriber]. */
             if (subscription != null) {
-                withSubscriptionLock {
-                    sub.cancel()
-                }
+                sub.cancel()
                 return
             }
             subscription = sub
-            cont.invokeOnCancellation {
-                withSubscriptionLock {
-                    sub.cancel()
-                }
-            }
-            withSubscriptionLock {
-                sub.request(if (mode == Mode.FIRST || mode == Mode.FIRST_OR_DEFAULT) 1 else Long.MAX_VALUE)
-            }
+            cont.invokeOnCancellation { sub.cancel() }
+            sub.request(if (mode == Mode.FIRST || mode == Mode.FIRST_OR_DEFAULT) 1 else Long.MAX_VALUE)
         }
 
         override fun onNext(t: T) {
@@ -236,16 +228,12 @@ private suspend fun <T> Publisher<T>.awaitOne(
                         return
                     }
                     seenValue = true
-                    withSubscriptionLock {
-                        sub.cancel()
-                    }
+                    sub.cancel()
                     cont.resume(t)
                 }
                 Mode.LAST, Mode.SINGLE, Mode.SINGLE_OR_DEFAULT -> {
                     if ((mode == Mode.SINGLE || mode == Mode.SINGLE_OR_DEFAULT) && seenValue) {
-                        withSubscriptionLock {
-                            sub.cancel()
-                        }
+                        sub.cancel()
                         /* the check for `cont.isActive` is needed in case `sub.cancel() above calls `onComplete` or
                          `onError` on its own. */
                         if (cont.isActive) {
@@ -300,14 +288,6 @@ private suspend fun <T> Publisher<T>.awaitOne(
             }
             inTerminalState = true
             return true
-        }
-
-        /**
-         * Enforce rule 2.7: [Subscription.request] and [Subscription.cancel] must be executed serially
-         */
-        @Synchronized
-        private fun withSubscriptionLock(block: () -> Unit) {
-            block()
         }
     })
 }

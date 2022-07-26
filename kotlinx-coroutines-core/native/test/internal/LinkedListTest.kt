@@ -10,11 +10,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LinkedListTest {
-    data class IntNode(val i: Int) : LockFreeLinkedListNode()
+    data class IntNode(val i: Int) : LinkedListNode()
 
     @Test
     fun testSimpleAddLastRemove() {
-        val list = LockFreeLinkedListHead()
+        val list = LinkedListHead()
         assertContents(list)
         val n1 = IntNode(1).apply { list.addLast(this) }
         assertContents(list, 1)
@@ -35,7 +35,7 @@ class LinkedListTest {
         assertContents(list)
     }
 
-    private fun assertContents(list: LockFreeLinkedListHead, vararg expected: Int) {
+    private fun assertContents(list: LinkedListHead, vararg expected: Int) {
         val n = expected.size
         val actual = IntArray(n)
         var index = 0

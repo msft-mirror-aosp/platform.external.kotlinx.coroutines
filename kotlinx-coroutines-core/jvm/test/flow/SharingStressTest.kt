@@ -189,9 +189,5 @@ class SharingStressTest : TestBase() {
         var count = 0L
     }
 
-    private fun log(msg: String) = println("${testStarted.elapsedNow().inWholeMilliseconds} ms: $msg")
-
-    private fun MutableStateFlow<Int>.increment(delta: Int) {
-        update { it + delta }
-    }
+    private fun log(msg: String) = println("${testStarted.elapsedNow().toLongMilliseconds()} ms: $msg")
 }

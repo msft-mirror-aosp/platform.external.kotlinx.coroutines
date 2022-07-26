@@ -8,7 +8,7 @@ import org.junit.Test
 import kotlin.coroutines.*
 import kotlin.test.*
 
-@OptIn(ExperimentalStdlibApi::class)
+@UseExperimental(ExperimentalStdlibApi::class)
 class DispatcherKeyTest : TestBase() {
 
     companion object CustomInterceptor : AbstractCoroutineContextElement(ContinuationInterceptor),
