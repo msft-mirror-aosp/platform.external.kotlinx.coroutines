@@ -77,8 +77,10 @@ java_library {
         "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
-    libs: [
+    static_libs: [
         "kotlinx_coroutines",
+    ],
+    libs: [
         "androidx.annotation_annotation",
     ],
     apex_available: [
