@@ -76,8 +76,10 @@ java_library {
         "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
         "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
-    libs: [
+    static_libs: [
         "kotlinx_coroutines",
+    ],
+    libs: [
         "androidx.annotation_annotation",
     ],
     apex_available: [
