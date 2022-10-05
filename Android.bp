@@ -52,13 +52,14 @@ java_library {
     ],
     kotlincflags: [
         "-Xmulti-platform",
-        "-Xuse-experimental=kotlin.ExperimentalMultiplatform",
-        "-Xuse-experimental=kotlin.Experimental",
-        "-Xuse-experimental=kotlin.experimental.ExperimentalTypeInference",
-        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-        "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
-        "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
-        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlin.experimental.ExperimentalTypeInference",
+        "-opt-in=kotlin.ExperimentalMultiplatform",
+        "-opt-in=kotlinx.coroutines.DelicateCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ObsoleteCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.FlowPreview",
     ],
     apex_available: [
         "//apex_available:platform",
@@ -73,8 +74,8 @@ java_library {
     srcs: ["ui/kotlinx-coroutines-android/src/**/*.kt"],
     java_resource_dirs: ["ui/kotlinx-coroutines-android/resources"],
     kotlincflags: [
-        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
-        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
     static_libs: [
         "kotlinx_coroutines",
@@ -94,8 +95,8 @@ java_library {
     srcs: ["kotlinx-coroutines-test/src/**/*.kt"],
     java_resource_dirs: ["kotlinx-coroutines-test/resources"],
     kotlincflags: [
-        "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
-        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
     libs: [
         "kotlinx_coroutines",
