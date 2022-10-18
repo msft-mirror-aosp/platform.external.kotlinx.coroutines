@@ -38,10 +38,13 @@ license {
 java_library {
     name: "kotlinx_coroutines",
     host_supported: true,
-    sdk_version: "core_current",
+    sdk_version: "current",
     min_sdk_version: "28",
     srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
-    common_srcs: ["kotlinx-coroutines-core/common/src/**/*.kt"],
+    common_srcs: [
+        "kotlinx-coroutines-core/common/src/**/*.kt",
+        "kotlinx-coroutines-core/concurrent/src/**/*.kt",
+    ],
     exclude_srcs: [
         "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
@@ -50,6 +53,7 @@ java_library {
     static_libs: [
         "kotlinx_atomicfu",
     ],
+    libs: ["kotlinx-coroutines-android-annotation-stubs"],
     kotlincflags: [
         "-Xmulti-platform",
         "-opt-in=kotlin.RequiresOptIn",
@@ -65,6 +69,11 @@ java_library {
         "//apex_available:platform",
         "//apex_available:anyapex"
     ],
+    target: {
+        host: {
+            libs: ["annotations"], // for android.annotation.SuppressLint
+        },
+    },
 }
 
 java_library {
@@ -92,9 +101,12 @@ java_library {
 java_library {
     name: "kotlinx_coroutines_test",
     host_supported: true,
-    srcs: ["kotlinx-coroutines-test/src/**/*.kt"],
-    java_resource_dirs: ["kotlinx-coroutines-test/resources"],
+    srcs: ["kotlinx-coroutines-test/jvm/src/**/*.kt"],
+    common_srcs: ["kotlinx-coroutines-test/common/src/**/*.kt"],
+    java_resource_dirs: ["kotlinx-coroutines-test/jvm/resources"],
     kotlincflags: [
+        "-Xmulti-platform",
+        "-opt-in=kotlin.ExperimentalMultiplatform",
         "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
@@ -107,12 +119,22 @@ java_library {
     ],
 }
 
-// Temporary aliases for kotlinx-coroutines-core, kotlinx-coroutines-core-jvm and kotlinx-coroutines-android
+// Compile stub implementations of annotations used by kotlinx-coroutines but not present in the
+// Android tree.
+java_library {
+    name: "kotlinx-coroutines-android-annotation-stubs",
+    host_supported: true,
+    sdk_version: "core_current",
+    srcs: ["android-annotation-stubs/src/**/*.java"],
+}
+
+// Temporary aliases for kotlinx-coroutines-core, kotlinx-coroutines-core-jvm and
+// kotlinx-coroutines-android
 
 java_library {
     name: "kotlinx-coroutines-core",
     host_supported: true,
-    sdk_version: "core_current",
+    sdk_version: "current",
     min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
@@ -124,7 +146,7 @@ java_library {
 java_library {
     name: "kotlinx-coroutines-core-jvm",
     host_supported: true,
-    sdk_version: "core_current",
+    sdk_version: "current",
     min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
