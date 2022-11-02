@@ -1,5 +1,6 @@
 package {
     default_applicable_licenses: ["external_kotlinx.coroutines_license"],
+    default_visibility: ["//visibility:private"],
 }
 
 // Added automatically by a large-scale-change that took the approach of
@@ -35,13 +36,16 @@ license {
     ],
 }
 
-java_library {
-    name: "kotlinx_coroutines",
-    host_supported: true,
-    sdk_version: "core_current",
-    min_sdk_version: "28",
+// Upstream compiles this lib against the JVM bootclasspath; compiling against the Android
+// bootclasspath will fail. Work around this by defining this as a java_library_host, and use
+// java_host_for_device to expose it to Android targets.
+java_library_host {
+    name: "kotlinx_coroutines-host",
     srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
-    common_srcs: ["kotlinx-coroutines-core/common/src/**/*.kt"],
+    common_srcs: [
+        "kotlinx-coroutines-core/common/src/**/*.kt",
+        "kotlinx-coroutines-core/concurrent/src/**/*.kt",
+    ],
     exclude_srcs: [
         "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
@@ -49,6 +53,10 @@ java_library {
     java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
     static_libs: [
         "kotlinx_atomicfu",
+    ],
+    libs: [
+        "annotations", // for android.annotation.SuppressLint
+        "kotlinx-coroutines-android-annotation-stubs",
     ],
     kotlincflags: [
         "-Xmulti-platform",
@@ -63,8 +71,37 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+}
+
+// Expose the host library to Android targets. This is generally an unsafe operation; in using
+// this, we are asserting that any host-only code will never be evaluated at runtime on Android.
+// If we're wrong, we will see runtime exceptions.
+java_host_for_device {
+    name: "kotlinx_coroutines-device",
+    libs: ["kotlinx_coroutines-host"],
+}
+
+// Combine host and Android libs back into a single target.
+java_library {
+    name: "kotlinx_coroutines",
+    host_supported: true,
+    sdk_version: "core_current",
+    min_sdk_version: "28",
+    target: {
+        host: {
+            static_libs: ["kotlinx_coroutines-host"],
+        },
+        android: {
+            static_libs: ["kotlinx_coroutines-device"],
+        },
+    },
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -85,29 +122,43 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
     name: "kotlinx_coroutines_test",
     host_supported: true,
-    srcs: ["kotlinx-coroutines-test/src/**/*.kt"],
-    java_resource_dirs: ["kotlinx-coroutines-test/resources"],
+    srcs: ["kotlinx-coroutines-test/jvm/src/**/*.kt"],
+    common_srcs: ["kotlinx-coroutines-test/common/src/**/*.kt"],
+    java_resource_dirs: ["kotlinx-coroutines-test/jvm/resources"],
     kotlincflags: [
+        "-Xmulti-platform",
+        "-opt-in=kotlin.ExperimentalMultiplatform",
         "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
-    libs: [
-        "kotlinx_coroutines",
-    ],
+    libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
-// Temporary aliases for kotlinx-coroutines-core, kotlinx-coroutines-core-jvm and kotlinx-coroutines-android
+
+// Compile stub implementations of annotations used by kotlinx-coroutines but not present in the
+// Android tree.
+java_library {
+    name: "kotlinx-coroutines-android-annotation-stubs",
+    host_supported: true,
+    sdk_version: "core_current",
+    srcs: ["android-annotation-stubs/src/**/*.java"],
+}
+
+// Temporary aliases for kotlinx-coroutines-core, kotlinx-coroutines-core-jvm and
+// kotlinx-coroutines-android
 
 java_library {
     name: "kotlinx-coroutines-core",
@@ -117,8 +168,9 @@ java_library {
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -129,8 +181,9 @@ java_library {
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -143,8 +196,9 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 filegroup {
