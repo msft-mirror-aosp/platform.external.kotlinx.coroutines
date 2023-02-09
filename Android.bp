@@ -204,4 +204,5 @@ java_library {
 filegroup {
     name: "kotlinx-coroutines-play-services",
     srcs: ["integration/kotlinx-coroutines-play-services/src/**/*.kt"],
+    visibility: ["//visibility:public"],
 }
