@@ -194,5 +194,6 @@ java_library {
         "//apex_available:platform",
         "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
