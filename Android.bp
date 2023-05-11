@@ -174,3 +174,25 @@ filegroup {
     srcs: ["integration/kotlinx-coroutines-play-services/src/**/*.kt"],
     visibility: ["//visibility:public"],
 }
+
+// Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-guava
+java_library {
+    name: "kotlinx_coroutines_guava",
+    host_supported: true,
+    srcs: ["integration/kotlinx-coroutines-guava/src/**/*.kt"],
+    kotlincflags: [
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+    ],
+    libs: [
+        "kotlinx_coroutines",
+        "kotlin-stdlib-jdk8",
+        "guava",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+}
+
