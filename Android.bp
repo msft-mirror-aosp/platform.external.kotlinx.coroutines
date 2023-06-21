@@ -203,6 +203,7 @@ java_library {
 filegroup {
     name: "kotlinx-coroutines-play-services",
     srcs: ["integration/kotlinx-coroutines-play-services/src/**/*.kt"],
+    visibility: ["//visibility:public"],
 }
 
 // Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-guava
