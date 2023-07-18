@@ -19,6 +19,11 @@ public actual object Dispatchers {
     internal fun injectMain(dispatcher: MainCoroutineDispatcher) {
         injectedMainDispatcher = dispatcher
     }
+
+    @PublishedApi
+    internal fun resetInjectedMain() {
+        injectedMainDispatcher = null
+    }
 }
 
 private class JsMainDispatcher(

@@ -9,6 +9,8 @@ import java.util.*
 import java.util.concurrent.*
 import kotlin.concurrent.withLock as withLockJvm
 
+internal actual fun <E> subscriberList(): SubscribersList<E> = CopyOnWriteArrayList()
+
 @Suppress("ACTUAL_WITHOUT_EXPECT")
 internal actual typealias ReentrantLock = java.util.concurrent.locks.ReentrantLock
 
