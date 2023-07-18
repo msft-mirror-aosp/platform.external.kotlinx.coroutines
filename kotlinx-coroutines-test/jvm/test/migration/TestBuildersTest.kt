@@ -8,7 +8,7 @@ import kotlinx.coroutines.*
 import kotlin.coroutines.*
 import kotlin.test.*
 
-@Suppress("DEPRECATION", "DEPRECATION_ERROR")
+@Suppress("DEPRECATION")
 class TestBuildersTest {
 
     @Test

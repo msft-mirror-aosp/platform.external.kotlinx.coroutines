@@ -5,6 +5,7 @@
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.*
 import org.junit.*
 import org.junit.Test
 import java.util.concurrent.*
@@ -27,7 +28,7 @@ class InvokeOnCloseStressTest : TestBase(), CoroutineScope {
 
     @Test
     fun testInvokedExactlyOnce() = runBlocking {
-        runStressTest(TestChannelKind.BUFFERED_1)
+        runStressTest(TestChannelKind.ARRAY_1)
     }
 
     @Test

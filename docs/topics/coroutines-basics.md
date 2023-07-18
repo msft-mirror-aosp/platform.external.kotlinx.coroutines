@@ -57,7 +57,7 @@ the code with coroutines inside of `runBlocking { ... }` curly braces. This is h
 `this: CoroutineScope` hint right after the `runBlocking` opening curly brace.
 
 If you remove or forget `runBlocking` in this code, you'll get an error on the [launch] call, since `launch`
-is declared only on the [CoroutineScope]:
+is declared only in the [CoroutineScope]:
 
 ```Plain Text
 Unresolved reference: launch
@@ -71,7 +71,7 @@ as threads are expensive resources and blocking them is inefficient and is often
 ### Structured concurrency
 
 Coroutines follow a principle of 
-**structured concurrency** which means that new coroutines can only be launched in a specific [CoroutineScope]
+**structured concurrency** which means that new coroutines can be only launched in a specific [CoroutineScope]
 which delimits the lifetime of the coroutine. The above example shows that [runBlocking] establishes the corresponding
 scope and that is why the previous example waits until `World!` is printed after a second's delay and only then exits.
 
@@ -250,14 +250,14 @@ Done
 Coroutines are less resource-intensive than JVM threads. Code that exhausts the
 JVM's available memory when using threads can be expressed using coroutines
 without hitting resource limits. For example, the following code launches
-50,000 distinct coroutines that each waits 5 seconds and then prints a period
+100000 distinct coroutines that each wait 5 seconds and then print a period
 ('.') while consuming very little memory:
 
 ```kotlin
 import kotlinx.coroutines.*
 
 fun main() = runBlocking {
-    repeat(50_000) { // launch a lot of coroutines
+    repeat(100_000) { // launch a lot of coroutines
         launch {
             delay(5000L)
             print(".")
@@ -265,19 +265,18 @@ fun main() = runBlocking {
     }
 }
 ```
-{kotlin-runnable="true" kotlin-min-compiler-version="1.3"}
+<!-- While coroutines do have a smaller memory footprint than threads, this
+example will exhaust the playground's heap memory; don't make it runnable. -->
 
 > You can get the full code [here](../../kotlinx-coroutines-core/jvm/test/guide/example-basic-06.kt).
 >
 {type="note"}
 
-<!--- TEST lines.size == 1 && lines[0] == ".".repeat(50_000) -->
+<!--- TEST lines.size == 1 && lines[0] == ".".repeat(100_000) -->
 
 If you write the same program using threads (remove `runBlocking`, replace
 `launch` with `thread`, and replace `delay` with `Thread.sleep`), it will
-consume a lot of memory. Depending on your operating system, JDK version, 
-and its settings, it will either throw an out-of-memory error or start threads slowly 
-so that there are never too many concurrently running threads. 
+likely consume too much memory and throw an out-of-memory error.
 
 <!--- MODULE kotlinx-coroutines-core -->
 <!--- INDEX kotlinx.coroutines -->

@@ -28,12 +28,11 @@ internal class ResizableAtomicArray<T>(initialLength: Int) {
         val curLen = curArray.length()
         if (index < curLen) {
             curArray[index] = value
-            return
+        } else {
+            val newArray = AtomicReferenceArray<T>((index + 1).coerceAtLeast(2 * curLen))
+            for (i in 0 until curLen) newArray[i] = curArray[i]
+            newArray[index] = value
+            array = newArray // copy done
         }
-        // It would be nice to copy array in batch instead of 1 by 1, but it seems like Java has no API for that
-        val newArray = AtomicReferenceArray<T>((index + 1).coerceAtLeast(2 * curLen))
-        for (i in 0 until curLen) newArray[i] = curArray[i]
-        newArray[index] = value
-        array = newArray // copy done
     }
 }
