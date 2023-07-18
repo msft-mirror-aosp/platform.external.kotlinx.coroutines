@@ -13,7 +13,6 @@ import kotlinx.coroutines.selects.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
 import kotlin.time.*
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * This is a scheduler for coroutines used in tests, providing the delay-skipping behavior.
@@ -27,6 +26,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * virtual time as needed (via [advanceUntilIdle]), or run the tasks that are scheduled to run as soon as possible but
  * haven't yet been dispatched (via [runCurrent]).
  */
+@ExperimentalCoroutinesApi
 public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCoroutineScheduler),
     CoroutineContext.Element {
 
@@ -48,9 +48,6 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
     public var currentTime: Long = 0
         get() = synchronized(lock) { field }
         private set
-
-    /** A channel for notifying about the fact that a foreground work dispatch recently happened. */
-    private val dispatchEventsForeground: Channel<Unit> = Channel(CONFLATED)
 
     /** A channel for notifying about the fact that a dispatch recently happened. */
     private val dispatchEvents: Channel<Unit> = Channel(CONFLATED)
@@ -76,8 +73,8 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
             val time = addClamping(currentTime, timeDeltaMillis)
             val event = TestDispatchEvent(dispatcher, count, time, marker as Any, isForeground) { isCancelled(marker) }
             events.addLast(event)
-            /** can't be moved above: otherwise, [onDispatchEventForeground] or [onDispatchEvent] could consume the
-             * token sent here before there's actually anything in the event queue. */
+            /** can't be moved above: otherwise, [onDispatchEvent] could consume the token sent here before there's
+             * actually anything in the event queue. */
             sendDispatchEvent(context)
             DisposableHandle {
                 synchronized(lock) {
@@ -100,7 +97,7 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
             currentTime = event.time
             event
         }
-        event.dispatcher.processEvent(event.marker)
+        event.dispatcher.processEvent(event.time, event.marker)
         return true
     }
 
@@ -108,10 +105,11 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
      * Runs the enqueued tasks in the specified order, advancing the virtual time as needed until there are no more
      * tasks associated with the dispatchers linked to this scheduler.
      *
-     * A breaking change from `TestCoroutineDispatcher.advanceTimeBy` is that it no longer returns the total number of
+     * A breaking change from [TestCoroutineDispatcher.advanceTimeBy] is that it no longer returns the total number of
      * milliseconds by which the execution of this method has advanced the virtual time. If you want to recreate that
      * functionality, query [currentTime] before and after the execution to achieve the same result.
      */
+    @ExperimentalCoroutinesApi
     public fun advanceUntilIdle(): Unit = advanceUntilIdleOr { events.none(TestDispatchEvent<*>::isForeground) }
 
     /**
@@ -127,13 +125,14 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
     /**
      * Runs the tasks that are scheduled to execute at this moment of virtual time.
      */
+    @ExperimentalCoroutinesApi
     public fun runCurrent() {
         val timeMark = synchronized(lock) { currentTime }
         while (true) {
             val event = synchronized(lock) {
                 events.removeFirstIf { it.time <= timeMark } ?: return
             }
-            event.dispatcher.processEvent(event.marker)
+            event.dispatcher.processEvent(event.time, event.marker)
         }
     }
 
@@ -151,21 +150,13 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
      * * Overflowing the target time used to lead to nothing being done, but will now run the tasks scheduled at up to
      *   (but not including) [Long.MAX_VALUE].
      *
-     * @throws IllegalArgumentException if passed a negative [delay][delayTimeMillis].
+     * @throws IllegalStateException if passed a negative [delay][delayTimeMillis].
      */
     @ExperimentalCoroutinesApi
-    public fun advanceTimeBy(delayTimeMillis: Long): Unit = advanceTimeBy(delayTimeMillis.milliseconds)
-
-    /**
-     * Moves the virtual clock of this dispatcher forward by [the specified amount][delayTime], running the
-     * scheduled tasks in the meantime.
-     *
-     * @throws IllegalArgumentException if passed a negative [delay][delayTime].
-     */
-    public fun advanceTimeBy(delayTime: Duration) {
-        require(!delayTime.isNegative()) { "Can not advance time by a negative delay: $delayTime" }
+    public fun advanceTimeBy(delayTimeMillis: Long) {
+        require(delayTimeMillis >= 0) { "Can not advance time by a negative delay: $delayTimeMillis" }
         val startingTime = currentTime
-        val targetTime = addClamping(startingTime, delayTime.inWholeMilliseconds)
+        val targetTime = addClamping(startingTime, delayTimeMillis)
         while (true) {
             val event = synchronized(lock) {
                 val timeMark = currentTime
@@ -182,7 +173,7 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
                     }
                 }
             }
-            event.dispatcher.processEvent(event.marker)
+            event.dispatcher.processEvent(event.time, event.marker)
         }
     }
 
@@ -200,15 +191,9 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
      * [context] is the context in which the task will be dispatched.
      */
     internal fun sendDispatchEvent(context: CoroutineContext) {
-        dispatchEvents.trySend(Unit)
         if (context[BackgroundWork] !== BackgroundWork)
-            dispatchEventsForeground.trySend(Unit)
+            dispatchEvents.trySend(Unit)
     }
-
-    /**
-     * Waits for a notification about a dispatch event.
-     */
-    internal suspend fun receiveDispatchEvent() = dispatchEvents.receive()
 
     /**
      * Consumes the knowledge that a dispatch event happened recently.
@@ -216,15 +201,11 @@ public class TestCoroutineScheduler : AbstractCoroutineContextElement(TestCorout
     internal val onDispatchEvent: SelectClause1<Unit> get() = dispatchEvents.onReceive
 
     /**
-     * Consumes the knowledge that a foreground work dispatch event happened recently.
-     */
-    internal val onDispatchEventForeground: SelectClause1<Unit> get() = dispatchEventsForeground.onReceive
-
-    /**
      * Returns the [TimeSource] representation of the virtual time of this scheduler.
      */
+    @ExperimentalCoroutinesApi
     @ExperimentalTime
-    public val timeSource: TimeSource.WithComparableMarks = object : AbstractLongTimeSource(DurationUnit.MILLISECONDS) {
+    public val timeSource: TimeSource = object : AbstractLongTimeSource(DurationUnit.MILLISECONDS) {
         override fun read(): Long = currentTime
     }
 }

@@ -9,13 +9,8 @@ import kotlinx.coroutines.internal.*
 import java.util.concurrent.*
 
 
-/**
- * The name of the default scheduler. The names of the worker threads of [Dispatchers.Default] have it as their prefix.
- */
-@JvmField
-internal val DEFAULT_SCHEDULER_NAME = systemProp(
-    "kotlinx.coroutines.scheduler.default.name", "DefaultDispatcher"
-)
+// Internal debuggability name + thread name prefixes
+internal const val DEFAULT_SCHEDULER_NAME = "DefaultDispatcher"
 
 // 100us as default
 @JvmField
@@ -79,15 +74,12 @@ internal val NonBlockingContext: TaskContext = TaskContextImpl(TASK_NON_BLOCKING
 @JvmField
 internal val BlockingContext: TaskContext = TaskContextImpl(TASK_PROBABLY_BLOCKING)
 
-@PublishedApi
-internal abstract class Task internal constructor(
-    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
+internal abstract class Task(
     @JvmField var submissionTime: Long,
-    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
-    @JvmField internal var taskContext: TaskContext
+    @JvmField var taskContext: TaskContext
 ) : Runnable {
-    internal constructor() : this(0, NonBlockingContext)
-    internal inline val mode: Int get() = taskContext.taskMode // TASK_XXX
+    constructor() : this(0, NonBlockingContext)
+    inline val mode: Int get() = taskContext.taskMode // TASK_XXX
 }
 
 internal inline val Task.isBlocking get() = taskContext.taskMode == TASK_PROBABLY_BLOCKING
