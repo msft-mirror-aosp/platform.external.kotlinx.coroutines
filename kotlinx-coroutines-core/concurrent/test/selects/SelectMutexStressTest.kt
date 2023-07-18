@@ -28,6 +28,7 @@ class SelectMutexStressTest : TestBase() {
             yield() // so it can cleanup after itself
         }
         assertTrue(mutex.isLocked)
+        assertTrue(mutex.isLockedEmptyQueueState)
         finish(n + 2)
     }
 }
