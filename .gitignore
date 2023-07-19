@@ -12,5 +12,4 @@ build
 out
 target
 local.properties
-benchmarks.jar
 /kotlin-js-store

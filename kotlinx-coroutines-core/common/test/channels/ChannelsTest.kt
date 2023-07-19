@@ -20,10 +20,7 @@ class ChannelsTest: TestBase() {
     }
 
     @Test
-    fun testCloseWithMultipleSuspendedReceivers() = runTest {
-        // Once the channel is closed, the waiting
-        // requests should be cancelled in the order
-        // they were suspended in the channel.
+    fun testCloseWithMultipleWaiters() = runTest {
         val channel = Channel<Int>()
         launch {
             try {
@@ -49,40 +46,6 @@ class ChannelsTest: TestBase() {
         yield()
         expect(4)
         channel.close()
-        yield()
-        finish(7)
-    }
-
-    @Test
-    fun testCloseWithMultipleSuspendedSenders() = runTest {
-        // Once the channel is closed, the waiting
-        // requests should be cancelled in the order
-        // they were suspended in the channel.
-        val channel = Channel<Int>()
-        launch {
-            try {
-                expect(2)
-                channel.send(42)
-                expectUnreached()
-            } catch (e: CancellationException) {
-                expect(5)
-            }
-        }
-
-        launch {
-            try {
-                expect(3)
-                channel.send(42)
-                expectUnreached()
-            } catch (e: CancellationException) {
-                expect(6)
-            }
-        }
-
-        expect(1)
-        yield()
-        expect(4)
-        channel.cancel()
         yield()
         finish(7)
     }
