@@ -149,7 +149,8 @@ private class LazyActorCoroutine<E>(
     parentContext: CoroutineContext,
     channel: Channel<E>,
     block: suspend ActorScope<E>.() -> Unit
-) : ActorCoroutine<E>(parentContext, channel, active = false) {
+) : ActorCoroutine<E>(parentContext, channel, active = false),
+    SelectClause2<E, SendChannel<E>> {
 
     private var continuation = block.createCoroutineUnintercepted(this, this)
 
@@ -162,12 +163,7 @@ private class LazyActorCoroutine<E>(
         return super.send(element)
     }
 
-    @Suppress("DEPRECATION_ERROR")
-    @Deprecated(
-        level = DeprecationLevel.ERROR,
-        message = "Deprecated in the favour of 'trySend' method",
-        replaceWith = ReplaceWith("trySend(element).isSuccess")
-    ) // See super()
+    @Suppress("DEPRECATION", "DEPRECATION_ERROR")
     override fun offer(element: E): Boolean {
         start()
         return super.offer(element)
@@ -186,15 +182,12 @@ private class LazyActorCoroutine<E>(
         return closed
     }
 
-    @Suppress("UNCHECKED_CAST")
-    override val onSend: SelectClause2<E, SendChannel<E>> get() = SelectClause2Impl(
-        clauseObject = this,
-        regFunc = LazyActorCoroutine<*>::onSendRegFunction as RegistrationFunction,
-        processResFunc = super.onSend.processResFunc
-    )
+    override val onSend: SelectClause2<E, SendChannel<E>>
+        get() = this
 
-    private fun onSendRegFunction(select: SelectInstance<*>, element: Any?) {
-        onStart()
-        super.onSend.regFunc(this, select, element)
+    // registerSelectSend
+    override fun <R> registerSelectClause2(select: SelectInstance<R>, param: E, block: suspend (SendChannel<E>) -> R) {
+        start()
+        super.onSend.registerSelectClause2(select, param, block)
     }
 }

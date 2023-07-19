@@ -1,7 +1,3 @@
-# This project was upgraded with external_updater.
-# Usage: tools/external_updater/updater.sh update kotlinx.coroutines
-# For more info, check https://cs.android.com/android/platform/superproject/+/master:tools/external_updater/README.md
-
 name: "kotlinx.coroutines"
 description: "Library support for Kotlin coroutines"
 third_party {
@@ -9,11 +5,11 @@ third_party {
     type: GIT
     value: "https://github.com/Kotlin/kotlinx.coroutines"
   }
-  version: "1.7.2"
+  version: "1.6.4"
   license_type: NOTICE
   last_upgrade_date {
-    year: 2023
+    year: 2022
     month: 7
-    day: 12
+    day: 20
   }
 }

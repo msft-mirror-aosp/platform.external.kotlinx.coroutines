@@ -4,7 +4,6 @@
 
 package kotlinx.coroutines
 
-import kotlinx.coroutines.flow.*
 import kotlin.coroutines.*
 import kotlin.test.*
 
@@ -131,33 +130,5 @@ class ThreadContextMutableCopiesTest : TestBase() {
             assertNotSame(originalData, threadLocalData.get())
             finish(2)
         }
-    }
-
-    @Test
-    fun testDataIsCopiedThroughFlowOnUndispatched() = runTest {
-        expect(1)
-        val root = MyMutableElement(ArrayList())
-        val originalData = root.mutableData
-        flow {
-            assertNotSame(originalData, threadLocalData.get())
-            emit(1)
-        }
-            .flowOn(root)
-            .single()
-        finish(2)
-    }
-
-    @Test
-    fun testDataIsCopiedThroughFlowOnDispatched() = runTest {
-        expect(1)
-        val root = MyMutableElement(ArrayList())
-        val originalData = root.mutableData
-        flow {
-            assertNotSame(originalData, threadLocalData.get())
-            emit(1)
-        }
-            .flowOn(root + Dispatchers.Default)
-            .single()
-        finish(2)
     }
 }

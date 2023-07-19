@@ -6,16 +6,16 @@ package kotlinx.coroutines.internal
 
 import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
-import kotlin.coroutines.*
 import kotlin.jvm.*
+import kotlin.native.concurrent.SharedImmutable
 
 /**
  * Returns the first segment `s` with `s.id >= id` or `CLOSED`
  * if all the segments in this linked list have lower `id`, and the list is closed for further segment additions.
  */
-internal fun <S : Segment<S>> S.findSegmentInternal(
+private inline fun <S : Segment<S>> S.findSegmentInternal(
     id: Long,
-    createNewSegment: (id: Long, prev: S) -> S
+    createNewSegment: (id: Long, prev: S?) -> S
 ): SegmentOrClosed<S> {
     /*
        Go through `next` references and add new segments if needed, similarly to the `push` in the Michael-Scott
@@ -23,7 +23,7 @@ internal fun <S : Segment<S>> S.findSegmentInternal(
        added, so the algorithm just uses it. This way, only one segment with each id can be added.
      */
     var cur: S = this
-    while (cur.id < id || cur.isRemoved) {
+    while (cur.id < id || cur.removed) {
         val next = cur.nextOrIfClosed { return SegmentOrClosed(CLOSED) }
         if (next != null) { // there is a next node -- move there
             cur = next
@@ -31,7 +31,7 @@ internal fun <S : Segment<S>> S.findSegmentInternal(
         }
         val newTail = createNewSegment(cur.id + 1, cur)
         if (cur.trySetNext(newTail)) { // successfully added new node -- move there
-            if (cur.isRemoved) cur.remove()
+            if (cur.removed) cur.remove()
             cur = newTail
         }
     }
@@ -41,8 +41,8 @@ internal fun <S : Segment<S>> S.findSegmentInternal(
 /**
  * Returns `false` if the segment `to` is logically removed, `true` on a successful update.
  */
-@Suppress("NOTHING_TO_INLINE", "RedundantNullableReturnType") // Must be inline because it is an AtomicRef extension
-internal inline fun <S : Segment<S>> AtomicRef<S>.moveForward(to: S): Boolean = loop { cur ->
+@Suppress("NOTHING_TO_INLINE") // Must be inline because it is an AtomicRef extension
+private inline fun <S : Segment<S>> AtomicRef<S>.moveForward(to: S): Boolean = loop { cur ->
     if (cur.id >= to.id) return true
     if (!to.tryIncPointers()) return false
     if (compareAndSet(cur, to)) { // the segment is moved
@@ -63,11 +63,10 @@ internal inline fun <S : Segment<S>> AtomicRef<S>.moveForward(to: S): Boolean = 
  * Returns the segment `s` with `s.id >= id` or `CLOSED` if all the segments in this linked list have lower `id`,
  * and the list is closed.
  */
-@Suppress("NOTHING_TO_INLINE")
 internal inline fun <S : Segment<S>> AtomicRef<S>.findSegmentAndMoveForward(
     id: Long,
     startFrom: S,
-    noinline createNewSegment: (id: Long, prev: S) -> S
+    createNewSegment: (id: Long, prev: S?) -> S
 ): SegmentOrClosed<S> {
     while (true) {
         val s = startFrom.findSegmentInternal(id, createNewSegment)
@@ -138,49 +137,47 @@ internal abstract class ConcurrentLinkedListNode<N : ConcurrentLinkedListNode<N>
 
     /**
      * This property indicates whether the current node is logically removed.
-     * The expected use-case is removing the node logically (so that [isRemoved] becomes true),
+     * The expected use-case is removing the node logically (so that [removed] becomes true),
      * and invoking [remove] after that. Note that this implementation relies on the contract
      * that the physical tail cannot be logically removed. Please, do not break this contract;
      * otherwise, memory leaks and unexpected behavior can occur.
      */
-    abstract val isRemoved: Boolean
+    abstract val removed: Boolean
 
     /**
      * Removes this node physically from this linked list. The node should be
-     * logically removed (so [isRemoved] returns `true`) at the point of invocation.
+     * logically removed (so [removed] returns `true`) at the point of invocation.
      */
     fun remove() {
-        assert { isRemoved || isTail } // The node should be logically removed at first.
-        // The physical tail cannot be removed. Instead, we remove it when
-        // a new segment is added and this segment is not the tail one anymore.
-        if (isTail) return
+        assert { removed } // The node should be logically removed at first.
+        assert { !isTail } // The physical tail cannot be removed.
         while (true) {
             // Read `next` and `prev` pointers ignoring logically removed nodes.
-            val prev = aliveSegmentLeft
-            val next = aliveSegmentRight
+            val prev = leftmostAliveNode
+            val next = rightmostAliveNode
             // Link `next` and `prev`.
-            next._prev.update { if (it === null) null else prev }
+            next._prev.value = prev
             if (prev !== null) prev._next.value = next
             // Checks that prev and next are still alive.
-            if (next.isRemoved && !next.isTail) continue
-            if (prev !== null && prev.isRemoved) continue
+            if (next.removed) continue
+            if (prev !== null && prev.removed) continue
             // This node is removed.
             return
         }
     }
 
-    private val aliveSegmentLeft: N? get() {
+    private val leftmostAliveNode: N? get() {
         var cur = prev
-        while (cur !== null && cur.isRemoved)
+        while (cur !== null && cur.removed)
             cur = cur._prev.value
         return cur
     }
 
-    private val aliveSegmentRight: N get() {
+    private val rightmostAliveNode: N get() {
         assert { !isTail } // Should not be invoked on the tail node
         var cur = next!!
-        while (cur.isRemoved)
-            cur = cur.next ?: return cur
+        while (cur.removed)
+            cur = cur.next!!
         return cur
     }
 }
@@ -189,26 +186,13 @@ internal abstract class ConcurrentLinkedListNode<N : ConcurrentLinkedListNode<N>
  * Each segment in the list has a unique id and is created by the provided to [findSegmentAndMoveForward] method.
  * Essentially, this is a node in the Michael-Scott queue algorithm,
  * but with maintaining [prev] pointer for efficient [remove] implementation.
- *
- * NB: this class cannot be public or leak into user's code as public type as [CancellableContinuationImpl]
- * instance-check it and uses a separate code-path for that.
  */
-internal abstract class Segment<S : Segment<S>>(
-    @JvmField val id: Long, prev: S?, pointers: Int
-) : ConcurrentLinkedListNode<S>(prev),
-    // Segments typically store waiting continuations. Thus, on cancellation, the corresponding
-    // slot should be cleaned and the segment should be removed if it becomes full of cancelled cells.
-    // To install such a handler efficiently, without creating an extra object, we allow storing
-    // segments as cancellation handlers in [CancellableContinuationImpl] state, putting the slot
-    // index in another field. The details are here: https://github.com/Kotlin/kotlinx.coroutines/pull/3084.
-    // For that, we need segments to implement this internal marker interface.
-    NotCompleted
-{
+internal abstract class Segment<S : Segment<S>>(val id: Long, prev: S?, pointers: Int): ConcurrentLinkedListNode<S>(prev) {
     /**
-     * This property should return the number of slots in this segment,
+     * This property should return the maximal number of slots in this segment,
      * it is used to define whether the segment is logically removed.
      */
-    abstract val numberOfSlots: Int
+    abstract val maxSlots: Int
 
     /**
      * Numbers of cleaned slots (the lowest bits) and AtomicRef pointers to this segment (the highest bits)
@@ -216,35 +200,23 @@ internal abstract class Segment<S : Segment<S>>(
     private val cleanedAndPointers = atomic(pointers shl POINTERS_SHIFT)
 
     /**
-     * The segment is considered as removed if all the slots are cleaned
-     * and there are no pointers to this segment from outside.
+     * The segment is considered as removed if all the slots are cleaned.
+     * There are no pointers to this segment from outside, and
+     * it is not a physical tail in the linked list of segments.
      */
-    override val isRemoved get() = cleanedAndPointers.value == numberOfSlots && !isTail
+    override val removed get() = cleanedAndPointers.value == maxSlots && !isTail
 
     // increments the number of pointers if this segment is not logically removed.
-    internal fun tryIncPointers() = cleanedAndPointers.addConditionally(1 shl POINTERS_SHIFT) { it != numberOfSlots || isTail }
+    internal fun tryIncPointers() = cleanedAndPointers.addConditionally(1 shl POINTERS_SHIFT) { it != maxSlots || isTail }
 
     // returns `true` if this segment is logically removed after the decrement.
-    internal fun decPointers() = cleanedAndPointers.addAndGet(-(1 shl POINTERS_SHIFT)) == numberOfSlots && !isTail
-
-    /**
-     * This function is invoked on continuation cancellation when this segment
-     * with the specified [index] are installed as cancellation handler via
-     * `SegmentDisposable.disposeOnCancellation(Segment, Int)`.
-     *
-     * @param index the index under which the sement registered itself in the continuation.
-     *        Indicies are opaque and arithmetics or numeric intepretation is not allowed on them,
-     *        as they may encode additional metadata.
-     * @param cause the cause of the cancellation, with the same semantics as [CancellableContinuation.invokeOnCancellation]
-     * @param context the context of the cancellable continuation the segment was registered in
-     */
-    abstract fun onCancellation(index: Int, cause: Throwable?, context: CoroutineContext)
+    internal fun decPointers() = cleanedAndPointers.addAndGet(-(1 shl POINTERS_SHIFT)) == maxSlots && !isTail
 
     /**
      * Invoked on each slot clean-up; should not be invoked twice for the same slot.
      */
     fun onSlotCleaned() {
-        if (cleanedAndPointers.incrementAndGet() == numberOfSlots) remove()
+        if (cleanedAndPointers.incrementAndGet() == maxSlots && !isTail) remove()
     }
 }
 
@@ -265,4 +237,5 @@ internal value class SegmentOrClosed<S : Segment<S>>(private val value: Any?) {
 
 private const val POINTERS_SHIFT = 16
 
+@SharedImmutable
 private val CLOSED = Symbol("CLOSED")

@@ -16,7 +16,7 @@ class Resource {
 
 fun main() {
     runBlocking {
-        repeat(10_000) { // Launch 10K coroutines
+        repeat(100_000) { // Launch 100K coroutines
             launch { 
                 val resource = withTimeout(60) { // Timeout of 60 ms
                     delay(50) // Delay for 50 ms

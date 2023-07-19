@@ -18,7 +18,7 @@ class SelectGuideTest {
             "fizz -> 'Fizz'",
             "buzz -> 'Buzz!'",
             "fizz -> 'Fizz'",
-            "fizz -> 'Fizz'"
+            "buzz -> 'Buzz!'"
         )
     }
 
