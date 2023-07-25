@@ -14,24 +14,24 @@ class MutexStressTest : TestBase() {
     private val n = (if (isNative) 1_000 else 10_000) * stressTestMultiplier
 
     @Test
-    fun testDefaultDispatcher() = runTest { testBody(Dispatchers.Default) }
+    fun testDefaultDispatcher() = runMtTest { testBody(Dispatchers.Default) }
 
     @Test
-    fun testSingleThreadContext() = runTest {
+    fun testSingleThreadContext() = runMtTest {
         newSingleThreadContext("testSingleThreadContext").use {
             testBody(it)
         }
     }
 
     @Test
-    fun testMultiThreadedContextWithSingleWorker() = runTest {
+    fun testMultiThreadedContextWithSingleWorker() = runMtTest {
         newFixedThreadPoolContext(1, "testMultiThreadedContextWithSingleWorker").use {
             testBody(it)
         }
     }
 
     @Test
-    fun testMultiThreadedContext() = runTest {
+    fun testMultiThreadedContext() = runMtTest {
        newFixedThreadPoolContext(8, "testMultiThreadedContext").use {
             testBody(it)
         }
@@ -56,7 +56,7 @@ class MutexStressTest : TestBase() {
     }
 
     @Test
-    fun stressUnlockCancelRace() = runTest {
+    fun stressUnlockCancelRace() = runMtTest {
         val n = 10_000 * stressTestMultiplier
         val mutex = Mutex(true) // create a locked mutex
         newSingleThreadContext("SemaphoreStressTest").use { pool ->
@@ -86,7 +86,7 @@ class MutexStressTest : TestBase() {
     }
 
     @Test
-    fun stressUnlockCancelRaceWithSelect() = runTest {
+    fun stressUnlockCancelRaceWithSelect() = runMtTest {
         val n = 10_000 * stressTestMultiplier
         val mutex = Mutex(true) // create a locked mutex
         newSingleThreadContext("SemaphoreStressTest").use { pool ->
@@ -119,7 +119,7 @@ class MutexStressTest : TestBase() {
     }
 
     @Test
-    fun testShouldBeUnlockedOnCancellation() = runTest {
+    fun testShouldBeUnlockedOnCancellation() = runMtTest {
         val mutex = Mutex()
         val n = 1000 * stressTestMultiplier
         repeat(n) {

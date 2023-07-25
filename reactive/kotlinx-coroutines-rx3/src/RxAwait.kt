@@ -41,11 +41,12 @@ public suspend fun CompletableSource.await(): Unit = suspendCancellableCoroutine
  * If the [Job] of the current coroutine is cancelled or completed while this suspending function is waiting, this
  * function immediately resumes with [CancellationException] and disposes of its subscription.
  */
-public suspend fun <T> MaybeSource<T & Any>.awaitSingleOrNull(): T? = suspendCancellableCoroutine { cont ->
-    subscribe(object : MaybeObserver<T & Any> {
+@Suppress("UNCHECKED_CAST")
+public suspend fun <T> MaybeSource<T>.awaitSingleOrNull(): T? = suspendCancellableCoroutine { cont ->
+    subscribe(object : MaybeObserver<T> {
         override fun onSubscribe(d: Disposable) { cont.disposeOnCancellation(d) }
         override fun onComplete() { cont.resume(null) }
-        override fun onSuccess(t: T & Any) { cont.resume(t) }
+        override fun onSuccess(t: T) { cont.resume(t) }
         override fun onError(error: Throwable) { cont.resumeWithException(error) }
     })
 }
@@ -60,7 +61,7 @@ public suspend fun <T> MaybeSource<T & Any>.awaitSingleOrNull(): T? = suspendCan
  *
  * @throws NoSuchElementException if no elements were produced by this [MaybeSource].
  */
-public suspend fun <T> MaybeSource<T & Any>.awaitSingle(): T = awaitSingleOrNull() ?: throw NoSuchElementException()
+public suspend fun <T> MaybeSource<T>.awaitSingle(): T = awaitSingleOrNull() ?: throw NoSuchElementException()
 
 /**
  * Awaits for completion of the maybe without blocking a thread.
@@ -80,10 +81,10 @@ public suspend fun <T> MaybeSource<T & Any>.awaitSingle(): T = awaitSingleOrNull
  */
 @Deprecated(
     message = "Deprecated in favor of awaitSingleOrNull()",
-    level = DeprecationLevel.HIDDEN,
+    level = DeprecationLevel.ERROR,
     replaceWith = ReplaceWith("this.awaitSingleOrNull()")
 ) // Warning since 1.5, error in 1.6, hidden in 1.7
-public suspend fun <T> MaybeSource<T & Any>.await(): T? = awaitSingleOrNull()
+public suspend fun <T> MaybeSource<T>.await(): T? = awaitSingleOrNull()
 
 /**
  * Awaits for completion of the maybe without blocking a thread.
@@ -103,10 +104,10 @@ public suspend fun <T> MaybeSource<T & Any>.await(): T? = awaitSingleOrNull()
  */
 @Deprecated(
     message = "Deprecated in favor of awaitSingleOrNull()",
-    level = DeprecationLevel.HIDDEN,
+    level = DeprecationLevel.ERROR,
     replaceWith = ReplaceWith("this.awaitSingleOrNull() ?: default")
 ) // Warning since 1.5, error in 1.6, hidden in 1.7
-public suspend fun <T> MaybeSource<T & Any>.awaitOrDefault(default: T): T = awaitSingleOrNull() ?: default
+public suspend fun <T> MaybeSource<T>.awaitOrDefault(default: T): T = awaitSingleOrNull() ?: default
 
 // ------------------------ SingleSource ------------------------
 
@@ -118,10 +119,10 @@ public suspend fun <T> MaybeSource<T & Any>.awaitOrDefault(default: T): T = awai
  * If the [Job] of the current coroutine is cancelled or completed while the suspending function is waiting, this
  * function immediately disposes of its subscription and resumes with [CancellationException].
  */
-public suspend fun <T> SingleSource<T & Any>.await(): T = suspendCancellableCoroutine { cont ->
-    subscribe(object : SingleObserver<T & Any> {
+public suspend fun <T> SingleSource<T>.await(): T = suspendCancellableCoroutine { cont ->
+    subscribe(object : SingleObserver<T> {
         override fun onSubscribe(d: Disposable) { cont.disposeOnCancellation(d) }
-        override fun onSuccess(t: T & Any) { cont.resume(t) }
+        override fun onSuccess(t: T) { cont.resume(t) }
         override fun onError(error: Throwable) { cont.resumeWithException(error) }
     })
 }
@@ -138,8 +139,7 @@ public suspend fun <T> SingleSource<T & Any>.await(): T = suspendCancellableCoro
  *
  * @throws NoSuchElementException if the observable does not emit any value
  */
-@Suppress("UNCHECKED_CAST")
-public suspend fun <T> ObservableSource<T & Any>.awaitFirst(): T = awaitOne(Mode.FIRST) as T
+public suspend fun <T> ObservableSource<T>.awaitFirst(): T = awaitOne(Mode.FIRST)
 
 /**
  * Awaits the first value from the given [Observable], or returns the [default] value if none is emitted, without
@@ -150,9 +150,7 @@ public suspend fun <T> ObservableSource<T & Any>.awaitFirst(): T = awaitOne(Mode
  * If the [Job] of the current coroutine is cancelled or completed while the suspending function is waiting, this
  * function immediately disposes of its subscription and resumes with [CancellationException].
  */
-@Suppress("UNCHECKED_CAST")
-public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrDefault(default: T): T =
-    awaitOne(Mode.FIRST_OR_DEFAULT, default) as T
+public suspend fun <T> ObservableSource<T>.awaitFirstOrDefault(default: T): T = awaitOne(Mode.FIRST_OR_DEFAULT, default)
 
 /**
  * Awaits the first value from the given [Observable], or returns `null` if none is emitted, without blocking the
@@ -163,7 +161,7 @@ public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrDefault(default: T)
  * If the [Job] of the current coroutine is cancelled or completed while the suspending function is waiting, this
  * function immediately disposes of its subscription and resumes with [CancellationException].
  */
-public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrNull(): T? = awaitOne(Mode.FIRST_OR_DEFAULT)
+public suspend fun <T> ObservableSource<T>.awaitFirstOrNull(): T? = awaitOne(Mode.FIRST_OR_DEFAULT)
 
 /**
  * Awaits the first value from the given [Observable], or calls [defaultValue] to get a value if none is emitted,
@@ -174,7 +172,7 @@ public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrNull(): T? = awaitO
  * If the [Job] of the current coroutine is cancelled or completed while the suspending function is waiting, this
  * function immediately disposes of its subscription and resumes with [CancellationException].
  */
-public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrElse(defaultValue: () -> T): T =
+public suspend fun <T> ObservableSource<T>.awaitFirstOrElse(defaultValue: () -> T): T =
     awaitOne(Mode.FIRST_OR_DEFAULT) ?: defaultValue()
 
 /**
@@ -187,8 +185,7 @@ public suspend fun <T> ObservableSource<T & Any>.awaitFirstOrElse(defaultValue: 
  *
  * @throws NoSuchElementException if the observable does not emit any value
  */
-@Suppress("UNCHECKED_CAST")
-public suspend fun <T> ObservableSource<T & Any>.awaitLast(): T = awaitOne(Mode.LAST) as T
+public suspend fun <T> ObservableSource<T>.awaitLast(): T = awaitOne(Mode.LAST)
 
 /**
  * Awaits the single value from the given observable without blocking the thread and returns the resulting value, or,
@@ -201,15 +198,14 @@ public suspend fun <T> ObservableSource<T & Any>.awaitLast(): T = awaitOne(Mode.
  * @throws NoSuchElementException if the observable does not emit any value
  * @throws IllegalArgumentException if the observable emits more than one value
  */
-@Suppress("UNCHECKED_CAST")
-public suspend fun <T> ObservableSource<T & Any>.awaitSingle(): T = awaitOne(Mode.SINGLE) as T
+public suspend fun <T> ObservableSource<T>.awaitSingle(): T = awaitOne(Mode.SINGLE)
 
 // ------------------------ private ------------------------
 
 internal fun CancellableContinuation<*>.disposeOnCancellation(d: Disposable) =
     invokeOnCancellation { d.dispose() }
 
-private enum class Mode(@JvmField val s: String) {
+private enum class Mode(val s: String) {
     FIRST("awaitFirst"),
     FIRST_OR_DEFAULT("awaitFirstOrDefault"),
     LAST("awaitLast"),
@@ -217,11 +213,11 @@ private enum class Mode(@JvmField val s: String) {
     override fun toString(): String = s
 }
 
-private suspend fun <T> ObservableSource<T & Any>.awaitOne(
+private suspend fun <T> ObservableSource<T>.awaitOne(
     mode: Mode,
     default: T? = null
-): T? = suspendCancellableCoroutine { cont ->
-    subscribe(object : Observer<T & Any> {
+): T = suspendCancellableCoroutine { cont ->
+    subscribe(object : Observer<T> {
         private lateinit var subscription: Disposable
         private var value: T? = null
         private var seenValue = false
@@ -231,7 +227,7 @@ private suspend fun <T> ObservableSource<T & Any>.awaitOne(
             cont.invokeOnCancellation { sub.dispose() }
         }
 
-        override fun onNext(t: T & Any) {
+        override fun onNext(t: T) {
             when (mode) {
                 Mode.FIRST, Mode.FIRST_OR_DEFAULT -> {
                     if (!seenValue) {
