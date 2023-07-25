@@ -128,7 +128,6 @@ class WithTimeoutOrNullTest : TestBase() {
 
     @Test
     fun testOuterTimeout() = runTest {
-        if (isJavaAndWindows) return@runTest
         var counter = 0
         val result = withTimeoutOrNull(320) {
             while (true) {

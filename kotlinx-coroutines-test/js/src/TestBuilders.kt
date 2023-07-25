@@ -13,5 +13,3 @@ internal actual fun createTestResult(testProcedure: suspend CoroutineScope.() ->
     GlobalScope.promise {
         testProcedure()
     }
-
-internal actual fun dumpCoroutines() { }
