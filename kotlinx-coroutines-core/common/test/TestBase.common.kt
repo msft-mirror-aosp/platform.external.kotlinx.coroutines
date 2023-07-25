@@ -104,5 +104,3 @@ class BadClass {
     override fun hashCode(): Int = error("hashCode")
     override fun toString(): String = error("toString")
 }
-
-public expect val isJavaAndWindows: Boolean

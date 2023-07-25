@@ -8,15 +8,16 @@ import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
+import kotlin.native.concurrent.*
 
+@SharedImmutable
 private val UNDEFINED = Symbol("UNDEFINED")
+@SharedImmutable
 @JvmField
 internal val REUSABLE_CLAIMED = Symbol("REUSABLE_CLAIMED")
 
-@PublishedApi
 internal class DispatchedContinuation<in T>(
-    @JvmField internal val dispatcher: CoroutineDispatcher,
-    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
+    @JvmField val dispatcher: CoroutineDispatcher,
     @JvmField val continuation: Continuation<T>
 ) : DispatchedTask<T>(MODE_UNINITIALIZED), CoroutineStackFrame, Continuation<T> by continuation {
     @JvmField
@@ -60,7 +61,7 @@ internal class DispatchedContinuation<in T>(
     private val reusableCancellableContinuation: CancellableContinuationImpl<*>?
         get() = _reusableCancellableContinuation.value as? CancellableContinuationImpl<*>
 
-    internal fun isReusable(): Boolean {
+    fun isReusable(): Boolean {
         /*
         Invariant: caller.resumeMode.isReusableMode
          * Reusability control:
@@ -74,13 +75,13 @@ internal class DispatchedContinuation<in T>(
      * Awaits until previous call to `suspendCancellableCoroutineReusable` will
      * stop mutating cached instance
      */
-    internal fun awaitReusability() {
+    fun awaitReusability() {
         _reusableCancellableContinuation.loop {
             if (it !== REUSABLE_CLAIMED) return
         }
     }
 
-    internal fun release() {
+    fun release() {
         /*
          * Called from `releaseInterceptedContinuation`, can be concurrent with
          * the code in `getResult` right after `trySuspend` returned `true`, so we have
@@ -95,7 +96,7 @@ internal class DispatchedContinuation<in T>(
      * so all cancellations will be postponed.
      */
     @Suppress("UNCHECKED_CAST")
-    internal fun claimReusableCancellableContinuation(): CancellableContinuationImpl<T>? {
+    fun claimReusableCancellableContinuation(): CancellableContinuationImpl<T>? {
         /*
          * Transitions:
          * 1) `null` -> claimed, caller will instantiate CC instance
@@ -144,7 +145,7 @@ internal class DispatchedContinuation<in T>(
      *
      * See [CancellableContinuationImpl.getResult].
      */
-    internal fun tryReleaseClaimedContinuation(continuation: CancellableContinuation<*>): Throwable? {
+    fun tryReleaseClaimedContinuation(continuation: CancellableContinuation<*>): Throwable? {
         _reusableCancellableContinuation.loop { state ->
             // not when(state) to avoid Intrinsics.equals call
             when {
@@ -164,7 +165,7 @@ internal class DispatchedContinuation<in T>(
      * Tries to postpone cancellation if reusable CC is currently in [REUSABLE_CLAIMED] state.
      * Returns `true` if cancellation is (or previously was) postponed, `false` otherwise.
      */
-    internal fun postponeCancellation(cause: Throwable): Boolean {
+    fun postponeCancellation(cause: Throwable): Boolean {
         _reusableCancellableContinuation.loop { state ->
             when (state) {
                 REUSABLE_CLAIMED -> {
@@ -210,7 +211,7 @@ internal class DispatchedContinuation<in T>(
     // We inline it to save an entry on the stack in cases where it shows (unconfined dispatcher)
     // It is used only in Continuation<T>.resumeCancellableWith
     @Suppress("NOTHING_TO_INLINE")
-    internal inline fun resumeCancellableWith(
+    inline fun resumeCancellableWith(
         result: Result<T>,
         noinline onCancellation: ((cause: Throwable) -> Unit)?
     ) {
@@ -237,9 +238,8 @@ internal class DispatchedContinuation<in T>(
         }
     }
 
-    // inline here is to save us an entry on the stack for the sake of better stacktraces
     @Suppress("NOTHING_TO_INLINE")
-    internal inline fun resumeCancelled(state: Any?): Boolean {
+    inline fun resumeCancelled(state: Any?): Boolean {
         val job = context[Job]
         if (job != null && !job.isActive) {
             val cause = job.getCancellationException()
@@ -250,8 +250,8 @@ internal class DispatchedContinuation<in T>(
         return false
     }
 
-    @Suppress("NOTHING_TO_INLINE")
-    internal inline fun resumeUndispatchedWith(result: Result<T>) {
+    @Suppress("NOTHING_TO_INLINE") // we need it inline to save us an entry on the stack
+    inline fun resumeUndispatchedWith(result: Result<T>) {
         withContinuationContext(continuation, countOrElement) {
             continuation.resumeWith(result)
         }

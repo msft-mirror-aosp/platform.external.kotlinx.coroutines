@@ -7,14 +7,12 @@ package kotlinx.coroutines.channels
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.*
 import org.junit.*
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.*
 import org.junit.runners.*
 import java.util.concurrent.atomic.*
 import kotlin.test.*
 
-@Ignore
 @RunWith(Parameterized::class)
 class ChannelSendReceiveStressTest(
     private val kind: TestChannelKind,
@@ -27,7 +25,10 @@ class ChannelSendReceiveStressTest(
         fun params(): Collection<Array<Any>> =
                 listOf(1, 2, 10).flatMap { nSenders ->
                     listOf(1, 10).flatMap { nReceivers ->
-                        TestChannelKind.values().map { arrayOf(it, nSenders, nReceivers) }
+                        TestChannelKind.values()
+                            // Workaround for bug that won't be fixed unless new channel implementation, see #2443
+                            .filter { it != TestChannelKind.LINKED_LIST }
+                            .map { arrayOf(it, nSenders, nReceivers) }
                     }
                 }
     }
@@ -35,7 +36,7 @@ class ChannelSendReceiveStressTest(
     private val timeLimit = 30_000L * stressTestMultiplier // 30 sec
     private val nEvents = 200_000 * stressTestMultiplier
 
-    private val maxBuffer = 10_000 // artificial limit for unlimited channel
+    private val maxBuffer = 10_000 // artificial limit for LinkedListChannel
 
     val channel = kind.create<Int>()
     private val sendersCompleted = AtomicInteger()
@@ -106,7 +107,6 @@ class ChannelSendReceiveStressTest(
         repeat(nReceivers) { receiveIndex ->
             println("        Received by #$receiveIndex ${receivedBy[receiveIndex]}")
         }
-        (channel as? BufferedChannel<*>)?.checkSegmentStructureInvariants()
         assertEquals(nSenders, sendersCompleted.get())
         assertEquals(nReceivers, receiversCompleted.get())
         assertEquals(0, dupes.get())
@@ -121,7 +121,7 @@ class ChannelSendReceiveStressTest(
         sentTotal.incrementAndGet()
         if (!kind.isConflated) {
             while (sentTotal.get() > receivedTotal.get() + maxBuffer)
-                yield() // throttle fast senders to prevent OOM with an unlimited channel
+                yield() // throttle fast senders to prevent OOM with LinkedListChannel
         }
     }
 

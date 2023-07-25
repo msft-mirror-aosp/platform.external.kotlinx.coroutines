@@ -12,7 +12,6 @@ class JobTest : TestBase() {
     @Test
     fun testState() {
         val job = Job()
-        assertNull(job.parent)
         assertTrue(job.isActive)
         job.cancel()
         assertTrue(!job.isActive)
@@ -103,11 +102,11 @@ class JobTest : TestBase() {
         }
         assertTrue(job.isActive)
         for (i in 0 until n) assertEquals(0, fireCount[i])
-        val cancelResult = runCatching { job.cancel() }
+        val tryCancel = Try { job.cancel() }
         assertTrue(!job.isActive)
         for (i in 0 until n) assertEquals(1, fireCount[i])
-        assertTrue(cancelResult.exceptionOrNull() is CompletionHandlerException)
-        assertTrue(cancelResult.exceptionOrNull()!!.cause is TestException)
+        assertTrue(tryCancel.exception is CompletionHandlerException)
+        assertTrue(tryCancel.exception!!.cause is TestException)
     }
 
     @Test
@@ -211,13 +210,11 @@ class JobTest : TestBase() {
 
     @Test
     fun testIncompleteJobState() = runTest {
-        val parent = coroutineContext.job
         val job = launch {
             coroutineContext[Job]!!.invokeOnCompletion {  }
         }
-        assertSame(parent, job.parent)
+
         job.join()
-        assertNull(job.parent)
         assertTrue(job.isCompleted)
         assertFalse(job.isActive)
         assertFalse(job.isCancelled)
