@@ -10,9 +10,7 @@ kotlin {
                 directory = directory.parentFile.resolve("dist")
             }
             commonWebpackConfig {
-                cssSupport {
-                    enabled.set(true)
-                }
+                cssSupport.enabled = true
             }
             testTask {
                 useKarma {

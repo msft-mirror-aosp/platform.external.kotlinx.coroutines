@@ -28,7 +28,7 @@ class ChannelCancelUndeliveredElementStressTest : TestBase() {
     private val dUndeliveredCnt = atomic(0)
 
     @Test
-    fun testStress() = runTest {
+    fun testStress() = runMtTest {
         repeat(repeatTimes) {
             val channel = Channel<Int>(1) { dUndeliveredCnt.incrementAndGet() }
             val j1 = launch(Dispatchers.Default) {
@@ -51,7 +51,6 @@ class ChannelCancelUndeliveredElementStressTest : TestBase() {
                 println("   Undelivered: ${dUndeliveredCnt.value}")
                 error("Failed")
             }
-            (channel as? BufferedChannel<*>)?.checkSegmentStructureInvariants()
             trySendFailedCnt += dTrySendFailedCnt
             receivedCnt += dReceivedCnt
             undeliveredCnt += dUndeliveredCnt.value

@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.internal.*
 import kotlin.coroutines.*
 import kotlin.test.*
 
+@NoNative
 class TestDispatchersTest: OrderedExecutionTestBase() {
 
     @BeforeTest

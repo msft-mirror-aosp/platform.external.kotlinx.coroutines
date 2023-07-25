@@ -116,7 +116,6 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
             printErrorDetails()
             throw e
         }
-        (channel as? BufferedChannel<*>)?.checkSegmentStructureInvariants()
         sentStatus.clear()
         receivedStatus.clear()
         failedStatus.clear()
@@ -166,7 +165,7 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
                     sentStatus[trySendData.x] = sendMode + 2
                     when {
                         // must artificially slow down LINKED_LIST sender to avoid overwhelming receiver and going OOM
-                        kind == TestChannelKind.UNLIMITED -> while (sentCnt > lastReceived + 100) yield()
+                        kind == TestChannelKind.LINKED_LIST -> while (sentCnt > lastReceived + 100) yield()
                         // yield periodically to check cancellation on conflated channels
                         kind.isConflated -> if (counter++ % 100 == 0) yield()
                     }
@@ -177,7 +176,7 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
 
     private suspend fun stopSender() {
         stoppedSender++
-        sender.cancelAndJoin()
+        sender.cancel()
         senderDone.receive()
     }
 
@@ -199,7 +198,6 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
                         }
                         else -> error("cannot happen")
                     }
-                    receivedData.onReceived()
                     receivedCnt++
                     val received = receivedData.x
                     if (received <= lastReceived)
@@ -222,22 +220,12 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
     }
 
     private inner class Data(val x: Long) {
-        private val firstFailedToDeliverOrReceivedCallTrace = atomic<Exception?>(null)
+        private val failedToDeliver = atomic(false)
 
         fun failedToDeliver() {
-            val trace = if (TRACING_ENABLED) Exception("First onUndeliveredElement() call") else DUMMY_TRACE_EXCEPTION
-            if (firstFailedToDeliverOrReceivedCallTrace.compareAndSet(null, trace)) {
-                failedToDeliverCnt.incrementAndGet()
-                failedStatus[x] = 1
-                return
-            }
-            throw IllegalStateException("onUndeliveredElement()/onReceived() notified twice", firstFailedToDeliverOrReceivedCallTrace.value!!)
-        }
-
-        fun onReceived() {
-            val trace = if (TRACING_ENABLED) Exception("First onReceived() call") else DUMMY_TRACE_EXCEPTION
-            if (firstFailedToDeliverOrReceivedCallTrace.compareAndSet(null, trace)) return
-            throw IllegalStateException("onUndeliveredElement()/onReceived() notified twice", firstFailedToDeliverOrReceivedCallTrace.value!!)
+            check(failedToDeliver.compareAndSet(false, true)) { "onUndeliveredElement notified twice" }
+            failedToDeliverCnt.incrementAndGet()
+            failedStatus[x] = 1
         }
     }
 
@@ -265,6 +253,3 @@ class ChannelUndeliveredElementStressTest(private val kind: TestChannelKind) : T
         }
     }
 }
-
-private const val TRACING_ENABLED = false // Change to `true` to enable the tracing
-private val DUMMY_TRACE_EXCEPTION = Exception("The tracing is disabled; please enable it by changing the `TRACING_ENABLED` constant to `true`.")

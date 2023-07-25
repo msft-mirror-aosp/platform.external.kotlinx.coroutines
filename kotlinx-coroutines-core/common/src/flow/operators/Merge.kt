@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.internal.unsafeFlow as flow
 
 /**
  * Name of the property that defines the value of [DEFAULT_CONCURRENCY].
- * This is a preview API and can be changed in a backwards-incompatible manner within a single release.
  */
 @FlowPreview
 public const val DEFAULT_CONCURRENCY_PROPERTY_NAME: String = "kotlinx.coroutines.flow.defaultConcurrency"
@@ -25,11 +24,9 @@ public const val DEFAULT_CONCURRENCY_PROPERTY_NAME: String = "kotlinx.coroutines
 /**
  * Default concurrency limit that is used by [flattenMerge] and [flatMapMerge] operators.
  * It is 16 by default and can be changed on JVM using [DEFAULT_CONCURRENCY_PROPERTY_NAME] property.
- * This is a preview API and can be changed in a backwards-incompatible manner within a single release.
  */
 @FlowPreview
-public val DEFAULT_CONCURRENCY: Int = systemProp(
-    DEFAULT_CONCURRENCY_PROPERTY_NAME,
+public val DEFAULT_CONCURRENCY: Int = systemProp(DEFAULT_CONCURRENCY_PROPERTY_NAME,
     16, 1, Int.MAX_VALUE
 )
 
@@ -42,7 +39,7 @@ public val DEFAULT_CONCURRENCY: Int = systemProp(
  * Note that even though this operator looks very familiar, we discourage its usage in a regular application-specific flows.
  * Most likely, suspending operation in [map] operator will be sufficient and linear transformations are much easier to reason about.
  */
-@ExperimentalCoroutinesApi
+@FlowPreview
 public fun <T, R> Flow<T>.flatMapConcat(transform: suspend (value: T) -> Flow<R>): Flow<R> =
     map(transform).flattenConcat()
 
@@ -66,7 +63,7 @@ public fun <T, R> Flow<T>.flatMapConcat(transform: suspend (value: T) -> Flow<R>
  * @param concurrency controls the number of in-flight flows, at most [concurrency] flows are collected
  * at the same time. By default, it is equal to [DEFAULT_CONCURRENCY].
  */
-@ExperimentalCoroutinesApi
+@FlowPreview
 public fun <T, R> Flow<T>.flatMapMerge(
     concurrency: Int = DEFAULT_CONCURRENCY,
     transform: suspend (value: T) -> Flow<R>
@@ -78,7 +75,7 @@ public fun <T, R> Flow<T>.flatMapMerge(
  *
  * Inner flows are collected by this operator *sequentially*.
  */
-@ExperimentalCoroutinesApi
+@FlowPreview
 public fun <T> Flow<Flow<T>>.flattenConcat(): Flow<T> = flow {
     collect { value -> emitAll(value) }
 }
@@ -135,7 +132,7 @@ public fun <T> merge(vararg flows: Flow<T>): Flow<T> = flows.asIterable().merge(
  * @param concurrency controls the number of in-flight flows, at most [concurrency] flows are collected
  * at the same time. By default, it is equal to [DEFAULT_CONCURRENCY].
  */
-@ExperimentalCoroutinesApi
+@FlowPreview
 public fun <T> Flow<Flow<T>>.flattenMerge(concurrency: Int = DEFAULT_CONCURRENCY): Flow<T> {
     require(concurrency > 0) { "Expected positive concurrency level, but had $concurrency" }
     return if (concurrency == 1) flattenConcat() else ChannelFlowMerge(this, concurrency)
