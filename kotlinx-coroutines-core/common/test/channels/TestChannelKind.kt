@@ -13,13 +13,13 @@ enum class TestChannelKind(
     val viaBroadcast: Boolean = false
 ) {
     RENDEZVOUS(0, "RendezvousChannel"),
-    BUFFERED_1(1, "BufferedChannel(1)"),
-    BUFFERED_2(2, "BufferedChannel(2)"),
-    BUFFERED_10(10, "BufferedChannel(10)"),
-    UNLIMITED(Channel.UNLIMITED, "UnlimitedChannel"),
+    ARRAY_1(1, "ArrayChannel(1)"),
+    ARRAY_2(2, "ArrayChannel(2)"),
+    ARRAY_10(10, "ArrayChannel(10)"),
+    LINKED_LIST(Channel.UNLIMITED, "LinkedListChannel"),
     CONFLATED(Channel.CONFLATED, "ConflatedChannel"),
-    BUFFERED_1_BROADCAST(1, "BufferedBroadcastChannel(1)", viaBroadcast = true),
-    BUFFERED_10_BROADCAST(10, "BufferedBroadcastChannel(10)", viaBroadcast = true),
+    ARRAY_1_BROADCAST(1, "ArrayBroadcastChannel(1)", viaBroadcast = true),
+    ARRAY_10_BROADCAST(10, "ArrayBroadcastChannel(10)", viaBroadcast = true),
     CONFLATED_BROADCAST(Channel.CONFLATED, "ConflatedBroadcastChannel", viaBroadcast = true)
     ;
 
@@ -33,7 +33,7 @@ enum class TestChannelKind(
     override fun toString(): String = description
 }
 
-internal class ChannelViaBroadcast<E>(
+private class ChannelViaBroadcast<E>(
     private val broadcast: BroadcastChannel<E>
 ): Channel<E>, SendChannel<E> by broadcast {
     val sub = broadcast.openSubscription()
@@ -46,11 +46,11 @@ internal class ChannelViaBroadcast<E>(
     override fun iterator(): ChannelIterator<E> = sub.iterator()
     override fun tryReceive(): ChannelResult<E> = sub.tryReceive()
 
-    override fun cancel(cause: CancellationException?) = broadcast.cancel(cause)
+    override fun cancel(cause: CancellationException?) = sub.cancel(cause)
 
     // implementing hidden method anyway, so can cast to an internal class
     @Deprecated(level = DeprecationLevel.HIDDEN, message = "Since 1.2.0, binary compatibility with versions <= 1.1.x")
-    override fun cancel(cause: Throwable?): Boolean = error("unsupported")
+    override fun cancel(cause: Throwable?): Boolean = (sub as AbstractChannel).cancelInternal(cause)
 
     override val onReceive: SelectClause1<E>
         get() = sub.onReceive

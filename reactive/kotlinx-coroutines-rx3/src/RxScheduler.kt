@@ -9,6 +9,7 @@ import io.reactivex.rxjava3.disposables.*
 import io.reactivex.rxjava3.plugins.*
 import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.*
 import java.util.concurrent.*
 import kotlin.coroutines.*
