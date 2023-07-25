@@ -109,12 +109,16 @@ class HandlerDispatcherTest : TestBase() {
         launch(Dispatchers.Main, start = CoroutineStart.UNDISPATCHED) {
             expect(1)
             awaitFrame()
-            expect(3)
+            expect(5)
         }
         expect(2)
         // Run choreographer detection
         mainLooper.runOneTask()
-        finish(4)
+        expect(3)
+        mainLooper.scheduler.advanceBy(50, TimeUnit.MILLISECONDS)
+        expect(4)
+        mainLooper.scheduler.advanceBy(51, TimeUnit.MILLISECONDS)
+        finish(6)
     }
 
     private fun CoroutineScope.doTestAwaitWithDetectedChoreographer() {

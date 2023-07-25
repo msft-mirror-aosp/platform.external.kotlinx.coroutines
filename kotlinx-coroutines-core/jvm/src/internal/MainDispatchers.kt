@@ -98,6 +98,9 @@ private class MissingMainCoroutineDispatcher(
     override fun limitedParallelism(parallelism: Int): CoroutineDispatcher =
         missing()
 
+    override suspend fun delay(time: Long) =
+        missing()
+
     override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle =
         missing()
 
