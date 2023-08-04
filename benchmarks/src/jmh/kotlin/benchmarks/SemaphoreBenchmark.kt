@@ -7,7 +7,6 @@ package benchmarks
 import benchmarks.common.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.scheduling.*
 import kotlinx.coroutines.sync.*
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.*
@@ -20,7 +19,7 @@ import java.util.concurrent.*
 @State(Scope.Benchmark)
 open class SemaphoreBenchmark {
     @Param
-    private var _1_dispatcher: SemaphoreBenchDispatcherCreator = SemaphoreBenchDispatcherCreator.DEFAULT
+    private var _1_dispatcher: SemaphoreBenchDispatcherCreator = SemaphoreBenchDispatcherCreator.FORK_JOIN
 
     @Param("0", "1000")
     private var _2_coroutines: Int = 0
@@ -28,8 +27,9 @@ open class SemaphoreBenchmark {
     @Param("1", "2", "4", "8", "32", "128", "100000")
     private var _3_maxPermits: Int = 0
 
-    @Param("1", "2", "4", "8", "16") // local machine
-//    @Param("1", "2", "4", "8", "16", "32", "64", "128") // Server
+    @Param("1", "2", "4") // local machine
+//    @Param("1", "2", "4", "8", "16", "32", "64", "128", "144") // dasquad
+//    @Param("1", "2", "4", "8", "16", "32", "64", "96") // Google Cloud
     private var _4_parallelism: Int = 0
 
     private lateinit var dispatcher: CoroutineDispatcher
@@ -80,11 +80,10 @@ open class SemaphoreBenchmark {
 }
 
 enum class SemaphoreBenchDispatcherCreator(val create: (parallelism: Int) -> CoroutineDispatcher) {
-    //    FORK_JOIN({ parallelism -> ForkJoinPool(parallelism).asCoroutineDispatcher() }),
-    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-    DEFAULT({ parallelism -> ExperimentalCoroutineDispatcher(corePoolSize = parallelism, maxPoolSize = parallelism) })
+    FORK_JOIN({ parallelism -> ForkJoinPool(parallelism).asCoroutineDispatcher() }),
+    EXPERIMENTAL({ parallelism -> Dispatchers.Default }) // TODO doesn't take parallelism into account
 }
 
-private const val WORK_INSIDE = 50
-private const val WORK_OUTSIDE = 50
-private const val BATCH_SIZE = 100000
+private const val WORK_INSIDE = 80
+private const val WORK_OUTSIDE = 40
+private const val BATCH_SIZE = 1000000

@@ -16,12 +16,12 @@ class JobStructuredJoinStressTest : TestBase() {
     private val nRepeats = 10_000 * stressTestMultiplier
 
     @Test
-    fun testStressRegularJoin() = runTest {
+    fun testStressRegularJoin() = runMtTest {
         stress(Job::join)
     }
 
     @Test
-    fun testStressSuspendCancellable() = runTest {
+    fun testStressSuspendCancellable() = runMtTest {
         stress { job ->
             suspendCancellableCoroutine { cont ->
                 job.invokeOnCompletion { cont.resume(Unit) }
@@ -30,7 +30,7 @@ class JobStructuredJoinStressTest : TestBase() {
     }
 
     @Test
-    fun testStressSuspendCancellableReusable() = runTest {
+    fun testStressSuspendCancellableReusable() = runMtTest {
         stress { job ->
             suspendCancellableCoroutineReusable { cont ->
                 job.invokeOnCompletion { cont.resume(Unit) }

@@ -47,6 +47,7 @@ internal sealed class SetTimeoutBasedDispatcher: CoroutineDispatcher(), Delay {
 
     override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
         val handle = setTimeout({ with(continuation) { resumeUndispatched(Unit) } }, delayToInt(timeMillis))
+        // Actually on cancellation, but clearTimeout is idempotent
         continuation.invokeOnCancellation(handler = ClearTimeout(handle).asHandler)
     }
 }
@@ -63,7 +64,7 @@ internal object SetTimeoutDispatcher : SetTimeoutBasedDispatcher() {
     }
 }
 
-private open class ClearTimeout(protected val handle: Int) : CancelHandler(), DisposableHandle {
+private class ClearTimeout(private val handle: Int) : CancelHandler(), DisposableHandle {
 
     override fun dispose() {
         clearTimeout(handle)
@@ -82,18 +83,15 @@ internal class WindowDispatcher(private val window: Window) : CoroutineDispatche
     override fun dispatch(context: CoroutineContext, block: Runnable) = queue.enqueue(block)
 
     override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
-        val handle = window.setTimeout({ with(continuation) { resumeUndispatched(Unit) } }, delayToInt(timeMillis))
-        continuation.invokeOnCancellation(handler = WindowClearTimeout(handle).asHandler)
+        window.setTimeout({ with(continuation) { resumeUndispatched(Unit) } }, delayToInt(timeMillis))
     }
 
     override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle {
         val handle = window.setTimeout({ block.run() }, delayToInt(timeMillis))
-        return WindowClearTimeout(handle)
-    }
-
-    private inner class WindowClearTimeout(handle: Int) : ClearTimeout(handle) {
-        override fun dispose() {
-            window.clearTimeout(handle)
+        return object : DisposableHandle {
+            override fun dispose() {
+                window.clearTimeout(handle)
+            }
         }
     }
 }
@@ -131,7 +129,7 @@ private class WindowMessageQueue(private val window: Window) : MessageQueue() {
  *
  * Yet there could be a long tail of "slow" reschedules, but it should be amortized by the queue size.
  */
-internal abstract class MessageQueue : MutableList<Runnable> by ArrayDeque() {
+internal abstract class MessageQueue : ArrayQueue<Runnable>() {
     val yieldEvery = 16 // yield to JS macrotask event loop after this many processed messages
     private var scheduled = false
 
@@ -140,7 +138,7 @@ internal abstract class MessageQueue : MutableList<Runnable> by ArrayDeque() {
     abstract fun reschedule()
 
     fun enqueue(element: Runnable) {
-        add(element)
+        addLast(element)
         if (!scheduled) {
             scheduled = true
             schedule()
@@ -155,7 +153,7 @@ internal abstract class MessageQueue : MutableList<Runnable> by ArrayDeque() {
                 element.run()
             }
         } finally {
-            if (isEmpty()) {
+            if (isEmpty) {
                 scheduled = false
             } else {
                 reschedule()

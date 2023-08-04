@@ -16,7 +16,6 @@ class JobStatesTest : TestBase() {
     @Test
     public fun testNormalCompletion() = runTest {
         expect(1)
-        val parent = coroutineContext.job
         val job = launch(start = CoroutineStart.LAZY) {
             expect(2)
             // launches child
@@ -29,27 +28,23 @@ class JobStatesTest : TestBase() {
         assertFalse(job.isActive)
         assertFalse(job.isCompleted)
         assertFalse(job.isCancelled)
-        assertSame(parent, job.parent)
         // New -> Active
         job.start()
         assertTrue(job.isActive)
         assertFalse(job.isCompleted)
         assertFalse(job.isCancelled)
-        assertSame(parent, job.parent)
         // Active -> Completing
         yield() // scheduled & starts child
         expect(3)
         assertTrue(job.isActive)
         assertFalse(job.isCompleted)
         assertFalse(job.isCancelled)
-        assertSame(parent, job.parent)
         // Completing -> Completed
         yield()
         finish(5)
         assertFalse(job.isActive)
         assertTrue(job.isCompleted)
         assertFalse(job.isCancelled)
-        assertNull(job.parent)
     }
 
     @Test

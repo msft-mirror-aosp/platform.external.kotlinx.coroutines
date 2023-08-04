@@ -67,6 +67,19 @@ class RunTestLegacyScopeTest {
     }
 
     @Test
+    fun testRunTestWithZeroTimeoutWithUncontrolledDispatches() = testResultMap({ fn ->
+        assertFailsWith<UncompletedCoroutinesError> { fn() }
+    }) {
+        runTestWithLegacyScope(dispatchTimeoutMs = 0) {
+            withContext(Dispatchers.Default) {
+                delay(10)
+                3
+            }
+            fail("shouldn't be reached")
+        }
+    }
+
+    @Test
     fun testRunTestWithSmallTimeout() = testResultMap({ fn ->
         assertFailsWith<UncompletedCoroutinesError> { fn() }
     }) {

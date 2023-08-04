@@ -16,7 +16,7 @@ import kotlin.coroutines.*
         "Consider whether the default mechanism of handling uncaught exceptions is sufficient. " +
         "If not, try writing your own `CoroutineExceptionHandler` and " +
         "please report your use case at https://github.com/Kotlin/kotlinx.coroutines/issues.",
-    level = DeprecationLevel.ERROR
+    level = DeprecationLevel.WARNING
 )
 // Since 1.6.0, ERROR in 1.7.0 and removed as experimental in 1.8.0
 public interface UncaughtExceptionCaptor {
@@ -42,11 +42,10 @@ public interface UncaughtExceptionCaptor {
 /**
  * An exception handler that captures uncaught exceptions in tests.
  */
-@Suppress("DEPRECATION_ERROR")
 @Deprecated(
     "Deprecated for removal without a replacement. " +
         "It may be to define one's own `CoroutineExceptionHandler` if you just need to handle '" +
-        "uncaught exceptions without a special `TestCoroutineScope` integration.", level = DeprecationLevel.ERROR
+        "uncaught exceptions without a special `TestCoroutineScope` integration.", level = DeprecationLevel.WARNING
 )
 // Since 1.6.0, ERROR in 1.7.0 and removed as experimental in 1.8.0
 public class TestCoroutineExceptionHandler :
@@ -59,7 +58,7 @@ public class TestCoroutineExceptionHandler :
     override fun handleException(context: CoroutineContext, exception: Throwable) {
         synchronized(_lock) {
             if (_coroutinesCleanedUp) {
-                handleUncaughtCoroutineException(context, exception)
+                handleCoroutineExceptionImpl(context, exception)
             }
             _exceptions += exception
         }
