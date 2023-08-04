@@ -4,8 +4,9 @@
 
 package kotlinx.coroutines
 
-import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
+
+internal expect fun handleCoroutineExceptionImpl(context: CoroutineContext, exception: Throwable)
 
 /**
  * Helper function for coroutine builder implementations to handle uncaught and unexpected exceptions in coroutines,
@@ -25,11 +26,11 @@ public fun handleCoroutineException(context: CoroutineContext, exception: Throwa
             return
         }
     } catch (t: Throwable) {
-        handleUncaughtCoroutineException(context, handlerException(exception, t))
+        handleCoroutineExceptionImpl(context, handlerException(exception, t))
         return
     }
     // If a handler is not present in the context or an exception was thrown, fallback to the global handler
-    handleUncaughtCoroutineException(context, exception)
+    handleCoroutineExceptionImpl(context, exception)
 }
 
 internal fun handlerException(originalException: Throwable, thrownException: Throwable): Throwable {
@@ -82,16 +83,15 @@ public inline fun CoroutineExceptionHandler(crossinline handler: (CoroutineConte
  * }
  * ```
  *
- * ### Uncaught exceptions with no handler
+ * ### Implementation details
  *
- * When no handler is installed, exception are handled in the following way:
- * * If exception is [CancellationException], it is ignored, as these exceptions are used to cancel coroutines.
- * * Otherwise, if there is a [Job] in the context, then [Job.cancel] is invoked.
- * * Otherwise, as a last resort, the exception is processed in a platform-specific manner:
- *   - On JVM, all instances of [CoroutineExceptionHandler] found via [ServiceLoader], as well as
- *     the current thread's [Thread.uncaughtExceptionHandler], are invoked.
- *   - On Native, the whole application crashes with the exception.
- *   - On JS, the exception is logged via the Console API.
+ * By default, when no handler is installed, uncaught exception are handled in the following way:
+ * * If exception is [CancellationException] then it is ignored
+ *   (because that is the supposed mechanism to cancel the running coroutine)
+ * * Otherwise:
+ *     * if there is a [Job] in the context, then [Job.cancel] is invoked;
+ *     * Otherwise, all instances of [CoroutineExceptionHandler] found via [ServiceLoader]
+ *     * and current thread's [Thread.uncaughtExceptionHandler] are invoked.
  *
  * [CoroutineExceptionHandler] can be invoked from an arbitrary thread.
  */

@@ -6,11 +6,6 @@ dependencies {
     implementation(project(":kotlinx-coroutines-reactive"))
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
-}
-
 tasks {
     compileKotlin {
         kotlinOptions.jvmTarget = "9"

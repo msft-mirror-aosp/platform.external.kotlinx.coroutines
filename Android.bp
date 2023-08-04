@@ -47,6 +47,7 @@ java_library_host {
         "kotlinx-coroutines-core/concurrent/src/**/*.kt",
     ],
     exclude_srcs: [
+        "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
     ],
     java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
