@@ -4,39 +4,19 @@ This tutorial demonstrates how to create Kotlin coroutines and debug them using 
 
 The tutorial assumes you have prior knowledge of the [coroutines](coroutines-guide.md) concept.
 
+> Debugging works for `kotlinx-coroutines-core` version 1.3.8 or later.
+>
+{type="note"}
+
 ## Create coroutines
 
-1. Open a Kotlin project in IntelliJ IDEA. If you don't have a project, [create one](jvm-get-started.md#create-a-project).
-2. To use the `kotlinx.coroutines` library in a Gradle project, add the following dependency to `build.gradle(.kts)`:
+1. Open a Kotlin project in IntelliJ IDEA. If you don't have a project, [create one](jvm-get-started.md#create-an-application).
 
-   <tabs group="build-script">
-   <tab title="Kotlin" group-key="kotlin">
+2. Open the `main.kt` file in `src/main/kotlin`.
 
-   ```kotlin
-   dependencies {
-       implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:%coroutinesVersion%")
-   }
-   ``` 
+    The `src` directory contains Kotlin source files and resources. The `main.kt` file contains sample code that will print `Hello World!`.
 
-   </tab>
-   <tab title="Groovy" group-key="groovy">
-   
-   ```groovy
-   dependencies {
-       implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:%coroutinesVersion%'
-   }
-   ```
-   
-   </tab>
-   </tabs>
-
-   For other build systems, see instructions in the [`kotlinx.coroutines` README](https://github.com/Kotlin/kotlinx.coroutines#using-in-your-projects).
-   
-3. Open the `Main.kt` file in `src/main/kotlin`.
-
-    The `src` directory contains Kotlin source files and resources. The `Main.kt` file contains sample code that will print `Hello World!`.
-
-4. Change code in the `main()` function:
+3. Change code in the `main()` function:
 
     * Use the [`runBlocking()`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/run-blocking.html) block to wrap a coroutine.
     * Use the [`async()`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html) function to create coroutines that compute deferred values `a` and `b`.
@@ -59,7 +39,7 @@ The tutorial assumes you have prior knowledge of the [coroutines](coroutines-gui
     }
     ```
 
-5. Build the code by clicking **Build Project**.
+4. Build the code by clicking **Build Project**.
 
     ![Build an application](flow-build-project.png)
 
@@ -100,17 +80,3 @@ The tutorial assumes you have prior knowledge of the [coroutines](coroutines-gui
     * The third coroutine is calculating the value of `b` – it has the **RUNNING** status.
 
 Using IntelliJ IDEA debugger, you can dig deeper into each coroutine to debug your code.
-
-### Optimized-out variables
-
-If you use `suspend` functions, in the debugger, you might see the "was optimized out" text next to a variable's name:
-
-![Variable "a" was optimized out](variable-optimised-out.png)
-
-This text means that the variable's lifetime was decreased, and the variable doesn't exist anymore.
-It is difficult to debug code with optimized variables because you don't see their values.
-You can disable this behavior with the `-Xdebug` compiler option.
-
-> __Never use this flag in production__: `-Xdebug` can [cause memory leaks](https://youtrack.jetbrains.com/issue/KT-48678/Coroutine-debugger-disable-was-optimised-out-compiler-feature#focus=Comments-27-6015585.0-0).
->
-{type="warning"}

@@ -9,7 +9,6 @@ import org.junit.*
 import org.junit.Test
 import java.util.concurrent.*
 import kotlin.concurrent.*
-import kotlin.jvm.internal.*
 import kotlin.test.*
 
 class WorkQueueStressTest : TestBase() {
@@ -41,7 +40,7 @@ class WorkQueueStressTest : TestBase() {
         threads += thread(name = "producer") {
             startLatch.await()
             for (i in 1..offerIterations) {
-                while (producerQueue.size > BUFFER_CAPACITY / 2) {
+                while (producerQueue.bufferSize > BUFFER_CAPACITY / 2) {
                     Thread.yield()
                 }
 
@@ -53,18 +52,17 @@ class WorkQueueStressTest : TestBase() {
 
         for (i in 0 until stealersCount) {
             threads += thread(name = "stealer $i") {
-                val ref = Ref.ObjectRef<Task?>()
                 val myQueue = WorkQueue()
                 startLatch.await()
                 while (!producerFinished || producerQueue.size != 0) {
-                    stolenTasks[i].addAll(myQueue.drain(ref).map { task(it) })
-                    producerQueue.trySteal(ref)
+                    stolenTasks[i].addAll(myQueue.drain().map { task(it) })
+                    myQueue.tryStealFrom(victim = producerQueue)
                 }
 
                 // Drain last element which is not counted in buffer
-                stolenTasks[i].addAll(myQueue.drain(ref).map { task(it) })
-                producerQueue.trySteal(ref)
-                stolenTasks[i].addAll(myQueue.drain(ref).map { task(it) })
+                stolenTasks[i].addAll(myQueue.drain().map { task(it) })
+                myQueue.tryStealFrom(producerQueue)
+                stolenTasks[i].addAll(myQueue.drain().map { task(it) })
             }
         }
 
@@ -79,7 +77,7 @@ class WorkQueueStressTest : TestBase() {
         threads += thread(name = "producer") {
             startLatch.await()
             for (i in 1..offerIterations) {
-                while (producerQueue.size == BUFFER_CAPACITY - 1) {
+                while (producerQueue.bufferSize == BUFFER_CAPACITY - 1) {
                     Thread.yield()
                 }
 
@@ -91,14 +89,13 @@ class WorkQueueStressTest : TestBase() {
         val stolen = GlobalQueue()
         threads += thread(name = "stealer") {
             val myQueue = WorkQueue()
-            val ref = Ref.ObjectRef<Task?>()
             startLatch.await()
             while (stolen.size != offerIterations) {
-                if (producerQueue.trySteal(ref) != NOTHING_TO_STEAL) {
-                    stolen.addAll(myQueue.drain(ref).map { task(it) })
+                if (myQueue.tryStealFrom(producerQueue) != NOTHING_TO_STEAL) {
+                    stolen.addAll(myQueue.drain().map { task(it) })
                 }
             }
-            stolen.addAll(myQueue.drain(ref).map { task(it) })
+            stolen.addAll(myQueue.drain().map { task(it) })
         }
 
         startLatch.countDown()

@@ -3,12 +3,12 @@
 [![Kotlin Stable](https://kotl.in/badges/stable.svg)](https://kotlinlang.org/docs/components-stability.html)
 [![JetBrains official project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Download](https://img.shields.io/maven-central/v/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.7.2)](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.7.2)
-[![Kotlin](https://img.shields.io/badge/kotlin-1.8.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Download](https://img.shields.io/maven-central/v/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.6.4)](https://search.maven.org/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.6.4/pom)
+[![Kotlin](https://img.shields.io/badge/kotlin-1.6.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Slack channel](https://img.shields.io/badge/chat-slack-green.svg?logo=slack)](https://kotlinlang.slack.com/messages/coroutines/)
 
 Library support for Kotlin coroutines with [multiplatform](#multiplatform) support.
-This is a companion version for the Kotlin `1.8.20` release.
+This is a companion version for the Kotlin `1.6.21` release.
 
 ```kotlin
 suspend fun main() = coroutineScope {
@@ -20,7 +20,7 @@ suspend fun main() = coroutineScope {
 }
 ```
 
-> Play with coroutines online [here](https://pl.kotl.in/9zva88r7S)
+> Play with coroutines online [here](https://pl.kotl.in/hG_tKbid_)
 
 ## Modules
 
@@ -37,7 +37,6 @@ suspend fun main() = coroutineScope {
 * [core/jvm](kotlinx-coroutines-core/jvm/) &mdash; additional core features available on Kotlin/JVM:
   * [Dispatchers.IO] dispatcher for blocking coroutines;
   * [Executor.asCoroutineDispatcher][asCoroutineDispatcher] extension, custom thread pools, and more.
-  * Integrations with `CompletableFuture` and JVM-specific extensions.
 * [core/js](kotlinx-coroutines-core/js/) &mdash; additional core features available on Kotlin/JS:
   * Integration with `Promise` via [Promise.await] and [promise] builder;
   * Integration with `Window` via [Window.asCoroutineDispatcher], etc.
@@ -57,7 +56,7 @@ suspend fun main() = coroutineScope {
 * [ui](ui/README.md) &mdash; modules that provide coroutine dispatchers for various single-threaded UI libraries:
   * Android, JavaFX, and Swing.
 * [integration](integration/README.md) &mdash; modules that provide integration with various asynchronous callback- and future-based libraries:
-  * Guava [ListenableFuture.await], and Google Play Services [Task.await];
+  * JDK8 [CompletionStage.await], Guava [ListenableFuture.await], and Google Play Services [Task.await];
   * SLF4J MDC integration via [MDCContext].
 
 ## Documentation
@@ -85,7 +84,7 @@ Add dependencies (you can also add other modules that you need):
 <dependency>
     <groupId>org.jetbrains.kotlinx</groupId>
     <artifactId>kotlinx-coroutines-core</artifactId>
-    <version>1.7.2</version>
+    <version>1.6.4</version>
 </dependency>
 ```
 
@@ -93,7 +92,7 @@ And make sure that you use the latest Kotlin version:
 
 ```xml
 <properties>
-    <kotlin.version>1.8.20</kotlin.version>
+    <kotlin.version>1.6.21</kotlin.version>
 </properties>
 ```
 
@@ -103,7 +102,7 @@ Add dependencies (you can also add other modules that you need):
 
 ```kotlin
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }
 ```
 
@@ -112,10 +111,10 @@ And make sure that you use the latest Kotlin version:
 ```kotlin
 plugins {
     // For build.gradle.kts (Kotlin DSL)
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.6.21"
     
     // For build.gradle (Groovy DSL)
-    id "org.jetbrains.kotlin.jvm" version "1.8.20"
+    id "org.jetbrains.kotlin.jvm" version "1.6.21"
 }
 ```
 
@@ -133,7 +132,7 @@ Add [`kotlinx-coroutines-android`](ui/kotlinx-coroutines-android)
 module as a dependency when using `kotlinx.coroutines` on Android:
 
 ```kotlin
-implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.2")
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 ```
 
 This gives you access to the Android [Dispatchers.Main]
@@ -168,7 +167,7 @@ In common code that should get compiled for different platforms, you can add a d
 ```kotlin
 commonMain {
     dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.2")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     }
 }
 ```
@@ -180,15 +179,15 @@ Platform-specific dependencies are recommended to be used only for non-multiplat
 #### JS
 
 Kotlin/JS version of `kotlinx.coroutines` is published as 
-[`kotlinx-coroutines-core-js`](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.7.2)
+[`kotlinx-coroutines-core-js`](https://search.maven.org/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.6.4/jar)
 (follow the link to get the dependency declaration snippet) and as [`kotlinx-coroutines-core`](https://www.npmjs.com/package/kotlinx-coroutines-core) NPM package. 
 
 #### Native
 
 Kotlin/Native version of `kotlinx.coroutines` is published as 
-[`kotlinx-coroutines-core-$platform`](https://central.sonatype.com/search?q=kotlinx-coroutines-core&namespace=org.jetbrains.kotlinx) where `$platform` is 
-the target Kotlin/Native platform. 
-Targets are provided in accordance with [official K/N target support](https://kotlinlang.org/docs/native-target-support.html).
+[`kotlinx-coroutines-core-$platform`](https://mvnrepository.com/search?q=kotlinx-coroutines-core-) where `$platform` is 
+the target Kotlin/Native platform. [List of currently supported targets](https://github.com/Kotlin/kotlinx.coroutines/blob/master/gradle/compile-native-multiplatform.gradle#L16).
+
 ## Building and Contributing
 
 See [Contributing Guidelines](CONTRIBUTING.md).
@@ -212,7 +211,7 @@ See [Contributing Guidelines](CONTRIBUTING.md).
 [MainScope()]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-main-scope.html
 [SupervisorJob()]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-supervisor-job.html
 [CoroutineExceptionHandler]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-exception-handler/index.html
-[Dispatchers.IO]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-i-o.html
+[Dispatchers.IO]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html
 [asCoroutineDispatcher]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/as-coroutine-dispatcher.html
 [Promise.await]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/await.html
 [promise]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/promise.html
@@ -260,6 +259,9 @@ See [Contributing Guidelines](CONTRIBUTING.md).
 
 <!--- MODULE kotlinx-coroutines-jdk8 -->
 <!--- INDEX kotlinx.coroutines.future -->
+
+[CompletionStage.await]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-jdk8/kotlinx.coroutines.future/await.html
+
 <!--- MODULE kotlinx-coroutines-guava -->
 <!--- INDEX kotlinx.coroutines.guava -->
 

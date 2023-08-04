@@ -4,6 +4,7 @@
 
 package kotlinx.coroutines
 
+import kotlinx.coroutines.internal.*
 import platform.CoreFoundation.*
 import platform.darwin.*
 import kotlin.coroutines.*
@@ -12,7 +13,7 @@ import kotlin.test.*
 class MainDispatcherTest : TestBase() {
 
     private fun isMainThread(): Boolean = CFRunLoopGetCurrent() == CFRunLoopGetMain()
-    private fun canTestMainDispatcher() = !isMainThread()
+    private fun canTestMainDispatcher() = !isMainThread() && multithreadingSupported
 
     private fun runTestNotOnMainDispatcher(block: suspend CoroutineScope.() -> Unit) {
         // skip if already on the main thread, run blocking doesn't really work well with that
