@@ -8,6 +8,7 @@ import kotlinx.atomicfu.*
 import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
+import kotlin.native.concurrent.*
 
 /**
  * Extended by [CoroutineDispatcher] implementations that have event loop inside and can
@@ -36,7 +37,7 @@ internal abstract class EventLoop : CoroutineDispatcher() {
      * Queue used by [Dispatchers.Unconfined] tasks.
      * These tasks are thread-local for performance and take precedence over the rest of the queue.
      */
-    private var unconfinedQueue: ArrayDeque<DispatchedTask<*>>? = null
+    private var unconfinedQueue: ArrayQueue<DispatchedTask<*>>? = null
 
     /**
      * Processes next event in this event loop.
@@ -49,7 +50,7 @@ internal abstract class EventLoop : CoroutineDispatcher() {
      * **NOTE**: Must be invoked only from the event loop's thread
      *          (no check for performance reasons, may be added in the future).
      */
-    open fun processNextEvent(): Long {
+    public open fun processNextEvent(): Long {
         if (!processUnconfinedEvent()) return Long.MAX_VALUE
         return 0
     }
@@ -59,10 +60,10 @@ internal abstract class EventLoop : CoroutineDispatcher() {
     protected open val nextTime: Long
         get() {
             val queue = unconfinedQueue ?: return Long.MAX_VALUE
-            return if (queue.isEmpty()) Long.MAX_VALUE else 0L
+            return if (queue.isEmpty) Long.MAX_VALUE else 0L
         }
 
-    fun processUnconfinedEvent(): Boolean {
+    public fun processUnconfinedEvent(): Boolean {
         val queue = unconfinedQueue ?: return false
         val task = queue.removeFirstOrNull() ?: return false
         task.run()
@@ -74,27 +75,27 @@ internal abstract class EventLoop : CoroutineDispatcher() {
      * By default, event loop implementation is thread-local and should not processed in the context
      * (current thread's event loop should be processed instead).
      */
-    open fun shouldBeProcessedFromContext(): Boolean = false
+    public open fun shouldBeProcessedFromContext(): Boolean = false
 
     /**
      * Dispatches task whose dispatcher returned `false` from [CoroutineDispatcher.isDispatchNeeded]
      * into the current event loop.
      */
-    fun dispatchUnconfined(task: DispatchedTask<*>) {
+    public fun dispatchUnconfined(task: DispatchedTask<*>) {
         val queue = unconfinedQueue ?:
-            ArrayDeque<DispatchedTask<*>>().also { unconfinedQueue = it }
+            ArrayQueue<DispatchedTask<*>>().also { unconfinedQueue = it }
         queue.addLast(task)
     }
 
-    val isActive: Boolean
+    public val isActive: Boolean
         get() = useCount > 0
 
-    val isUnconfinedLoopActive: Boolean
+    public val isUnconfinedLoopActive: Boolean
         get() = useCount >= delta(unconfined = true)
 
     // May only be used from the event loop's thread
-    val isUnconfinedQueueEmpty: Boolean
-        get() = unconfinedQueue?.isEmpty() ?: true
+    public val isUnconfinedQueueEmpty: Boolean
+        get() = unconfinedQueue?.isEmpty ?: true
 
     private fun delta(unconfined: Boolean) =
         if (unconfined) (1L shl 32) else 1L
@@ -122,8 +123,9 @@ internal abstract class EventLoop : CoroutineDispatcher() {
     open fun shutdown() {}
 }
 
+@ThreadLocal
 internal object ThreadLocalEventLoop {
-    private val ref = commonThreadLocal<EventLoop?>(Symbol("ThreadLocalEventLoop"))
+    private val ref = CommonThreadLocal<EventLoop?>()
 
     internal val eventLoop: EventLoop
         get() = ref.get() ?: createEventLoop().also { ref.set(it) }
@@ -140,6 +142,7 @@ internal object ThreadLocalEventLoop {
     }
 }
 
+@SharedImmutable
 private val DISPOSED_TASK = Symbol("REMOVED_TASK")
 
 // results for scheduleImpl
@@ -165,6 +168,7 @@ internal fun delayToNanos(timeMillis: Long): Long = when {
 internal fun delayNanosToMillis(timeNanos: Long): Long =
     timeNanos / MS_TO_NS
 
+@SharedImmutable
 private val CLOSED_EMPTY = Symbol("CLOSED_EMPTY")
 
 private typealias Queue<T> = LockFreeTaskQueueCore<T>
@@ -200,7 +204,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         }
     }
 
-    override val nextTime: Long
+    protected override val nextTime: Long
         get() {
             if (super.nextTime == 0L) return 0L
             val queue = _queue.value
@@ -227,7 +231,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         rescheduleAllDelayed()
     }
 
-    override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
+    public override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
         val timeNanos = delayToNanos(timeMillis)
         if (timeNanos < MAX_DELAY_NS) {
             val now = nanoTime()
@@ -283,7 +287,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         return nextTime
     }
 
-    final override fun dispatch(context: CoroutineContext, block: Runnable) = enqueue(block)
+    public final override fun dispatch(context: CoroutineContext, block: Runnable) = enqueue(block)
 
     open fun enqueue(task: Runnable) {
         if (enqueueImpl(task)) {
@@ -362,7 +366,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
 
     }
 
-    fun schedule(now: Long, delayedTask: DelayedTask) {
+    public fun schedule(now: Long, delayedTask: DelayedTask) {
         when (scheduleImpl(now, delayedTask)) {
             SCHEDULE_OK -> if (shouldUnpark(delayedTask)) unpark()
             SCHEDULE_COMPLETED -> reschedule(now, delayedTask)
@@ -410,7 +414,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
          * into heap to avoid overflow and corruption of heap data structure.
          */
         @JvmField var nanoTime: Long
-    ) : Runnable, Comparable<DelayedTask>, DisposableHandle, ThreadSafeHeapNode, SynchronizedObject() {
+    ) : Runnable, Comparable<DelayedTask>, DisposableHandle, ThreadSafeHeapNode {
         @Volatile
         private var _heap: Any? = null // null | ThreadSafeHeap | DISPOSED_TASK
 
@@ -434,7 +438,8 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
 
         fun timeToExecute(now: Long): Boolean = now - nanoTime >= 0L
 
-        fun scheduleTask(now: Long, delayed: DelayedTaskQueue, eventLoop: EventLoopImplBase): Int = synchronized<Int>(this) {
+        @Synchronized
+        fun scheduleTask(now: Long, delayed: DelayedTaskQueue, eventLoop: EventLoopImplBase): Int {
             if (_heap === DISPOSED_TASK) return SCHEDULE_DISPOSED // don't add -- was already disposed
             delayed.addLastIf(this) { firstTask ->
                 if (eventLoop.isCompleted) return SCHEDULE_COMPLETED // non-local return from scheduleTask
@@ -476,9 +481,11 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
             return SCHEDULE_OK
         }
 
-        final override fun dispose(): Unit = synchronized(this) {
+        @Synchronized
+        final override fun dispose() {
             val heap = _heap
             if (heap === DISPOSED_TASK) return // already disposed
+            @Suppress("UNCHECKED_CAST")
             (heap as? DelayedTaskQueue)?.remove(this) // remove if it is in heap (first)
             _heap = DISPOSED_TASK // never add again to any heap
         }
@@ -527,7 +534,7 @@ internal expect fun createEventLoop(): EventLoop
 internal expect fun nanoTime(): Long
 
 internal expect object DefaultExecutor {
-    fun enqueue(task: Runnable)
+    public fun enqueue(task: Runnable)
 }
 
 /**

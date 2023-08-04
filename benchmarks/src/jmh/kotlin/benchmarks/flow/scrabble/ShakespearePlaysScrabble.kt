@@ -34,12 +34,14 @@ abstract class ShakespearePlaysScrabble {
     public interface LongWrapper {
         fun get(): Long
 
+        @JvmDefault
         fun incAndSet(): LongWrapper {
             return object : LongWrapper {
                 override fun get(): Long = this@LongWrapper.get() + 1L
             }
         }
 
+        @JvmDefault
         fun add(other: LongWrapper): LongWrapper {
             return object : LongWrapper {
                 override fun get(): Long = this@LongWrapper.get() + other.get()
