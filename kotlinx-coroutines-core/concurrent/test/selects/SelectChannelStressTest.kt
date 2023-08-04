@@ -6,6 +6,7 @@ package kotlinx.coroutines.selects
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.intrinsics.*
 import kotlin.test.*
 
 class SelectChannelStressTest: TestBase() {
@@ -14,7 +15,7 @@ class SelectChannelStressTest: TestBase() {
     private val iterations = (if (isNative) 1_000 else 1_000_000) * stressTestMultiplier
 
     @Test
-    fun testSelectSendResourceCleanupBufferedChannel() = runTest {
+    fun testSelectSendResourceCleanupArrayChannel() = runMtTest {
         val channel = Channel<Int>(1)
         expect(1)
         channel.send(-1) // fill the buffer, so all subsequent sends cannot proceed
@@ -28,7 +29,7 @@ class SelectChannelStressTest: TestBase() {
     }
 
     @Test
-    fun testSelectReceiveResourceCleanupBufferedChannel() = runTest {
+    fun testSelectReceiveResourceCleanupArrayChannel() = runMtTest {
         val channel = Channel<Int>(1)
         expect(1)
         repeat(iterations) { i ->
@@ -41,7 +42,7 @@ class SelectChannelStressTest: TestBase() {
     }
 
     @Test
-    fun testSelectSendResourceCleanupRendezvousChannel() = runTest {
+    fun testSelectSendResourceCleanupRendezvousChannel() = runMtTest {
         val channel = Channel<Int>(Channel.RENDEZVOUS)
         expect(1)
         repeat(iterations) { i ->
@@ -54,7 +55,7 @@ class SelectChannelStressTest: TestBase() {
     }
 
     @Test
-    fun testSelectReceiveResourceRendezvousChannel() = runTest {
+    fun testSelectReceiveResourceRendezvousChannel() = runMtTest {
         val channel = Channel<Int>(Channel.RENDEZVOUS)
         expect(1)
         repeat(iterations) { i ->
@@ -66,5 +67,9 @@ class SelectChannelStressTest: TestBase() {
         finish(iterations + 2)
     }
 
-    internal fun <R> SelectBuilder<R>.default(block: suspend () -> R) = onTimeout(0, block)
+    internal fun <R> SelectBuilder<R>.default(block: suspend () -> R) {
+        this as SelectBuilderImpl // type assertion
+        if (!trySelect()) return
+        block.startCoroutineUnintercepted(this)
+    }
 }
