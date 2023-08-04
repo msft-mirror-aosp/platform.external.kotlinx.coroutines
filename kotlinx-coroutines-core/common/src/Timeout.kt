@@ -13,12 +13,10 @@ import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.*
 import kotlin.jvm.*
 import kotlin.time.*
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Runs a given suspending [block] of code inside a coroutine with a specified [timeout][timeMillis] and throws
  * a [TimeoutCancellationException] if the timeout was exceeded.
- * If the given [timeMillis] is non-positive, [TimeoutCancellationException] is thrown immediately.
  *
  * The code that is executing inside the [block] is cancelled on timeout and the active or next invocation of
  * the cancellable suspending function inside the block throws a [TimeoutCancellationException].
@@ -27,8 +25,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Note that the timeout action can be specified for a [select] invocation with [onTimeout][SelectBuilder.onTimeout] clause.
  *
  * **The timeout event is asynchronous with respect to the code running in the block** and may happen at any time,
- * even right before the return from inside the timeout [block]. Keep this in mind if you open or acquire some
- * resource inside the [block] that needs closing or release outside the block.
+ * even right before the return from inside of the timeout [block]. Keep this in mind if you open or acquire some
+ * resource inside the [block] that needs closing or release outside of the block.
  * See the
  * [Asynchronous timeout and resources][https://kotlinlang.org/docs/reference/coroutines/cancellation-and-timeouts.html#asynchronous-timeout-and-resources]
  * section of the coroutines guide for details.
@@ -50,7 +48,6 @@ public suspend fun <T> withTimeout(timeMillis: Long, block: suspend CoroutineSco
 /**
  * Runs a given suspending [block] of code inside a coroutine with the specified [timeout] and throws
  * a [TimeoutCancellationException] if the timeout was exceeded.
- * If the given [timeout] is non-positive, [TimeoutCancellationException] is thrown immediately.
  *
  * The code that is executing inside the [block] is cancelled on timeout and the active or next invocation of
  * the cancellable suspending function inside the block throws a [TimeoutCancellationException].
@@ -59,8 +56,8 @@ public suspend fun <T> withTimeout(timeMillis: Long, block: suspend CoroutineSco
  * Note that the timeout action can be specified for a [select] invocation with [onTimeout][SelectBuilder.onTimeout] clause.
  *
  * **The timeout event is asynchronous with respect to the code running in the block** and may happen at any time,
- * even right before the return from inside the timeout [block]. Keep this in mind if you open or acquire some
- * resource inside the [block] that needs closing or release outside the block.
+ * even right before the return from inside of the timeout [block]. Keep this in mind if you open or acquire some
+ * resource inside the [block] that needs closing or release outside of the block.
  * See the
  * [Asynchronous timeout and resources][https://kotlinlang.org/docs/reference/coroutines/cancellation-and-timeouts.html#asynchronous-timeout-and-resources]
  * section of the coroutines guide for details.
@@ -77,7 +74,6 @@ public suspend fun <T> withTimeout(timeout: Duration, block: suspend CoroutineSc
 /**
  * Runs a given suspending block of code inside a coroutine with a specified [timeout][timeMillis] and returns
  * `null` if this timeout was exceeded.
- * If the given [timeMillis] is non-positive, `null` is returned immediately.
  *
  * The code that is executing inside the [block] is cancelled on timeout and the active or next invocation of
  * cancellable suspending function inside the block throws a [TimeoutCancellationException].
@@ -86,8 +82,8 @@ public suspend fun <T> withTimeout(timeout: Duration, block: suspend CoroutineSc
  * Note that the timeout action can be specified for a [select] invocation with [onTimeout][SelectBuilder.onTimeout] clause.
  *
  * **The timeout event is asynchronous with respect to the code running in the block** and may happen at any time,
- * even right before the return from inside the timeout [block]. Keep this in mind if you open or acquire some
- * resource inside the [block] that needs closing or release outside the block.
+ * even right before the return from inside of the timeout [block]. Keep this in mind if you open or acquire some
+ * resource inside the [block] that needs closing or release outside of the block.
  * See the
  * [Asynchronous timeout and resources][https://kotlinlang.org/docs/reference/coroutines/cancellation-and-timeouts.html#asynchronous-timeout-and-resources]
  * section of the coroutines guide for details.
@@ -118,7 +114,6 @@ public suspend fun <T> withTimeoutOrNull(timeMillis: Long, block: suspend Corout
 /**
  * Runs a given suspending block of code inside a coroutine with the specified [timeout] and returns
  * `null` if this timeout was exceeded.
- * If the given [timeout] is non-positive, `null` is returned immediately.
  *
  * The code that is executing inside the [block] is cancelled on timeout and the active or next invocation of
  * cancellable suspending function inside the block throws a [TimeoutCancellationException].
@@ -127,8 +122,8 @@ public suspend fun <T> withTimeoutOrNull(timeMillis: Long, block: suspend Corout
  * Note that the timeout action can be specified for a [select] invocation with [onTimeout][SelectBuilder.onTimeout] clause.
  *
  * **The timeout event is asynchronous with respect to the code running in the block** and may happen at any time,
- * even right before the return from inside the timeout [block]. Keep this in mind if you open or acquire some
- * resource inside the [block] that needs closing or release outside the block.
+ * even right before the return from inside of the timeout [block]. Keep this in mind if you open or acquire some
+ * resource inside the [block] that needs closing or release outside of the block.
  * See the
  * [Asynchronous timeout and resources][https://kotlinlang.org/docs/reference/coroutines/cancellation-and-timeouts.html#asynchronous-timeout-and-resources]
  * section of the coroutines guide for details.
@@ -136,9 +131,9 @@ public suspend fun <T> withTimeoutOrNull(timeMillis: Long, block: suspend Corout
  * > Implementation note: how the time is tracked exactly is an implementation detail of the context's [CoroutineDispatcher].
  */
 public suspend fun <T> withTimeoutOrNull(timeout: Duration, block: suspend CoroutineScope.() -> T): T? =
-    withTimeoutOrNull(timeout.toDelayMillis(), block)
+        withTimeoutOrNull(timeout.toDelayMillis(), block)
 
-private fun <U, T : U> setupTimeout(
+private fun <U, T: U> setupTimeout(
     coroutine: TimeoutCoroutine<U, T>,
     block: suspend CoroutineScope.() -> T
 ): Any? {
@@ -151,12 +146,12 @@ private fun <U, T : U> setupTimeout(
     return coroutine.startUndispatchedOrReturnIgnoreTimeout(coroutine, block)
 }
 
-private class TimeoutCoroutine<U, in T : U>(
+private class TimeoutCoroutine<U, in T: U>(
     @JvmField val time: Long,
     uCont: Continuation<U> // unintercepted continuation
 ) : ScopeCoroutine<T>(uCont.context, uCont), Runnable {
     override fun run() {
-        cancelCoroutine(TimeoutCancellationException(time, context.delay, this))
+        cancelCoroutine(TimeoutCancellationException(time, this))
     }
 
     override fun nameString(): String =
@@ -174,6 +169,7 @@ public class TimeoutCancellationException internal constructor(
      * Creates a timeout exception with the given message.
      * This constructor is needed for exception stack-traces recovery.
      */
+    @Suppress("UNUSED")
     internal constructor(message: String) : this(message, null)
 
     // message is never null in fact
@@ -181,12 +177,8 @@ public class TimeoutCancellationException internal constructor(
         TimeoutCancellationException(message ?: "", coroutine).also { it.initCause(this) }
 }
 
+@Suppress("FunctionName")
 internal fun TimeoutCancellationException(
     time: Long,
-    delay: Delay,
     coroutine: Job
-) : TimeoutCancellationException {
-    val message = (delay as? DelayWithTimeoutDiagnostics)?.timeoutMessage(time.milliseconds)
-        ?: "Timed out waiting for $time ms"
-    return TimeoutCancellationException(message, coroutine)
-}
+) : TimeoutCancellationException = TimeoutCancellationException("Timed out waiting for $time ms", coroutine)

@@ -1,5 +1,4 @@
 package kotlinx.coroutines.debug
-
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import org.junit.*
@@ -56,22 +55,20 @@ class BlockHoundTest : TestBase() {
     }
 
     @Test
-    fun testBroadcastChannelNotBeingConsideredBlocking() = runTest {
+    fun testChannelNotBeingConsideredBlocking() = runTest {
         withContext(Dispatchers.Default) {
-            // Copy of kotlinx.coroutines.channels.BufferedChannelTest.testSimple
-            val q = BroadcastChannel<Int>(1)
-            val s = q.openSubscription()
+            // Copy of kotlinx.coroutines.channels.ArrayChannelTest.testSimple
+            val q = Channel<Int>(1)
+            check(q.isEmpty)
+            check(!q.isClosedForReceive)
             check(!q.isClosedForSend)
-            check(s.isEmpty)
-            check(!s.isClosedForReceive)
             val sender = launch {
                 q.send(1)
                 q.send(2)
             }
             val receiver = launch {
-                s.receive() == 1
-                s.receive() == 2
-                s.cancel()
+                q.receive() == 1
+                q.receive() == 2
             }
             sender.join()
             receiver.join()
@@ -79,7 +76,7 @@ class BlockHoundTest : TestBase() {
     }
 
     @Test
-    fun testConflatedChannelNotBeingConsideredBlocking() = runTest {
+    fun testConflatedChannelsNotBeingConsideredBlocking() = runTest {
         withContext(Dispatchers.Default) {
             val q = Channel<Int>(Channel.CONFLATED)
             check(q.isEmpty)
@@ -113,4 +110,5 @@ class BlockHoundTest : TestBase() {
             }
         }
     }
+
 }

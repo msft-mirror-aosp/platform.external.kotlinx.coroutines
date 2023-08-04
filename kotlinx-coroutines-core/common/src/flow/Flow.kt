@@ -221,7 +221,7 @@ public interface Flow<out T> {
  * }
  * ```
  */
-@ExperimentalCoroutinesApi
+@FlowPreview
 public abstract class AbstractFlow<T> : Flow<T>, CancellableFlow<T> {
 
     public final override suspend fun collect(collector: FlowCollector<T>) {
