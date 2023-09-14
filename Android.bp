@@ -50,6 +50,13 @@ java_library_host {
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
     ],
     java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
+    // See https://github.com/Kotlin/kotlinx.coroutines#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
+    // This file contains `kotlin.coroutines.jvm.internal.DebugProbesKt` class and is only used
+    // by the debugger.
+    // This cause issues when generating coverage as Jacoco will fail with
+    // `Caused by: java.lang.IllegalStateException: Can't add different class with same name: kotlin/coroutines/jvm/internal/DebugProbesKt`
+    // See b/291743544 for more details
+    exclude_java_resources: ["kotlinx-coroutines-core/jvm/resources/DebugProbesKt.bin"],
     static_libs: [
         "kotlinx_atomicfu",
     ],
