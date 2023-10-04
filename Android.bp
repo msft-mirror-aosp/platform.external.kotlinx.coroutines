@@ -47,10 +47,16 @@ java_library_host {
         "kotlinx-coroutines-core/concurrent/src/**/*.kt",
     ],
     exclude_srcs: [
-        "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
     ],
     java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
+    // See https://github.com/Kotlin/kotlinx.coroutines#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
+    // This file contains `kotlin.coroutines.jvm.internal.DebugProbesKt` class and is only used
+    // by the debugger.
+    // This cause issues when generating coverage as Jacoco will fail with
+    // `Caused by: java.lang.IllegalStateException: Can't add different class with same name: kotlin/coroutines/jvm/internal/DebugProbesKt`
+    // See b/291743544 for more details
+    exclude_java_resources: ["kotlinx-coroutines-core/jvm/resources/DebugProbesKt.bin"],
     static_libs: [
         "kotlinx_atomicfu",
     ],
@@ -228,3 +234,50 @@ java_library {
     visibility: ["//visibility:public"],
 }
 
+// Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-reactive
+java_library {
+    name: "kotlinx_coroutines_reactive",
+    host_supported: true,
+    srcs: ["reactive/kotlinx-coroutines-reactive/src/**/*.kt"],
+    kotlincflags: [
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlin.experimental.ExperimentalTypeInference",
+    ],
+    libs: [
+        "kotlin-stdlib",
+        "kotlinx_coroutines",
+        "rxjava",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
+}
+
+
+// Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-rx2
+java_library {
+    name: "kotlinx_coroutines_rx2",
+    host_supported: true,
+    srcs: ["reactive/kotlinx-coroutines-rx2/src/**/*.kt"],
+    kotlincflags: [
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlin.experimental.ExperimentalTypeInference",
+    ],
+    libs: [
+        "kotlin-stdlib",
+        "kotlinx_coroutines",
+        "kotlinx_coroutines_reactive",
+        "rxjava",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
+}
