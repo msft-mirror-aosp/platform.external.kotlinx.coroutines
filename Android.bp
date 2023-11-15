@@ -196,3 +196,50 @@ java_library {
     ],
 }
 
+// Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-reactive
+java_library {
+    name: "kotlinx_coroutines_reactive",
+    host_supported: true,
+    srcs: ["reactive/kotlinx-coroutines-reactive/src/**/*.kt"],
+    kotlincflags: [
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlin.experimental.ExperimentalTypeInference",
+    ],
+    libs: [
+        "kotlin-stdlib",
+        "kotlinx_coroutines",
+        "rxjava",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
+}
+
+
+// Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-rx2
+java_library {
+    name: "kotlinx_coroutines_rx2",
+    host_supported: true,
+    srcs: ["reactive/kotlinx-coroutines-rx2/src/**/*.kt"],
+    kotlincflags: [
+        "-opt-in=kotlin.RequiresOptIn",
+        "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        "-opt-in=kotlin.experimental.ExperimentalTypeInference",
+    ],
+    libs: [
+        "kotlin-stdlib",
+        "kotlinx_coroutines",
+        "kotlinx_coroutines_reactive",
+        "rxjava",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
+}
