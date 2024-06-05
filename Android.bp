@@ -136,6 +136,7 @@ java_library {
 java_library {
     name: "kotlinx_coroutines_test",
     host_supported: true,
+    sdk_version: "core_current",
     srcs: ["kotlinx-coroutines-test/jvm/src/**/*.kt"],
     common_srcs: ["kotlinx-coroutines-test/common/src/**/*.kt"],
     java_resource_dirs: ["kotlinx-coroutines-test/jvm/resources"],
@@ -281,4 +282,3 @@ java_library {
     ],
     visibility: ["//visibility:public"],
 }
-

@@ -1,4 +1,4 @@
-# kotlinx.coroutines
+# kotlinx.coroutines 
 
 [![Kotlin Stable](https://kotl.in/badges/stable.svg)](https://kotlinlang.org/docs/components-stability.html)
 [![JetBrains official project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
@@ -12,9 +12,9 @@ This is a companion version for the Kotlin `1.8.20` release.
 
 ```kotlin
 suspend fun main() = coroutineScope {
-    launch {
+    launch { 
        delay(1000)
-       println("Kotlin Coroutines World!")
+       println("Kotlin Coroutines World!") 
     }
     println("Hello")
 }
@@ -49,7 +49,7 @@ suspend fun main() = coroutineScope {
   * [CoroutinesTimeout] test rule to automatically dump coroutines on test timeout.
   * Automatic integration with [BlockHound](https://github.com/reactor/BlockHound).
 * [reactive](reactive/README.md) &mdash; modules that provide builders and iteration support for various reactive streams libraries:
-  * Reactive Streams ([Publisher.collect], [Publisher.awaitSingle], [kotlinx.coroutines.reactive.publish], etc),
+  * Reactive Streams ([Publisher.collect], [Publisher.awaitSingle], [kotlinx.coroutines.reactive.publish], etc), 
   * Flow (JDK 9) (the same interface as for Reactive Streams),
   * RxJava 2.x ([rxFlowable], [rxSingle], etc), and
   * RxJava 3.x ([rxFlowable], [rxSingle], etc), and
@@ -66,7 +66,7 @@ suspend fun main() = coroutineScope {
   * [Kotlin Coroutines in Practice](https://www.youtube.com/watch?v=a3agLJQ6vt8) (Roman Elizarov at KotlinConf 2018, [slides](https://www.slideshare.net/elizarov/kotlin-coroutines-in-practice-kotlinconf-2018))
   * [Deep Dive into Coroutines](https://www.youtube.com/watch?v=YrrUCSi72E8) (Roman Elizarov at KotlinConf 2017, [slides](https://www.slideshare.net/elizarov/deep-dive-into-coroutines-on-jvm-kotlinconf-2017))
   * [History of Structured Concurrency in Coroutines](https://www.youtube.com/watch?v=Mj5P47F6nJg) (Roman Elizarov at Hydra 2019, [slides](https://speakerdeck.com/elizarov/structured-concurrency))
-* Guides and manuals:
+* Guides and manuals: 
   * [Guide to kotlinx.coroutines by example](https://kotlinlang.org/docs/coroutines-guide.html) (**read it first**)
   * [Guide to UI programming with coroutines](ui/coroutines-guide-ui.md)
   * [Debugging capabilities in kotlinx.coroutines](docs/topics/debugging.md)
@@ -74,7 +74,7 @@ suspend fun main() = coroutineScope {
 * [Change log for kotlinx.coroutines](CHANGES.md)
 * [Coroutines design document (KEEP)](https://github.com/Kotlin/KEEP/blob/master/proposals/coroutines.md)
 * [Full kotlinx.coroutines API reference](https://kotlinlang.org/api/kotlinx.coroutines/)
-
+ 
 ## Using in your projects
 
 ### Maven
@@ -113,6 +113,7 @@ And make sure that you use the latest Kotlin version:
 plugins {
     // For build.gradle.kts (Kotlin DSL)
     kotlin("jvm") version "1.8.20"
+    
     // For build.gradle (Groovy DSL)
     id "org.jetbrains.kotlin.jvm" version "1.8.20"
 }
@@ -159,7 +160,7 @@ packagingOptions {
 
 ### Multiplatform
 
-Core modules of `kotlinx.coroutines` are also available for
+Core modules of `kotlinx.coroutines` are also available for 
 [Kotlin/JS](https://kotlinlang.org/docs/reference/js-overview.html) and [Kotlin/Native](https://kotlinlang.org/docs/reference/native-overview.html).
 
 In common code that should get compiled for different platforms, you can add a dependency to `kotlinx-coroutines-core` right to the `commonMain` source set:
@@ -178,15 +179,15 @@ Platform-specific dependencies are recommended to be used only for non-multiplat
 
 #### JS
 
-Kotlin/JS version of `kotlinx.coroutines` is published as
+Kotlin/JS version of `kotlinx.coroutines` is published as 
 [`kotlinx-coroutines-core-js`](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.7.2)
-(follow the link to get the dependency declaration snippet) and as [`kotlinx-coroutines-core`](https://www.npmjs.com/package/kotlinx-coroutines-core) NPM package.
+(follow the link to get the dependency declaration snippet) and as [`kotlinx-coroutines-core`](https://www.npmjs.com/package/kotlinx-coroutines-core) NPM package. 
 
 #### Native
 
-Kotlin/Native version of `kotlinx.coroutines` is published as
-[`kotlinx-coroutines-core-$platform`](https://central.sonatype.com/search?q=kotlinx-coroutines-core&namespace=org.jetbrains.kotlinx) where `$platform` is
-the target Kotlin/Native platform.
+Kotlin/Native version of `kotlinx.coroutines` is published as 
+[`kotlinx-coroutines-core-$platform`](https://central.sonatype.com/search?q=kotlinx-coroutines-core&namespace=org.jetbrains.kotlinx) where `$platform` is 
+the target Kotlin/Native platform. 
 Targets are provided in accordance with [official K/N target support](https://kotlinlang.org/docs/native-target-support.html).
 ## Building and Contributing
 
