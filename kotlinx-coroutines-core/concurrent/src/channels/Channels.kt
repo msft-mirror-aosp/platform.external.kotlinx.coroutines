@@ -30,7 +30,7 @@ import kotlin.jvm.*
 public fun <E> SendChannel<E>.trySendBlocking(element: E): ChannelResult<Unit> {
     /*
      * Sent successfully -- bail out.
-     * But failure may indicate either that the channel it full or that
+     * But failure may indicate either that the channel is full or that
      * it is close. Go to slow path on failure to simplify the successful path and
      * to materialize default exception.
      */
@@ -44,11 +44,11 @@ public fun <E> SendChannel<E>.trySendBlocking(element: E): ChannelResult<Unit> {
 
 /** @suppress */
 @Deprecated(
-    level = DeprecationLevel.ERROR,
+    level = DeprecationLevel.HIDDEN,
     message = "Deprecated in the favour of 'trySendBlocking'. " +
         "Consider handling the result of 'trySendBlocking' explicitly and rethrow exception if necessary",
     replaceWith = ReplaceWith("trySendBlocking(element)")
-) // WARNING in 1.5.0, ERROR in 1.6.0, HIDDEN in 1.7.0
+) // WARNING in 1.5.0, ERROR in 1.6.0
 public fun <E> SendChannel<E>.sendBlocking(element: E) {
     // fast path
     if (trySend(element).isSuccess)

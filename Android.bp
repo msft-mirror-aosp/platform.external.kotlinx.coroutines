@@ -1,5 +1,6 @@
 package {
     default_applicable_licenses: ["external_kotlinx.coroutines_license"],
+    default_visibility: ["//visibility:private"],
 }
 
 // Added automatically by a large-scale-change that took the approach of
@@ -35,25 +36,34 @@ license {
     ],
 }
 
-java_library {
-    name: "kotlinx_coroutines",
-    host_supported: true,
-    sdk_version: "current",
-    min_sdk_version: "28",
+// Upstream compiles this lib against the JVM bootclasspath; compiling against the Android
+// bootclasspath will fail. Work around this by defining this as a java_library_host, and use
+// java_host_for_device to expose it to Android targets.
+java_library_host {
+    name: "kotlinx_coroutines-host",
     srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
     common_srcs: [
         "kotlinx-coroutines-core/common/src/**/*.kt",
         "kotlinx-coroutines-core/concurrent/src/**/*.kt",
     ],
     exclude_srcs: [
-        "kotlinx-coroutines-core/jvm/src/debug/**/*.kt",
         "kotlinx-coroutines-core/jvm/src/test_/TestCoroutineContext.kt",
     ],
     java_resource_dirs: ["kotlinx-coroutines-core/jvm/resources"],
+    // See https://github.com/Kotlin/kotlinx.coroutines#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
+    // This file contains `kotlin.coroutines.jvm.internal.DebugProbesKt` class and is only used
+    // by the debugger.
+    // This cause issues when generating coverage as Jacoco will fail with
+    // `Caused by: java.lang.IllegalStateException: Can't add different class with same name: kotlin/coroutines/jvm/internal/DebugProbesKt`
+    // See b/291743544 for more details
+    exclude_java_resources: ["kotlinx-coroutines-core/jvm/resources/DebugProbesKt.bin"],
     static_libs: [
         "kotlinx_atomicfu",
     ],
-    libs: ["kotlinx-coroutines-android-annotation-stubs"],
+    libs: [
+        "annotations", // for android.annotation.SuppressLint
+        "kotlinx-coroutines-android-annotation-stubs",
+    ],
     kotlincflags: [
         "-Xmulti-platform",
         "-opt-in=kotlin.RequiresOptIn",
@@ -67,13 +77,37 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+}
+
+// Expose the host library to Android targets. This is generally an unsafe operation; in using
+// this, we are asserting that any host-only code will never be evaluated at runtime on Android.
+// If we're wrong, we will see runtime exceptions.
+java_host_for_device {
+    name: "kotlinx_coroutines-device",
+    libs: ["kotlinx_coroutines-host"],
+}
+
+// Combine host and Android libs back into a single target.
+java_library {
+    name: "kotlinx_coroutines",
+    host_supported: true,
+    sdk_version: "core_current",
+    min_sdk_version: "28",
     target: {
         host: {
-            libs: ["annotations"], // for android.annotation.SuppressLint
+            static_libs: ["kotlinx_coroutines-host"],
+        },
+        android: {
+            static_libs: ["kotlinx_coroutines-device"],
         },
     },
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -94,8 +128,9 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -110,13 +145,12 @@ java_library {
         "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
         "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
     ],
-    libs: [
-        "kotlinx_coroutines",
-    ],
+    libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 // Compile stub implementations of annotations used by kotlinx-coroutines but not present in the
@@ -134,25 +168,27 @@ java_library {
 java_library {
     name: "kotlinx-coroutines-core",
     host_supported: true,
-    sdk_version: "current",
+    sdk_version: "core_current",
     min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
     name: "kotlinx-coroutines-core-jvm",
     host_supported: true,
-    sdk_version: "current",
+    sdk_version: "core_current",
     min_sdk_version: "28",
     static_libs: ["kotlinx_coroutines"],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 java_library {
@@ -165,8 +201,9 @@ java_library {
     ],
     apex_available: [
         "//apex_available:platform",
-        "//apex_available:anyapex"
+        "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 filegroup {
@@ -194,6 +231,7 @@ java_library {
         "//apex_available:platform",
         "//apex_available:anyapex",
     ],
+    visibility: ["//visibility:public"],
 }
 
 // Maven coordinate: org.jetbrains.kotlinx:kotlinx-coroutines-reactive
@@ -243,3 +281,4 @@ java_library {
     ],
     visibility: ["//visibility:public"],
 }
+

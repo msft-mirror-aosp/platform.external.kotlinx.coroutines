@@ -96,12 +96,10 @@ public fun <T> CoroutineScope.async(
 private open class DeferredCoroutine<T>(
     parentContext: CoroutineContext,
     active: Boolean
-) : AbstractCoroutine<T>(parentContext, true, active = active), Deferred<T>, SelectClause1<T> {
+) : AbstractCoroutine<T>(parentContext, true, active = active), Deferred<T> {
     override fun getCompleted(): T = getCompletedInternal() as T
     override suspend fun await(): T = awaitInternal() as T
-    override val onAwait: SelectClause1<T> get() = this
-    override fun <R> registerSelectClause1(select: SelectInstance<R>, block: suspend (T) -> R) =
-        registerSelectClause1Internal(select, block)
+    override val onAwait: SelectClause1<T> get() = onAwaitInternal as SelectClause1<T>
 }
 
 private class LazyDeferredCoroutine<T>(
@@ -165,7 +163,7 @@ public suspend fun <T> withContext(
         if (newContext[ContinuationInterceptor] == oldContext[ContinuationInterceptor]) {
             val coroutine = UndispatchedCoroutine(newContext, uCont)
             // There are changes in the context, so this thread needs to be updated
-            withCoroutineContext(newContext, null) {
+            withCoroutineContext(coroutine.context, null) {
                 return@sc coroutine.startUndispatchedOrReturn(coroutine, block)
             }
         }
@@ -220,13 +218,16 @@ private const val SUSPENDED = 1
 private const val RESUMED = 2
 
 // Used by withContext when context dispatcher changes
-internal class DispatchedCoroutine<in T>(
+@PublishedApi
+internal class DispatchedCoroutine<in T> internal constructor(
     context: CoroutineContext,
     uCont: Continuation<T>
 ) : ScopeCoroutine<T>(context, uCont) {
     // this is copy-and-paste of a decision state machine inside AbstractionContinuation
     // todo: we may some-how abstract it via inline class
-    private val _decision = atomic(UNDECIDED)
+    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
+    @JvmField
+    public val _decision = atomic(UNDECIDED)
 
     private fun trySuspend(): Boolean {
         _decision.loop { decision ->
@@ -260,7 +261,7 @@ internal class DispatchedCoroutine<in T>(
         uCont.intercepted().resumeCancellableWith(recoverResult(state, uCont))
     }
 
-    fun getResult(): Any? {
+    internal fun getResult(): Any? {
         if (trySuspend()) return COROUTINE_SUSPENDED
         // otherwise, onCompletionInternal was already invoked & invoked tryResume, and the result is in the state
         val state = this.state.unboxState()

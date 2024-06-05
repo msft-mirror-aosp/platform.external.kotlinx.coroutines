@@ -4,6 +4,9 @@
 
 apply plugin: "com.github.johnrengelman.shadow"
 
+// apply plugin to use autocomplete for Kover DSL
+apply plugin: 'org.jetbrains.kotlinx.kover'
+
 configurations {
     shadowDeps // shaded dependencies, not included into the resulting .pom file
     compileOnly.extendsFrom(shadowDeps)
@@ -30,20 +33,15 @@ java {
     disableAutoTargetJvm()
 }
 
-jar {
-    setEnabled(false)
+// This is required for BlockHound tests to work, see https://github.com/Kotlin/kotlinx.coroutines/issues/3701
+tasks.withType(Test).configureEach {
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_13)) {
+        jvmArgs += ["-XX:+AllowRedefinitionToAddDeleteMethods"]
+    }
 }
 
-// This is a rough estimation of what shadow plugin has been doing with our default configuration prior to
-// 1.6.2: https://github.com/johnrengelman/shadow/blob/1ff12fc816629ae5bc331fa3889c8ecfcaee7b27/src/main/groovy/com/github/jengelman/gradle/plugins/shadow/ShadowJavaPlugin.groovy#L72-L82
-// We just emulate it here for backwards compatibility
-shadowJar.configure {
-    def classpath = project.objects.fileCollection().from { ->
-        project.configurations.findByName('runtimeClasspath')
-    }
-    doFirst {
-        manifest.attributes 'Class-Path': classpath.collect { "${it.name}" }.findAll { it }.join(' ')
-    }
+jar {
+    setEnabled(false)
 }
 
 def shadowJarTask = shadowJar {
@@ -65,14 +63,11 @@ configurations {
     }
 }
 
-def commonKoverExcludes =
-        // Never used, safety mechanism
-        ["kotlinx.coroutines.debug.internal.NoOpProbesKt"]
-
-tasks.koverHtmlReport {
-    excludes = commonKoverExcludes
-}
-
-tasks.koverVerify {
-    excludes = commonKoverExcludes
+koverReport {
+    filters {
+        excludes {
+            // Never used, safety mechanism
+            classes("kotlinx.coroutines.debug.internal.NoOpProbesKt")
+        }
+    }
 }

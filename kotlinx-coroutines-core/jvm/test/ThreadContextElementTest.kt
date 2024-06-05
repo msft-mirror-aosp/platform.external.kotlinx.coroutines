@@ -7,6 +7,7 @@ package kotlinx.coroutines
 import org.junit.Test
 import kotlin.coroutines.*
 import kotlin.test.*
+import kotlinx.coroutines.flow.*
 
 class ThreadContextElementTest : TestBase() {
 
@@ -37,7 +38,7 @@ class ThreadContextElementTest : TestBase() {
     }
 
     @Test
-    fun testUndispatched()= runTest {
+    fun testUndispatched() = runTest {
         val exceptionHandler = coroutineContext[CoroutineExceptionHandler]!!
         val data = MyData()
         val element = MyElement(data)
@@ -156,6 +157,56 @@ class ThreadContextElementTest : TestBase() {
             }
         }
     }
+
+    class JobCaptor(val capturees: ArrayList<Job> = ArrayList()) : ThreadContextElement<Unit> {
+
+        companion object Key : CoroutineContext.Key<MyElement>
+
+        override val key: CoroutineContext.Key<*> get() = Key
+
+        override fun updateThreadContext(context: CoroutineContext) {
+            capturees.add(context.job)
+        }
+
+        override fun restoreThreadContext(context: CoroutineContext, oldState: Unit) {
+        }
+    }
+
+    @Test
+    fun testWithContextJobAccess() = runTest {
+        val captor = JobCaptor()
+        val manuallyCaptured = ArrayList<Job>()
+        runBlocking(captor) {
+            manuallyCaptured += coroutineContext.job
+            withContext(CoroutineName("undispatched")) {
+                manuallyCaptured += coroutineContext.job
+                withContext(Dispatchers.IO) {
+                    manuallyCaptured += coroutineContext.job
+                }
+                // Context restored, captured again
+                manuallyCaptured += coroutineContext.job
+            }
+            // Context restored, captured again
+            manuallyCaptured += coroutineContext.job
+        }
+
+        assertEquals(manuallyCaptured, captor.capturees)
+    }
+
+    @Test
+    fun testThreadLocalFlowOn() = runTest {
+        val myData = MyData()
+        myThreadLocal.set(myData)
+        expect(1)
+        flow {
+            assertEquals(myData, myThreadLocal.get())
+            emit(1)
+        }
+            .flowOn(myThreadLocal.asContextElement() + Dispatchers.Default)
+            .single()
+        myThreadLocal.set(null)
+        finish(2)
+    }
 }
 
 class MyData
@@ -223,6 +274,7 @@ class CopyForChildCoroutineElement(val data: MyData?) : CopyableThreadContextEle
         return CopyForChildCoroutineElement(myThreadLocal.get())
     }
 }
+
 
 /**
  * Calls [block], setting the value of [this] [ThreadLocal] for the duration of [block].
