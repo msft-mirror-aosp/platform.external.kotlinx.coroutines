@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.debug.internal
 
 import kotlinx.atomicfu.*
@@ -35,13 +31,16 @@ internal object DebugProbesImpl {
      * This internal method is used by the IDEA debugger under the JVM name
      * "isInstalled$kotlinx_coroutines_debug" and must be kept binary-compatible, see KTIJ-24102
      */
-    val isInstalled: Boolean get() = installations.value > 0
+    val isInstalled: Boolean
+        // IDEA depended on "internal val isInstalled", thus the mangling. Public + JvmName in order to make this getter part of the ABI
+        @JvmName("isInstalled\$kotlinx_coroutines_debug")
+        get() = installations.value > 0
 
     // To sort coroutines by creation order, used as a unique id
     private val sequenceNumber = atomic(0L)
 
     internal var sanitizeStackTraces: Boolean = true
-    internal var enableCreationStackTraces: Boolean = true
+    internal var enableCreationStackTraces: Boolean = false
     public var ignoreCoroutinesWithEmptyContext: Boolean = true
 
     /*
