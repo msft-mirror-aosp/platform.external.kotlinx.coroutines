@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlin.coroutines.*
@@ -20,7 +16,7 @@ public expect fun CoroutineScope.newCoroutineContext(context: CoroutineContext):
 @InternalCoroutinesApi
 public expect fun CoroutineContext.newCoroutineContext(addedContext: CoroutineContext): CoroutineContext
 
-@PublishedApi
+@PublishedApi // to have unmangled name when using from other modules via suppress
 @Suppress("PropertyName")
 internal expect val DefaultDelay: Delay
 
