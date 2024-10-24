@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:JvmMultifileClass
 @file:JvmName("FlowKt")
 
@@ -111,7 +107,6 @@ public fun <T> Flow<T>.debounce(timeoutMillis: Long): Flow<T> {
  * @param timeoutMillis [T] is the emitted value and the return value is timeout in milliseconds.
  */
 @FlowPreview
-@OptIn(kotlin.experimental.ExperimentalTypeInference::class)
 @OverloadResolutionByLambdaReturnType
 public fun <T> Flow<T>.debounce(timeoutMillis: (T) -> Long): Flow<T> =
     debounceInternal(timeoutMillis)
@@ -196,14 +191,13 @@ public fun <T> Flow<T>.debounce(timeout: Duration): Flow<T> =
  */
 @FlowPreview
 @JvmName("debounceDuration")
-@OptIn(kotlin.experimental.ExperimentalTypeInference::class)
 @OverloadResolutionByLambdaReturnType
 public fun <T> Flow<T>.debounce(timeout: (T) -> Duration): Flow<T> =
     debounceInternal { emittedItem ->
         timeout(emittedItem).toDelayMillis()
     }
 
-private fun <T> Flow<T>.debounceInternal(timeoutMillisSelector: (T) -> Long) : Flow<T> =
+private fun <T> Flow<T>.debounceInternal(timeoutMillisSelector: (T) -> Long): Flow<T> =
     scopedFlow { downstream ->
         // Produce the values using the default (rendezvous) channel
         val values = produce {
@@ -306,11 +300,11 @@ public fun <T> Flow<T>.sample(periodMillis: Long): Flow<T> {
 /*
  * TODO this design (and design of the corresponding operator) depends on #540
  */
-internal fun CoroutineScope.fixedPeriodTicker(delayMillis: Long, initialDelayMillis: Long = delayMillis): ReceiveChannel<Unit> {
-    require(delayMillis >= 0) { "Expected non-negative delay, but has $delayMillis ms" }
-    require(initialDelayMillis >= 0) { "Expected non-negative initial delay, but has $initialDelayMillis ms" }
+internal fun CoroutineScope.fixedPeriodTicker(
+    delayMillis: Long,
+): ReceiveChannel<Unit> {
     return produce(capacity = 0) {
-        delay(initialDelayMillis)
+        delay(delayMillis)
         while (true) {
             channel.send(Unit)
             delay(delayMillis)
@@ -359,8 +353,15 @@ public fun <T> Flow<T>.sample(period: Duration): Flow<T> = sample(period.toDelay
  *     emit(3)
  *     delay(1000)
  *     emit(4)
- * }.timeout(100.milliseconds).catch {
- *     emit(-1) // Item to emit on timeout
+ * }.timeout(100.milliseconds).catch { exception ->
+ *     if (exception is TimeoutCancellationException) {
+ *         // Catch the TimeoutCancellationException emitted above.
+ *         // Emit desired item on timeout.
+ *         emit(-1)
+ *     } else {
+ *         // Throw other exceptions.
+ *         throw exception
+ *     }
  * }.onEach {
  *     delay(300) // This will not cause a timeout
  * }
@@ -393,6 +394,7 @@ private fun <T> Flow<T>.timeoutInternal(
             value.onSuccess {
                 downStream.emit(it)
             }.onClosed {
+                it?.let { throw it }
                 return@onReceiveCatching false
             }
             return@onReceiveCatching true
