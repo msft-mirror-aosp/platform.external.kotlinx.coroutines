@@ -3,7 +3,7 @@ package kotlinx.coroutines
 import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
 
-public expect abstract class W3CWindow
+internal expect abstract class W3CWindow
 internal expect fun w3cSetTimeout(window: W3CWindow, handler: () -> Unit, timeout: Int): Int
 internal expect fun w3cSetTimeout(handler: () -> Unit, timeout: Int): Int
 internal expect fun w3cClearTimeout(handle: Int)
@@ -30,9 +30,9 @@ internal abstract class SetTimeoutBasedDispatcher: CoroutineDispatcher(), Delay 
 
     abstract fun scheduleQueueProcessing()
 
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         parallelism.checkParallelism()
-        return this
+        return namedOrThis(name)
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {

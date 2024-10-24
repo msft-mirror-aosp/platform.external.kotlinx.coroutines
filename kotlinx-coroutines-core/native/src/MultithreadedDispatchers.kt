@@ -11,6 +11,7 @@ import kotlin.native.concurrent.*
 import kotlin.time.*
 import kotlin.time.Duration.Companion.milliseconds
 
+@DelicateCoroutinesApi
 public actual fun newFixedThreadPoolContext(nThreads: Int, name: String): CloseableCoroutineDispatcher {
     require(nThreads >= 1) { "Expected at least one thread, but got: $nThreads" }
     return MultiWorkerDispatcher(name, nThreads)
@@ -76,7 +77,7 @@ internal class WorkerDispatcher(name: String) : CloseableCoroutineDispatcher(), 
 
 private class MultiWorkerDispatcher(
     private val name: String,
-    workersCount: Int
+    private val workersCount: Int
 ) : CloseableCoroutineDispatcher() {
     private val tasksQueue = Channel<Runnable>(Channel.UNLIMITED)
     private val availableWorkers = Channel<CancellableContinuation<Runnable>>(Channel.UNLIMITED)
@@ -137,6 +138,14 @@ private class MultiWorkerDispatcher(
             val result = tasksQueue.trySend(block)
             checkChannelResult(result)
         }
+    }
+
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
+        parallelism.checkParallelism()
+        if (parallelism >= workersCount) {
+            return namedOrThis(name)
+        }
+        return super.limitedParallelism(parallelism, name)
     }
 
     override fun close() {

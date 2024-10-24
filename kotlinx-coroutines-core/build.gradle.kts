@@ -18,10 +18,13 @@ apply(plugin = "pub-conventions")
   Configure source sets structure for kotlinx-coroutines-core:
 
      TARGETS                            SOURCE SETS
-     -------         ----------------------------------------------
-     wasmJs \----------> jsAndWasmShared --------------------+
-     js     /                                                |
-                                                             V
+     ------------------------------------------------------------
+     wasmJs \------> jsAndWasmJsShared ----+
+     js     /                              |
+                                           V
+     wasmWasi --------------------> jsAndWasmShared ----------+
+                                                              |
+                                                              V
      jvmCore\ --------> jvm ---------> concurrent -------> common
      jdk8   /                           ^
                                         |
@@ -92,13 +95,8 @@ kotlin {
      * All new MM targets are build with optimize = true to have stress tests properly run.
      */
     targets.withType(KotlinNativeTargetWithTests::class).configureEach {
-        binaries.getTest(DEBUG).apply {
-            optimized = true
-        }
-
         binaries.test("workerTest", listOf(DEBUG)) {
             val thisTest = this
-            optimized = true
             freeCompilerArgs = freeCompilerArgs + listOf("-e", "kotlinx.coroutines.mainBackground")
             testRuns.create("workerTest") {
                 this as KotlinTaskTestRun<*, *>
@@ -164,13 +162,6 @@ val jvmTest by tasks.getting(Test::class) {
     minHeapSize = "1g"
     maxHeapSize = "1g"
     enableAssertions = true
-    if (!Idea.active) {
-        // We should not set this security manager when `jvmTest`
-        // is invoked by IntelliJ IDEA since we need to pass
-        // system properties for Lincheck and stress tests.
-        // TODO Remove once IDEA is smart enough to select between `jvmTest`/`jvmStressTest`/`jvmLincheckTest` #KTIJ-599
-        systemProperty("java.security.manager", "kotlinx.coroutines.TestSecurityManager")
-    }
     // 'stress' is required to be able to run all subpackage tests like ":jvmTests --tests "*channels*" -Pstress=true"
     if (!Idea.active && rootProject.properties["stress"] == null) {
         exclude("**/*LincheckTest*")
