@@ -66,6 +66,7 @@ java_library_host {
     ],
     kotlincflags: [
         "-Xmulti-platform",
+        "-Xexpect-actual-classes",
         "-opt-in=kotlin.RequiresOptIn",
         "-opt-in=kotlin.experimental.ExperimentalTypeInference",
         "-opt-in=kotlin.ExperimentalMultiplatform",
