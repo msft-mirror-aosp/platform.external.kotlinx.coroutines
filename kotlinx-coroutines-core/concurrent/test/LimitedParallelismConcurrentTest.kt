@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2022 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.atomicfu.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.exceptions.*
@@ -68,7 +65,7 @@ class LimitedParallelismConcurrentTest : TestBase() {
     @Test
     fun testNotDoingDispatchesWhenNoTasksArePresent() = runTest {
         class NaggingDispatcher: CoroutineDispatcher() {
-            val closed = atomic(false)
+            private val closed = atomic(false)
             override fun dispatch(context: CoroutineContext, block: Runnable) {
                 if (closed.value)
                     fail("Dispatcher was closed, but still dispatched a task")
