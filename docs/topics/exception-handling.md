@@ -9,7 +9,7 @@ coroutine throw an exception.
 
 ## Exception propagation
 
-Coroutine builders come in two flavors: propagating exceptions automatically ([launch] and [actor]) or
+Coroutine builders come in two flavors: propagating exceptions automatically ([launch]) or
 exposing them to users ([async] and [produce]).
 When these builders are used to create a _root_ coroutine, that is not a _child_ of another coroutine,
 the former builders treat exceptions as **uncaught** exceptions, similar to Java's `Thread.uncaughtExceptionHandler`,
@@ -60,7 +60,7 @@ The output of this code is (with [debug](https://github.com/Kotlin/kotlinx.corou
 
 ```text
 Throwing exception from launch
-Exception in thread "DefaultDispatcher-worker-2 @coroutine#2" java.lang.IndexOutOfBoundsException
+Exception in thread "DefaultDispatcher-worker-1 @coroutine#2" java.lang.IndexOutOfBoundsException
 Joined failed job
 Throwing exception from async
 Caught ArithmeticException
@@ -73,7 +73,7 @@ Caught ArithmeticException
 It is possible to customize the default behavior of printing **uncaught** exceptions to the console.
 [CoroutineExceptionHandler] context element on a _root_ coroutine can be used as a generic `catch` block for
 this root coroutine and all its children where custom exception handling may take place.
-It is similar to [`Thread.uncaughtExceptionHandler`](https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#setUncaughtExceptionHandler(java.lang.Thread.UncaughtExceptionHandler)).
+It is similar to [`Thread.uncaughtExceptionHandler`](https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html#setUncaughtExceptionHandler-java.lang.Thread.UncaughtExceptionHandler-).
 You cannot recover from the exception in the `CoroutineExceptionHandler`. The coroutine had already completed
 with the corresponding exception when the handler is called. Normally, the handler is used to
 log the exception, show some kind of error message, terminate, and/or restart the application.
@@ -276,10 +276,6 @@ fun main() = runBlocking {
 >
 {type="note"}
 
-> Note: This above code will work properly only on JDK7+ that supports `suppressed` exceptions
->
-{type="note"}
-
 The output of this code is:
 
 ```text
@@ -306,7 +302,7 @@ fun main() = runBlocking {
         println("CoroutineExceptionHandler got $exception")
     }
     val job = GlobalScope.launch(handler) {
-        val inner = launch { // all this stack of coroutines will get cancelled
+        val innerJob = launch { // all this stack of coroutines will get cancelled
             launch {
                 launch {
                     throw IOException() // the original exception
@@ -314,7 +310,7 @@ fun main() = runBlocking {
             }
         }
         try {
-            inner.join()
+            innerJob.join()
         } catch (e: CancellationException) {
             println("Rethrowing CancellationException with original cause")
             throw e // cancellation exception is rethrown, yet the original IOException gets to the handler  
@@ -523,7 +519,6 @@ The scope is completed
 
 <!--- INDEX kotlinx.coroutines.channels -->
 
-[actor]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.channels/actor.html
 [produce]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.channels/produce.html
 [ReceiveChannel.receive]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.channels/-receive-channel/receive.html
 

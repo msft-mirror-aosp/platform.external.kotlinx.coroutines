@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.internal
 
 import kotlin.coroutines.*
@@ -40,7 +36,7 @@ internal expect suspend inline fun recoverAndThrow(exception: Throwable): Nothin
  * The opposite of [recoverStackTrace].
  * It is guaranteed that `unwrap(recoverStackTrace(e)) === e`
  */
-@PublishedApi // published for the multiplatform implementation of kotlinx-coroutines-test
+@PublishedApi // Used from kotlinx-coroutines-test and reactor modules via suppress, not part of ABI
 internal expect fun <E: Throwable> unwrap(exception: E): E
 
 internal expect class StackTraceElement
