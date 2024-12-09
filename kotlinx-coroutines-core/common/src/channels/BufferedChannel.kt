@@ -7,16 +7,13 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ChannelResult.Companion.closed
 import kotlinx.coroutines.channels.ChannelResult.Companion.failure
 import kotlinx.coroutines.channels.ChannelResult.Companion.success
-import kotlinx.coroutines.flow.internal.*
 import kotlinx.coroutines.internal.*
 import kotlinx.coroutines.selects.*
 import kotlinx.coroutines.selects.TrySelectDetailedResult.*
-import kotlin.contracts.*
 import kotlin.coroutines.*
 import kotlin.js.*
 import kotlin.jvm.*
 import kotlin.math.*
-import kotlin.random.*
 import kotlin.reflect.*
 
 /**
@@ -658,7 +655,7 @@ internal open class BufferedChannel<E>(
         }
         is ReceiveCatching<*> -> {
             this as ReceiveCatching<E>
-            cont.tryResume0(success(element), onUndeliveredElement?.bindCancellationFun(element, cont.context))
+            cont.tryResume0(success(element), onUndeliveredElement?.bindCancellationFunResult())
         }
         is BufferedChannel<*>.BufferedChannelIterator -> {
             this as BufferedChannel<E>.BufferedChannelIterator
@@ -666,7 +663,7 @@ internal open class BufferedChannel<E>(
         }
         is CancellableContinuation<*> -> { // `receive()`
             this as CancellableContinuation<E>
-            tryResume0(element, onUndeliveredElement?.bindCancellationFun(element, context))
+            tryResume0(element, onUndeliveredElement?.bindCancellationFun())
         }
         else -> error("Unexpected receiver type: $this")
     }
@@ -728,7 +725,7 @@ internal open class BufferedChannel<E>(
             // not dispatched yet. In case `onUndeliveredElement` is
             // specified, we need to invoke it in the latter case.
             onElementRetrieved = { element ->
-                val onCancellation = onUndeliveredElement?.bindCancellationFun(element, cont.context)
+                val onCancellation = onUndeliveredElement?.bindCancellationFun()
                 cont.resume(element, onCancellation)
             },
             onClosed = { onClosedReceiveOnNoWaiterSuspend(cont) },
@@ -772,7 +769,7 @@ internal open class BufferedChannel<E>(
             segment, index, r,
             waiter = waiter,
             onElementRetrieved = { element ->
-                cont.resume(success(element), onUndeliveredElement?.bindCancellationFun(element, cont.context))
+                cont.resume(success(element), onUndeliveredElement?.bindCancellationFunResult())
             },
             onClosed = { onClosedReceiveCatchingOnNoWaiterSuspend(cont) }
         )
@@ -1563,7 +1560,9 @@ internal open class BufferedChannel<E>(
     @Suppress("UNCHECKED_CAST")
     private val onUndeliveredElementReceiveCancellationConstructor: OnCancellationConstructor? = onUndeliveredElement?.let {
         { select: SelectInstance<*>, _: Any?, element: Any? ->
-            { if (element !== CHANNEL_CLOSED) onUndeliveredElement.callUndeliveredElement(element as E, select.context) }
+            { _, _, _ ->
+                if (element !== CHANNEL_CLOSED) onUndeliveredElement.callUndeliveredElement(element as E, select.context)
+            }
         }
     }
 
@@ -1580,8 +1579,8 @@ internal open class BufferedChannel<E>(
      * [CancellableContinuation] and [SelectInstance].
      *
      * Roughly, [hasNext] is a [receive] sibling, while [next] simply
-     * returns the already retrieved element. From the implementation
-     * side, [receiveResult] stores the element retrieved by [hasNext]
+     * returns the already retrieved element and [hasNext] being idempotent.
+     * From the implementation side, [receiveResult] stores the element retrieved by [hasNext]
      * (or a special [CHANNEL_CLOSED] token if the channel is closed).
      *
      * The [invoke] function is a [CancelHandler] implementation,
@@ -1614,8 +1613,10 @@ internal open class BufferedChannel<E>(
         private var continuation: CancellableContinuationImpl<Boolean>? = null
 
         // `hasNext()` is just a special receive operation.
-        override suspend fun hasNext(): Boolean =
-            receiveImpl( // <-- this is an inline function
+        override suspend fun hasNext(): Boolean {
+            return if (this.receiveResult !== NO_RECEIVE_RESULT && this.receiveResult !== CHANNEL_CLOSED) {
+                true
+            } else receiveImpl( // <-- this is an inline function
                 // Do not create a continuation until it is required;
                 // it is created later via [onNoWaiterSuspend], if needed.
                 waiter = null,
@@ -1636,6 +1637,7 @@ internal open class BufferedChannel<E>(
                 // The tail-call optimization is applied here.
                 onNoWaiterSuspend = { segm, i, r -> return hasNextOnNoWaiterSuspend(segm, i, r) }
             )
+        }
 
         private fun onClosedHasNext(): Boolean {
             this.receiveResult = CHANNEL_CLOSED
@@ -1664,7 +1666,7 @@ internal open class BufferedChannel<E>(
                 onElementRetrieved = { element ->
                     this.receiveResult = element
                     this.continuation = null
-                    cont.resume(true, onUndeliveredElement?.bindCancellationFun(element, cont.context))
+                    cont.resume(true, onUndeliveredElement?.bindCancellationFun(element))
                 },
                 onClosed = { onClosedHasNextNoWaiterSuspend() }
             )
@@ -1714,7 +1716,7 @@ internal open class BufferedChannel<E>(
             // Try to resume this `hasNext()`. Importantly, the receiver coroutine
             // may be cancelled after it is successfully resumed but not dispatched yet.
             // In case `onUndeliveredElement` is specified, we need to invoke it in the latter case.
-            return cont.tryResume0(true, onUndeliveredElement?.bindCancellationFun(element, cont.context))
+            return cont.tryResume0(true, onUndeliveredElement?.bindCancellationFun(element))
         }
 
         fun tryResumeHasNextOnClosedChannel() {
@@ -2761,6 +2763,34 @@ internal open class BufferedChannel<E>(
             segment = segment.next!!
         }
     }
+
+    private fun OnUndeliveredElement<E>.bindCancellationFunResult() = ::onCancellationChannelResultImplDoNotCall
+
+    /**
+     * Do not call directly. Go through [bindCancellationFunResult] to ensure the callback isn't null.
+     * [bindCancellationFunResult] could have just returned a lambda as well, but there would be a risk of that
+     * lambda capturing the environment.
+     */
+    private fun onCancellationChannelResultImplDoNotCall(
+        cause: Throwable, element: ChannelResult<E>, context: CoroutineContext
+    ) {
+        onUndeliveredElement!!.callUndeliveredElement(element.getOrNull()!!, context)
+    }
+
+    private fun OnUndeliveredElement<E>.bindCancellationFun(element: E):
+            (Throwable, Any?, CoroutineContext) -> Unit =
+        { _: Throwable, _, context: CoroutineContext -> callUndeliveredElement(element, context) }
+
+    private fun OnUndeliveredElement<E>.bindCancellationFun() = ::onCancellationImplDoNotCall
+
+    /**
+     * Do not call directly. Go through [bindCancellationFun] to ensure the callback isn't null.
+     * [bindCancellationFun] could have just returned a lambda as well, but there would be a risk of that
+     * lambda capturing the environment.
+     */
+    private fun onCancellationImplDoNotCall(cause: Throwable, element: E, context: CoroutineContext) {
+        onUndeliveredElement!!.callUndeliveredElement(element, context)
+    }
 }
 
 /**
@@ -2920,7 +2950,7 @@ private val EXPAND_BUFFER_COMPLETION_WAIT_ITERATIONS = systemProp("kotlinx.corou
  */
 private fun <T> CancellableContinuation<T>.tryResume0(
     value: T,
-    onCancellation: ((cause: Throwable) -> Unit)? = null
+    onCancellation: ((cause: Throwable, value: T, context: CoroutineContext) -> Unit)? = null
 ): Boolean =
     tryResume(value, null, onCancellation).let { token ->
         if (token != null) {

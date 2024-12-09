@@ -39,10 +39,11 @@ public abstract interface class kotlinx/coroutines/CancellableContinuation : kot
 	public abstract fun isCancelled ()Z
 	public abstract fun isCompleted ()Z
 	public abstract fun resume (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun resume (Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)V
 	public abstract fun resumeUndispatched (Lkotlinx/coroutines/CoroutineDispatcher;Ljava/lang/Object;)V
 	public abstract fun resumeUndispatchedWithException (Lkotlinx/coroutines/CoroutineDispatcher;Ljava/lang/Throwable;)V
 	public abstract fun tryResume (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-	public abstract fun tryResume (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public abstract fun tryResume (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)Ljava/lang/Object;
 	public abstract fun tryResumeWithException (Ljava/lang/Throwable;)Ljava/lang/Object;
 }
 
@@ -51,10 +52,10 @@ public final class kotlinx/coroutines/CancellableContinuation$DefaultImpls {
 	public static synthetic fun tryResume$default (Lkotlinx/coroutines/CancellableContinuation;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
-public class kotlinx/coroutines/CancellableContinuationImpl : kotlinx/coroutines/DispatchedTask, kotlin/coroutines/jvm/internal/CoroutineStackFrame, kotlinx/coroutines/CancellableContinuation, kotlinx/coroutines/Waiter {
+public class kotlinx/coroutines/CancellableContinuationImpl : kotlin/coroutines/jvm/internal/CoroutineStackFrame, kotlinx/coroutines/CancellableContinuation, kotlinx/coroutines/Waiter {
 	public fun <init> (Lkotlin/coroutines/Continuation;I)V
 	public final fun callCancelHandler (Lkotlinx/coroutines/CancelHandler;Ljava/lang/Throwable;)V
-	public final fun callOnCancellation (Lkotlin/jvm/functions/Function1;Ljava/lang/Throwable;)V
+	public final fun callOnCancellation (Lkotlin/jvm/functions/Function3;Ljava/lang/Throwable;Ljava/lang/Object;)V
 	public fun cancel (Ljava/lang/Throwable;)Z
 	public fun completeResume (Ljava/lang/Object;)V
 	public fun getCallerFrame ()Lkotlin/coroutines/jvm/internal/CoroutineStackFrame;
@@ -70,24 +71,19 @@ public class kotlinx/coroutines/CancellableContinuationImpl : kotlinx/coroutines
 	public fun isCompleted ()Z
 	protected fun nameString ()Ljava/lang/String;
 	public fun resume (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
+	public fun resume (Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)V
 	public fun resumeUndispatched (Lkotlinx/coroutines/CoroutineDispatcher;Ljava/lang/Object;)V
 	public fun resumeUndispatchedWithException (Lkotlinx/coroutines/CoroutineDispatcher;Ljava/lang/Throwable;)V
 	public fun resumeWith (Ljava/lang/Object;)V
 	public fun toString ()Ljava/lang/String;
 	public fun tryResume (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-	public fun tryResume (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun tryResume (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)Ljava/lang/Object;
 	public fun tryResumeWithException (Ljava/lang/Throwable;)Ljava/lang/Object;
 }
 
 public final class kotlinx/coroutines/CancellableContinuationKt {
 	public static final fun disposeOnCancellation (Lkotlinx/coroutines/CancellableContinuation;Lkotlinx/coroutines/DisposableHandle;)V
 	public static final fun suspendCancellableCoroutine (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public final class kotlinx/coroutines/ChildContinuation {
-	public final field child Lkotlinx/coroutines/CancellableContinuationImpl;
-	public fun <init> (Lkotlinx/coroutines/CancellableContinuationImpl;)V
-	public fun invoke (Ljava/lang/Throwable;)V
 }
 
 public abstract interface class kotlinx/coroutines/ChildHandle : kotlinx/coroutines/DisposableHandle {
@@ -176,7 +172,9 @@ public abstract class kotlinx/coroutines/CoroutineDispatcher : kotlin/coroutines
 	public fun get (Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext$Element;
 	public final fun interceptContinuation (Lkotlin/coroutines/Continuation;)Lkotlin/coroutines/Continuation;
 	public fun isDispatchNeeded (Lkotlin/coroutines/CoroutineContext;)Z
-	public fun limitedParallelism (I)Lkotlinx/coroutines/CoroutineDispatcher;
+	public synthetic fun limitedParallelism (I)Lkotlinx/coroutines/CoroutineDispatcher;
+	public fun limitedParallelism (ILjava/lang/String;)Lkotlinx/coroutines/CoroutineDispatcher;
+	public static synthetic fun limitedParallelism$default (Lkotlinx/coroutines/CoroutineDispatcher;ILjava/lang/String;ILjava/lang/Object;)Lkotlinx/coroutines/CoroutineDispatcher;
 	public fun minusKey (Lkotlin/coroutines/CoroutineContext$Key;)Lkotlin/coroutines/CoroutineContext;
 	public final fun plus (Lkotlinx/coroutines/CoroutineDispatcher;)Lkotlinx/coroutines/CoroutineDispatcher;
 	public final fun releaseInterceptedContinuation (Lkotlin/coroutines/Continuation;)V
@@ -318,15 +316,6 @@ public final class kotlinx/coroutines/DelayKt {
 public abstract interface annotation class kotlinx/coroutines/DelicateCoroutinesApi : java/lang/annotation/Annotation {
 }
 
-public final class kotlinx/coroutines/DispatchedCoroutine {
-	public static final synthetic fun get_decision$volatile$FU$kotlinx_coroutines_core ()Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;
-}
-
-public abstract class kotlinx/coroutines/DispatchedTask : kotlinx/coroutines/scheduling/Task {
-	public field resumeMode I
-	public final fun run ()V
-}
-
 public final class kotlinx/coroutines/DispatchedTaskKt {
 	public static final field MODE_CANCELLABLE I
 }
@@ -359,7 +348,7 @@ public final class kotlinx/coroutines/ExceptionsKt {
 	public static final fun CancellationException (Ljava/lang/String;Ljava/lang/Throwable;)Ljava/util/concurrent/CancellationException;
 }
 
-public abstract class kotlinx/coroutines/ExecutorCoroutineDispatcher : kotlinx/coroutines/CoroutineDispatcher, java/io/Closeable {
+public abstract class kotlinx/coroutines/ExecutorCoroutineDispatcher : kotlinx/coroutines/CoroutineDispatcher, java/io/Closeable, java/lang/AutoCloseable {
 	public static final field Key Lkotlinx/coroutines/ExecutorCoroutineDispatcher$Key;
 	public fun <init> ()V
 	public abstract fun close ()V
@@ -378,6 +367,9 @@ public final class kotlinx/coroutines/ExecutorsKt {
 public abstract interface annotation class kotlinx/coroutines/ExperimentalCoroutinesApi : java/lang/annotation/Annotation {
 }
 
+public abstract interface annotation class kotlinx/coroutines/ExperimentalForInheritanceCoroutinesApi : java/lang/annotation/Annotation {
+}
+
 public abstract interface annotation class kotlinx/coroutines/FlowPreview : java/lang/annotation/Annotation {
 }
 
@@ -387,6 +379,9 @@ public final class kotlinx/coroutines/GlobalScope : kotlinx/coroutines/Coroutine
 }
 
 public abstract interface annotation class kotlinx/coroutines/InternalCoroutinesApi : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class kotlinx/coroutines/InternalForInheritanceCoroutinesApi : java/lang/annotation/Annotation {
 }
 
 public final class kotlinx/coroutines/InterruptibleKt {
@@ -459,7 +454,6 @@ public final class kotlinx/coroutines/JobKt {
 	public static synthetic fun cancelChildren$default (Lkotlinx/coroutines/Job;Ljava/lang/Throwable;ILjava/lang/Object;)V
 	public static synthetic fun cancelChildren$default (Lkotlinx/coroutines/Job;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V
 	public static final fun cancelFutureOnCancellation (Lkotlinx/coroutines/CancellableContinuation;Ljava/util/concurrent/Future;)V
-	public static final fun cancelFutureOnCompletion (Lkotlinx/coroutines/Job;Ljava/util/concurrent/Future;)Lkotlinx/coroutines/DisposableHandle;
 	public static final fun ensureActive (Lkotlin/coroutines/CoroutineContext;)V
 	public static final fun ensureActive (Lkotlinx/coroutines/Job;)V
 	public static final fun getJob (Lkotlin/coroutines/CoroutineContext;)Lkotlinx/coroutines/Job;
@@ -517,7 +511,7 @@ public class kotlinx/coroutines/JobSupport : kotlinx/coroutines/ChildJob, kotlin
 public abstract class kotlinx/coroutines/MainCoroutineDispatcher : kotlinx/coroutines/CoroutineDispatcher {
 	public fun <init> ()V
 	public abstract fun getImmediate ()Lkotlinx/coroutines/MainCoroutineDispatcher;
-	public fun limitedParallelism (I)Lkotlinx/coroutines/CoroutineDispatcher;
+	public fun limitedParallelism (ILjava/lang/String;)Lkotlinx/coroutines/CoroutineDispatcher;
 	public fun toString ()Ljava/lang/String;
 	protected final fun toStringInternalImpl ()Ljava/lang/String;
 }
@@ -970,12 +964,6 @@ public final class kotlinx/coroutines/debug/internal/DebuggerInfo : java/io/Seri
 	public final fun getState ()Ljava/lang/String;
 }
 
-public final class kotlinx/coroutines/debug/internal/StackTraceFrame : kotlin/coroutines/jvm/internal/CoroutineStackFrame {
-	public final field stackTraceElement Ljava/lang/StackTraceElement;
-	public fun getCallerFrame ()Lkotlin/coroutines/jvm/internal/CoroutineStackFrame;
-	public fun getStackTraceElement ()Ljava/lang/StackTraceElement;
-}
-
 public abstract class kotlinx/coroutines/flow/AbstractFlow : kotlinx/coroutines/flow/CancellableFlow, kotlinx/coroutines/flow/Flow {
 	public fun <init> ()V
 	public final fun collect (Lkotlinx/coroutines/flow/FlowCollector;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -999,7 +987,6 @@ public final class kotlinx/coroutines/flow/FlowKt {
 	public static final fun asFlow (Lkotlin/ranges/IntRange;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun asFlow (Lkotlin/ranges/LongRange;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun asFlow (Lkotlin/sequences/Sequence;)Lkotlinx/coroutines/flow/Flow;
-	public static final fun asFlow (Lkotlinx/coroutines/channels/BroadcastChannel;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun asFlow ([I)Lkotlinx/coroutines/flow/Flow;
 	public static final fun asFlow ([J)Lkotlinx/coroutines/flow/Flow;
 	public static final fun asFlow ([Ljava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
@@ -1014,6 +1001,7 @@ public final class kotlinx/coroutines/flow/FlowKt {
 	public static final fun cancellable (Lkotlinx/coroutines/flow/Flow;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun catch (Lkotlinx/coroutines/flow/Flow;Lkotlin/jvm/functions/Function3;)Lkotlinx/coroutines/flow/Flow;
 	public static final fun channelFlow (Lkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun chunked (Lkotlinx/coroutines/flow/Flow;I)Lkotlinx/coroutines/flow/Flow;
 	public static final fun collect (Lkotlinx/coroutines/flow/Flow;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final synthetic fun collect (Lkotlinx/coroutines/flow/Flow;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun collectIndexed (Lkotlinx/coroutines/flow/Flow;Lkotlin/jvm/functions/Function3;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -1268,27 +1256,6 @@ public final class kotlinx/coroutines/future/FutureKt {
 
 public final class kotlinx/coroutines/intrinsics/CancellableKt {
 	public static final fun startCoroutineCancellable (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)V
-}
-
-public class kotlinx/coroutines/scheduling/ExperimentalCoroutineDispatcher : kotlinx/coroutines/ExecutorCoroutineDispatcher {
-	public synthetic fun <init> (II)V
-	public synthetic fun <init> (IIILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (IIJLjava/lang/String;)V
-	public synthetic fun <init> (IIJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (IILjava/lang/String;)V
-	public synthetic fun <init> (IILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun blocking (I)Lkotlinx/coroutines/CoroutineDispatcher;
-	public static synthetic fun blocking$default (Lkotlinx/coroutines/scheduling/ExperimentalCoroutineDispatcher;IILjava/lang/Object;)Lkotlinx/coroutines/CoroutineDispatcher;
-	public fun close ()V
-	public fun dispatch (Lkotlin/coroutines/CoroutineContext;Ljava/lang/Runnable;)V
-	public fun dispatchYield (Lkotlin/coroutines/CoroutineContext;Ljava/lang/Runnable;)V
-	public fun getExecutor ()Ljava/util/concurrent/Executor;
-	public final fun limited (I)Lkotlinx/coroutines/CoroutineDispatcher;
-	public fun toString ()Ljava/lang/String;
-}
-
-public abstract class kotlinx/coroutines/scheduling/Task : java/lang/Runnable {
-	public field submissionTime J
 }
 
 public final class kotlinx/coroutines/selects/OnTimeoutKt {

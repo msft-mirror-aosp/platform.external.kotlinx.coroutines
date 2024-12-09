@@ -21,17 +21,17 @@ public abstract class MainCoroutineDispatcher : CoroutineDispatcher() {
      * Example of usage:
      * ```
      * suspend fun updateUiElement(val text: String) {
-     *   /*
-     *    * If it is known that updateUiElement can be invoked both from the Main thread and from other threads,
-     *    * `immediate` dispatcher is used as a performance optimization to avoid unnecessary dispatch.
-     *    *
-     *    * In that case, when `updateUiElement` is invoked from the Main thread, `uiElement.text` will be
-     *    * invoked immediately without any dispatching, otherwise, the `Dispatchers.Main` dispatch cycle will be triggered.
-     *    */
-     *   withContext(Dispatchers.Main.immediate) {
-     *     uiElement.text = text
-     *   }
-     *   // Do context-independent logic such as logging
+     *     /*
+     *      * If it is known that updateUiElement can be invoked both from the Main thread and from other threads,
+     *      * `immediate` dispatcher is used as a performance optimization to avoid unnecessary dispatch.
+     *      *
+     *      * In that case, when `updateUiElement` is invoked from the Main thread, `uiElement.text` will be
+     *      * invoked immediately without any dispatching, otherwise, the `Dispatchers.Main` dispatch cycle will be triggered.
+     *      */
+     *     withContext(Dispatchers.Main.immediate) {
+     *         uiElement.text = text
+     *     }
+     *     // Do context-independent logic such as logging
      * }
      * ```
      *
@@ -49,10 +49,10 @@ public abstract class MainCoroutineDispatcher : CoroutineDispatcher() {
      */
     override fun toString(): String = toStringInternalImpl() ?: "$classSimpleName@$hexAddress"
 
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         parallelism.checkParallelism()
         // MainCoroutineDispatcher is single-threaded -- short-circuit any attempts to limit it
-        return this
+        return namedOrThis(name)
     }
 
     /**

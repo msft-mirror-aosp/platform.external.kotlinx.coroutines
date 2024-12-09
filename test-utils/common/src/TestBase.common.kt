@@ -206,6 +206,12 @@ expect annotation class NoJs()
 @OptionalExpectation
 expect annotation class NoNative()
 
+@OptionalExpectation
+expect annotation class NoWasmJs()
+
+@OptionalExpectation
+expect annotation class NoWasmWasi()
+
 expect val isStressTest: Boolean
 expect val stressTestMultiplier: Int
 expect val stressTestMultiplierSqrt: Int
@@ -225,6 +231,9 @@ public expect open class TestBase(): OrderedExecutionTestBase, ErrorCatching {
         unhandled: List<(Throwable) -> Boolean> = emptyList(),
         block: suspend CoroutineScope.() -> Unit
     ): TestResult
+
+    override fun hasError(): Boolean
+    override fun reportError(error: Throwable)
 }
 
 public suspend inline fun hang(onCancellation: () -> Unit) {
@@ -252,6 +261,7 @@ public class TestRuntimeException(message: String? = null, private val data: Any
 public class RecoverableTestException(message: String? = null) : RuntimeException(message)
 public class RecoverableTestCancellationException(message: String? = null) : CancellationException(message)
 
+// Erases identity and equality checks for tests
 public fun wrapperDispatcher(context: CoroutineContext): CoroutineContext {
     val dispatcher = context[ContinuationInterceptor] as CoroutineDispatcher
     return object : CoroutineDispatcher() {
@@ -282,3 +292,8 @@ public expect val isNative: Boolean
  * and run such tests only on JVM and K/N.
  */
 public expect val isBoundByJsTestTimeout: Boolean
+
+/**
+ * `true` if this platform has the same event loop for `DefaultExecutor` and [Dispatchers.Unconfined]
+ */
+public expect val usesSharedEventLoop: Boolean
