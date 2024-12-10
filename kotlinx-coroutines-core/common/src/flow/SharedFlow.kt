@@ -86,11 +86,11 @@ import kotlin.jvm.*
  * It has the following important differences:
  *
  * - `SharedFlow` is simpler, because it does not have to implement all the [Channel] APIs, which allows
- *    for faster and simpler implementation.
+ *   for faster and simpler implementation.
  * - `SharedFlow` supports configurable replay and buffer overflow strategy.
  * - `SharedFlow` has a clear separation into a read-only `SharedFlow` interface and a [MutableSharedFlow].
  * - `SharedFlow` cannot be closed like `BroadcastChannel` and can never represent a failure.
- *    All errors and completion signals should be explicitly _materialized_ if needed.
+ *   All errors and completion signals should be explicitly _materialized_ if needed.
  *
  * To migrate [BroadcastChannel] usage to [SharedFlow], start by replacing usages of the `BroadcastChannel(capacity)`
  * constructor with `MutableSharedFlow(0, extraBufferCapacity=capacity)` (broadcast channel does not replay
@@ -119,6 +119,8 @@ import kotlin.jvm.*
  * might be added to this interface in the future, but is stable for use.
  * Use the `MutableSharedFlow(replay, ...)` constructor function to create an implementation.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(ExperimentalForInheritanceCoroutinesApi::class)
 public interface SharedFlow<out T> : Flow<T> {
     /**
      * A snapshot of the replay cache.
@@ -138,7 +140,7 @@ public interface SharedFlow<out T> : Flow<T> {
      * ```
      * val flow = MutableSharedFlow<Int>()
      * launch(start = CoroutineStart.UNDISPATCHED) {
-     *   flow.collect { println(1) }
+     *     flow.collect { println(1) }
      * }
      * flow.emit(1)
      * ```
@@ -170,6 +172,8 @@ public interface SharedFlow<out T> : Flow<T> {
  * might be added to this interface in the future, but is stable for use.
  * Use the `MutableSharedFlow(...)` constructor function to create an implementation.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(ExperimentalForInheritanceCoroutinesApi::class)
 public interface MutableSharedFlow<T> : SharedFlow<T>, FlowCollector<T> {
     /**
      * Emits a [value] to this shared flow, suspending on buffer overflow.
@@ -309,6 +313,7 @@ internal class SharedFlowSlot : AbstractSharedFlowSlot<SharedFlowImpl<*>>() {
     }
 }
 
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 internal open class SharedFlowImpl<T>(
     private val replay: Int,
     private val bufferCapacity: Int,
