@@ -44,19 +44,20 @@ internal actual fun lastResortReportException(error: Throwable) {
  *
  * ```
  * class MyTest : TestBase() {
- *    @Test
- *    fun testSomething() = runBlocking { // run in the context of the main thread
- *        expect(1) // initiate action counter
- *        launch { // use the context of the main thread
- *           expect(3) // the body of this coroutine in going to be executed in the 3rd step
- *        }
- *        expect(2) // launch just scheduled coroutine for execution later, so this line is executed second
- *        yield() // yield main thread to the launched job
- *        finish(4) // fourth step is the last one. `finish` must be invoked or test fails
- *    }
+ *     @Test
+ *     fun testSomething() = runBlocking { // run in the context of the main thread
+ *         expect(1) // initiate action counter
+ *         launch { // use the context of the main thread
+ *             expect(3) // the body of this coroutine in going to be executed in the 3rd step
+ *         }
+ *         expect(2) // launch just scheduled coroutine for execution later, so this line is executed second
+ *         yield() // yield main thread to the launched job
+ *         finish(4) // fourth step is the last one. `finish` must be invoked or test fails
+ *     }
  * }
  * ```
  */
+@Suppress("NO_ACTUAL_CLASS_MEMBER_FOR_EXPECTED_CLASS")
 actual open class TestBase(
     private var disableOutCheck: Boolean,
     private val errorCatching: ErrorCatching.Impl = ErrorCatching.Impl()
@@ -186,3 +187,5 @@ actual val isBoundByJsTestTimeout = false
  * which makes such tests flaky.
  */
 actual val isJavaAndWindows: Boolean = System.getProperty("os.name")!!.contains("Windows")
+
+actual val usesSharedEventLoop: Boolean = false
