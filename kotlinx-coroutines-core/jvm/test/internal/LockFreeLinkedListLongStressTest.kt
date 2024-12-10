@@ -1,6 +1,5 @@
 package kotlinx.coroutines.internal
 
-import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.testing.TestBase
 import org.junit.Test
 import java.util.*
@@ -31,7 +30,7 @@ class LockFreeLinkedListLongStressTest : TestBase() {
         for (j in 0 until nAddThreads)
             threads += thread(start = false, name = "adder-$j") {
                 for (i in j until nAdded step nAddThreads) {
-                    list.addLast(IntNode(i))
+                    list.addLast(IntNode(i), Int.MAX_VALUE)
                 }
                 println("${Thread.currentThread().name} completed")
                 workingAdders.decrementAndGet()
@@ -41,8 +40,8 @@ class LockFreeLinkedListLongStressTest : TestBase() {
                 val rnd = Random()
                 do {
                     val lastTurn = workingAdders.get() == 0
-                    list.forEach<IntNode> { node ->
-                        if (shallRemove(node.i) && (lastTurn || rnd.nextDouble() < removeProbability))
+                    list.forEach { node ->
+                        if (node is IntNode && shallRemove(node.i) && (lastTurn || rnd.nextDouble() < removeProbability))
                             node.remove()
                     }
                 } while (!lastTurn)
@@ -62,8 +61,8 @@ class LockFreeLinkedListLongStressTest : TestBase() {
                 if (!shallRemove(i))
                     yield(i)
         }
-        list.forEach<IntNode> { node ->
-            require(node.i == expected.next())
+        list.forEach { node ->
+            require(node !is IntNode || node.i == expected.next())
         }
         require(!expected.hasNext())
     }
