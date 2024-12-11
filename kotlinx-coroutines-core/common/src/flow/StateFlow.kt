@@ -90,12 +90,12 @@ import kotlin.coroutines.*
  *   for faster, garbage-free implementation, unlike `ConflatedBroadcastChannel` implementation that
  *   allocates objects on each emitted value.
  * - `StateFlow` always has a value which can be safely read at any time via [value] property.
- *    Unlike `ConflatedBroadcastChannel`, there is no way to create a state flow without a value.
+ *   Unlike `ConflatedBroadcastChannel`, there is no way to create a state flow without a value.
  * - `StateFlow` has a clear separation into a read-only `StateFlow` interface and a [MutableStateFlow].
  * - `StateFlow` conflation is based on equality like [distinctUntilChanged] operator,
- *    unlike conflation in `ConflatedBroadcastChannel` that is based on reference identity.
+ *   unlike conflation in `ConflatedBroadcastChannel` that is based on reference identity.
  * - `StateFlow` cannot be closed like `ConflatedBroadcastChannel` and can never represent a failure.
- *    All errors and completion signals should be explicitly _materialized_ if needed.
+ *   All errors and completion signals should be explicitly _materialized_ if needed.
  *
  * `StateFlow` is designed to better cover typical use-cases of keeping track of state changes in time, taking
  * more pragmatic design choices for the sake of convenience.
@@ -130,6 +130,8 @@ import kotlin.coroutines.*
  * might be added to this interface in the future, but is stable for use.
  * Use the `MutableStateFlow(value)` constructor function to create an implementation.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(ExperimentalForInheritanceCoroutinesApi::class)
 public interface StateFlow<out T> : SharedFlow<T> {
     /**
      * The current value of this state flow.
@@ -151,6 +153,8 @@ public interface StateFlow<out T> : SharedFlow<T> {
  * might be added to this interface in the future, but is stable for use.
  * Use the `MutableStateFlow()` constructor function to create an implementation.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(ExperimentalForInheritanceCoroutinesApi::class)
 public interface MutableStateFlow<T> : StateFlow<T>, MutableSharedFlow<T> {
     /**
      * The current value of this state flow.
@@ -305,6 +309,7 @@ private class StateFlowSlot : AbstractSharedFlowSlot<StateFlowImpl<*>>() {
     }
 }
 
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 private class StateFlowImpl<T>(
     initialState: Any // T | NULL
 ) : AbstractSharedFlow<StateFlowSlot>(), MutableStateFlow<T>, CancellableFlow<T>, FusibleFlow<T> {

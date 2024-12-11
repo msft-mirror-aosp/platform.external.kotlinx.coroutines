@@ -11,11 +11,12 @@ internal object DefaultScheduler : SchedulerCoroutineDispatcher(
     IDLE_WORKER_KEEP_ALIVE_NS, DEFAULT_SCHEDULER_NAME
 ) {
 
-    @ExperimentalCoroutinesApi
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         parallelism.checkParallelism()
-        if (parallelism >= CORE_POOL_SIZE) return this
-        return super.limitedParallelism(parallelism)
+        if (parallelism >= CORE_POOL_SIZE) {
+            return namedOrThis(name)
+        }
+        return super.limitedParallelism(parallelism, name)
     }
 
     // Shuts down the dispatcher, used only by Dispatchers.shutdown()
@@ -43,11 +44,17 @@ private object UnlimitedIoScheduler : CoroutineDispatcher() {
         DefaultScheduler.dispatchWithContext(block, BlockingContext, false)
     }
 
-    @ExperimentalCoroutinesApi
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         parallelism.checkParallelism()
-        if (parallelism >= MAX_POOL_SIZE) return this
-        return super.limitedParallelism(parallelism)
+        if (parallelism >= MAX_POOL_SIZE) {
+            return namedOrThis(name)
+        }
+        return super.limitedParallelism(parallelism, name)
+    }
+
+    // This name only leaks to user code as part of .limitedParallelism machinery
+    override fun toString(): String {
+        return "Dispatchers.IO"
     }
 }
 
@@ -66,10 +73,9 @@ internal object DefaultIoScheduler : ExecutorCoroutineDispatcher(), Executor {
 
     override fun execute(command: java.lang.Runnable) = dispatch(EmptyCoroutineContext, command)
 
-    @ExperimentalCoroutinesApi
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         // See documentation to Dispatchers.IO for the rationale
-        return UnlimitedIoScheduler.limitedParallelism(parallelism)
+        return UnlimitedIoScheduler.limitedParallelism(parallelism, name)
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
