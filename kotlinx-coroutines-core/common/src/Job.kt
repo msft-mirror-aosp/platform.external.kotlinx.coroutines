@@ -99,12 +99,9 @@ import kotlin.jvm.*
  *
  * All functions on this interface and on all interfaces derived from it are **thread-safe** and can
  * be safely invoked from concurrent coroutines without external synchronization.
- *
- * ### Not stable for inheritance
- *
- * **`Job` interface and all its derived interfaces are not stable for inheritance in 3rd party libraries**,
- * as new methods might be added to this interface in the future, but is stable for use.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(markerClass = InternalForInheritanceCoroutinesApi::class)
 public interface Job : CoroutineContext.Element {
     /**
      * Key for [Job] instance in the coroutine context.
@@ -340,10 +337,6 @@ public interface Job : CoroutineContext.Element {
  * If the handler would have been invoked earlier if it was registered at that time, then it is invoked immediately,
  * unless [invokeImmediately] is set to `false`.
  *
- * The handler is scheduled to be invoked once the job is cancelled or is complete.
- * This behavior can be changed by setting the [onCancelling] parameter to `true`.
- * In this case, the handler is invoked as soon as the job becomes _cancelling_ instead.
- *
  * The meaning of `cause` that is passed to the handler is:
  * - It is `null` if the job has completed normally.
  * - It is an instance of [CancellationException] if the job was cancelled _normally_.
@@ -356,12 +349,11 @@ public interface Job : CoroutineContext.Element {
  * all the handlers are released when this job completes.
  */
 internal fun Job.invokeOnCompletion(
-    onCancelling: Boolean = false,
     invokeImmediately: Boolean = true,
-    handler: InternalCompletionHandler
+    handler: JobNode,
 ): DisposableHandle = when (this) {
-    is JobSupport -> invokeOnCompletionInternal(onCancelling, invokeImmediately, handler)
-    else -> invokeOnCompletion(onCancelling, invokeImmediately, handler::invoke)
+    is JobSupport -> invokeOnCompletionInternal(invokeImmediately, handler)
+    else -> invokeOnCompletion(handler.onCancelling, invokeImmediately, handler::invoke)
 }
 
 /**
@@ -409,6 +401,7 @@ public fun interface DisposableHandle {
  */
 @InternalCoroutinesApi
 @Deprecated(level = DeprecationLevel.ERROR, message = "This is internal API and may be removed in the future releases")
+@OptIn(InternalForInheritanceCoroutinesApi::class)
 public interface ChildJob : Job {
     /**
      * Parent is cancelling its child by invoking this method.
@@ -428,6 +421,7 @@ public interface ChildJob : Job {
  */
 @InternalCoroutinesApi
 @Deprecated(level = DeprecationLevel.ERROR, message = "This is internal API and may be removed in the future releases")
+@OptIn(InternalForInheritanceCoroutinesApi::class)
 public interface ParentJob : Job {
     /**
      * Child job is using this method to learn its cancellation cause when the parent cancels it with [ChildJob.parentCancelled].
@@ -671,4 +665,12 @@ public object NonDisposableHandle : DisposableHandle, ChildHandle {
      * @suppress
      */
     override fun toString(): String = "NonDisposableHandle"
+}
+
+private class DisposeOnCompletion(
+    private val handle: DisposableHandle
+) : JobNode() {
+    override val onCancelling get() = false
+
+    override fun invoke(cause: Throwable?) = handle.dispose()
 }
