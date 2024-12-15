@@ -3,12 +3,12 @@
 [![Kotlin Stable](https://kotl.in/badges/stable.svg)](https://kotlinlang.org/docs/components-stability.html)
 [![JetBrains official project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Download](https://img.shields.io/maven-central/v/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.8.1)](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.8.1)
-[![Kotlin](https://img.shields.io/badge/kotlin-1.9.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Download](https://img.shields.io/maven-central/v/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.9.0)](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core/1.9.0)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.0.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Slack channel](https://img.shields.io/badge/chat-slack-green.svg?logo=slack)](https://kotlinlang.slack.com/messages/coroutines/)
 
 Library support for Kotlin coroutines with [multiplatform](#multiplatform) support.
-This is a companion version for the Kotlin `1.9.21` release.
+This is a companion version for the Kotlin `2.0.0` release.
 
 ```kotlin
 suspend fun main() = coroutineScope {
@@ -43,7 +43,7 @@ suspend fun main() = coroutineScope {
   * Integration with `Window` via [Window.asCoroutineDispatcher], etc.
 * [test](kotlinx-coroutines-test/README.md) &mdash; test utilities for coroutines:
   * [Dispatchers.setMain] to override [Dispatchers.Main] in tests;
-  * [TestCoroutineScope] to test suspending functions and coroutines.
+  * [runTest] and [TestScope] to test suspending functions and coroutines.
 * [debug](kotlinx-coroutines-debug/README.md) &mdash; debug utilities for coroutines:
   * [DebugProbes] API to probe, keep track of, print and dump active coroutines;
   * [CoroutinesTimeout] test rule to automatically dump coroutines on test timeout.
@@ -85,7 +85,7 @@ Add dependencies (you can also add other modules that you need):
 <dependency>
     <groupId>org.jetbrains.kotlinx</groupId>
     <artifactId>kotlinx-coroutines-core</artifactId>
-    <version>1.8.1</version>
+    <version>1.9.0</version>
 </dependency>
 ```
 
@@ -93,7 +93,7 @@ And make sure that you use the latest Kotlin version:
 
 ```xml
 <properties>
-    <kotlin.version>1.9.21</kotlin.version>
+    <kotlin.version>2.0.0</kotlin.version>
 </properties>
 ```
 
@@ -103,7 +103,7 @@ Add dependencies (you can also add other modules that you need):
 
 ```kotlin
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 }
 ```
 
@@ -112,10 +112,10 @@ And make sure that you use the latest Kotlin version:
 ```kotlin
 plugins {
     // For build.gradle.kts (Kotlin DSL)
-    kotlin("jvm") version "1.9.21"
+    kotlin("jvm") version "2.0.0"
     
     // For build.gradle (Groovy DSL)
-    id "org.jetbrains.kotlin.jvm" version "1.9.21"
+    id "org.jetbrains.kotlin.jvm" version "2.0.0"
 }
 ```
 
@@ -133,7 +133,7 @@ Add [`kotlinx-coroutines-android`](ui/kotlinx-coroutines-android)
 module as a dependency when using `kotlinx.coroutines` on Android:
 
 ```kotlin
-implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 ```
 
 This gives you access to the Android [Dispatchers.Main]
@@ -168,7 +168,7 @@ In common code that should get compiled for different platforms, you can add a d
 ```kotlin
 commonMain {
     dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     }
 }
 ```
@@ -178,7 +178,7 @@ Platform-specific dependencies are recommended to be used only for non-multiplat
 #### JS
 
 Kotlin/JS version of `kotlinx.coroutines` is published as 
-[`kotlinx-coroutines-core-js`](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.8.1)
+[`kotlinx-coroutines-core-js`](https://central.sonatype.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.9.0)
 (follow the link to get the dependency declaration snippet).
 
 #### Native
@@ -240,7 +240,8 @@ See [Contributing Guidelines](CONTRIBUTING.md).
 <!--- INDEX kotlinx.coroutines.test -->
 
 [Dispatchers.setMain]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/set-main.html
-[TestCoroutineScope]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/-test-coroutine-scope/index.html
+[runTest]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/run-test.html
+[TestScope]: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/-test-scope/index.html
 
 <!--- MODULE kotlinx-coroutines-debug -->
 <!--- INDEX kotlinx.coroutines.debug -->

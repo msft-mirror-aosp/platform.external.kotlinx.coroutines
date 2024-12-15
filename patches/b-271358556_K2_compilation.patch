@@ -1,0 +1,29 @@
+--- a/kotlinx-coroutines-core/concurrent/src/internal/LockFreeLinkedList.kt
++++ b/kotlinx-coroutines-core/concurrent/src/internal/LockFreeLinkedList.kt
+@@ -1,4 +1,4 @@
+-@file:Suppress("NO_EXPLICIT_VISIBILITY_IN_API_MODE")
++@file:Suppress("NO_EXPLICIT_VISIBILITY_IN_API_MODE", "ACTUAL_WITHOUT_EXPECT")
+ 
+ package kotlinx.coroutines.internal
+ 
+--- a/kotlinx-coroutines-core/jvm/src/internal/Concurrent.kt
++++ b/kotlinx-coroutines-core/jvm/src/internal/Concurrent.kt
+@@ -8,7 +8,7 @@ internal actual typealias ReentrantLock = java.util.concurrent.locks.ReentrantLo
+ 
+ internal actual inline fun <T> ReentrantLock.withLock(action: () -> T) = this.withLockJvm(action)
+ 
+-@Suppress("ACTUAL_WITHOUT_EXPECT") // Visibility
++@Suppress("ACTUAL_WITHOUT_EXPECT", "NO_ACTUAL_CLASS_MEMBER_FOR_EXPECTED_CLASS") // Visibility
+ internal actual typealias WorkaroundAtomicReference<T> = java.util.concurrent.atomic.AtomicReference<T>
+ 
+ // BenignDataRace is OptionalExpectation and doesn't have to be here
+--- a/test-utils/jvm/src/TestBase.kt
++++ b/test-utils/jvm/src/TestBase.kt
+@@ -57,6 +57,7 @@ internal actual fun lastResortReportException(error: Throwable) {
+  * }
+  * ```
+  */
++@Suppress("NO_ACTUAL_CLASS_MEMBER_FOR_EXPECTED_CLASS")
+ actual open class TestBase(
+     private var disableOutCheck: Boolean,
+     private val errorCatching: ErrorCatching.Impl = ErrorCatching.Impl()
