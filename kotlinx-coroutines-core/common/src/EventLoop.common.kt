@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.atomicfu.*
 import kotlinx.coroutines.internal.*
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.*
 import kotlin.jvm.*
 
@@ -42,9 +39,9 @@ internal abstract class EventLoop : CoroutineDispatcher() {
      * Processes next event in this event loop.
      *
      * The result of this function is to be interpreted like this:
-     * * `<= 0` -- there are potentially more events for immediate processing;
-     * * `> 0` -- a number of nanoseconds to wait for next scheduled event;
-     * * [Long.MAX_VALUE] -- no more events.
+     * - `<= 0` -- there are potentially more events for immediate processing;
+     * - `> 0` -- a number of nanoseconds to wait for next scheduled event;
+     * - [Long.MAX_VALUE] -- no more events.
      *
      * **NOTE**: Must be invoked only from the event loop's thread
      *          (no check for performance reasons, may be added in the future).
@@ -114,9 +111,9 @@ internal abstract class EventLoop : CoroutineDispatcher() {
         }
     }
 
-    final override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    final override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         parallelism.checkParallelism()
-        return this
+        return namedOrThis(name) // Single-threaded, short-circuit
     }
 
     open fun shutdown() {}
@@ -259,21 +256,7 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
         // unconfined events take priority
         if (processUnconfinedEvent()) return 0
         // queue all delayed tasks that are due to be executed
-        val delayed = _delayed.value
-        if (delayed != null && !delayed.isEmpty) {
-            val now = nanoTime()
-            while (true) {
-                // make sure that moving from delayed to queue removes from delayed only after it is added to queue
-                // to make sure that 'isEmpty' and `nextTime` that check both of them
-                // do not transiently report that both delayed and queue are empty during move
-                delayed.removeFirstIf {
-                    if (it.timeToExecute(now)) {
-                        enqueueImpl(it)
-                    } else
-                        false
-                } ?: break // quit loop when nothing more to remove or enqueueImpl returns false on "isComplete"
-            }
-        }
+        enqueueDelayedTasks()
         // then process one event from queue
         val task = dequeue()
         if (task != null) {
@@ -286,6 +269,8 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
     final override fun dispatch(context: CoroutineContext, block: Runnable) = enqueue(block)
 
     open fun enqueue(task: Runnable) {
+        // are there some delayed tasks that should execute before this one? If so, move them to the queue first.
+        enqueueDelayedTasks()
         if (enqueueImpl(task)) {
             // todo: we should unpark only when this delayed task became first in the queue
             unpark()
@@ -335,6 +320,25 @@ internal abstract class EventLoopImplBase: EventLoopImplPlatform(), Delay {
                     queue === CLOSED_EMPTY -> return null
                     else -> if (_queue.compareAndSet(queue, null)) return queue as Runnable
                 }
+            }
+        }
+    }
+
+    /** Move all delayed tasks that are due to the main queue. */
+    private fun enqueueDelayedTasks() {
+        val delayed = _delayed.value
+        if (delayed != null && !delayed.isEmpty) {
+            val now = nanoTime()
+            while (true) {
+                // make sure that moving from delayed to queue removes from delayed only after it is added to queue
+                // to make sure that 'isEmpty' and `nextTime` that check both of them
+                // do not transiently report that both delayed and queue are empty during move
+                delayed.removeFirstIf {
+                    if (it.timeToExecute(now)) {
+                        enqueueImpl(it)
+                    } else
+                        false
+                } ?: break // quit loop when nothing more to remove or enqueueImpl returns false on "isComplete"
             }
         }
     }

@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("UNCHECKED_CAST")
 
 package kotlinx.coroutines.internal
@@ -157,10 +153,12 @@ internal actual suspend inline fun recoverAndThrow(exception: Throwable): Nothin
     }
 }
 
+@PublishedApi
 @Suppress("NOTHING_TO_INLINE") // Inline for better R8 optimizations
 internal actual inline fun <E : Throwable> unwrap(exception: E): E =
     if (!RECOVER_STACK_TRACES) exception else unwrapImpl(exception)
 
+@PublishedApi
 internal fun <E : Throwable> unwrapImpl(exception: E): E {
     val cause = exception.cause
     // Fast-path to avoid array cloning

@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.flow.internal
 
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.internal.*
@@ -117,6 +114,7 @@ internal abstract class AbstractSharedFlow<S : AbstractSharedFlowSlot<*>> : Sync
  *
  * To avoid that (especially in a more complex scenarios), we do not conflate subscription updates.
  */
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 private class SubscriptionCountStateFlow(initialValue: Int) : StateFlow<Int>,
     SharedFlowImpl<Int>(1, Int.MAX_VALUE, BufferOverflow.DROP_OLDEST)
 {

@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("DEPRECATION")
 
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlin.test.*
 
 class JobTest : TestBase() {
@@ -106,8 +103,8 @@ class JobTest : TestBase() {
         val cancelResult = runCatching { job.cancel() }
         assertTrue(!job.isActive)
         for (i in 0 until n) assertEquals(1, fireCount[i])
-        assertTrue(cancelResult.exceptionOrNull() is CompletionHandlerException)
-        assertTrue(cancelResult.exceptionOrNull()!!.cause is TestException)
+        assertIs<CompletionHandlerException>(cancelResult.exceptionOrNull())
+        assertIs<TestException>(cancelResult.exceptionOrNull()!!.cause)
     }
 
     @Test
@@ -174,6 +171,20 @@ class JobTest : TestBase() {
         expect(1)
         yield()
         job.cancelAndJoin()
+        finish(4)
+    }
+
+    @Test
+    fun testInvokeOnCancellingFiringOnNormalExit() = runTest {
+        val job = launch {
+            expect(2)
+        }
+        job.invokeOnCompletion(onCancelling = true) {
+            assertNull(it)
+            expect(3)
+        }
+        expect(1)
+        job.join()
         finish(4)
     }
 

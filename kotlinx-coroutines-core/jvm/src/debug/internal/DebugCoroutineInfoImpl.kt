@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.debug.internal
 
 import java.lang.ref.*
@@ -34,8 +30,10 @@ internal class DebugCoroutineInfoImpl internal constructor(
      */
     private val _context = WeakReference(context)
     public val context: CoroutineContext? // can be null when the coroutine was already garbage-collected
+        // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
         get() = _context.get()
 
+    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
     public val creationStackTrace: List<StackTraceElement> get() = creationStackTrace()
 
     /**
@@ -53,9 +51,9 @@ internal class DebugCoroutineInfoImpl internal constructor(
      * How many consecutive unmatched 'updateState(RESUMED)' this object has received.
      * It can be `> 1` in two cases:
      *
-     * * The coroutine is finishing and its state is being unrolled in BaseContinuationImpl, see comment to DebugProbesImpl#callerInfoCache
+     * - The coroutine is finishing and its state is being unrolled in BaseContinuationImpl, see comment to DebugProbesImpl#callerInfoCache
      *   Such resumes are not expected to be matched and are ignored.
-     * * We encountered suspend-resume race explained above, and we do wait for a match.
+     * - We encountered suspend-resume race explained above, and we do wait for a match.
      */
     private var unmatchedResume = 0
 

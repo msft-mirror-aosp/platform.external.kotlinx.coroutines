@@ -1,17 +1,15 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.test
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.internal.*
+import kotlinx.coroutines.testing.*
 import kotlin.coroutines.*
 import kotlin.test.*
+import kotlin.test.assertFailsWith
 
 /** Copy of [RunTestTest], but for [TestCoroutineScope] */
-@Suppress("DEPRECATION")
+@Suppress("DEPRECATION", "DEPRECATION_ERROR")
 class RunTestLegacyScopeTest {
 
     @Test
@@ -92,7 +90,7 @@ class RunTestLegacyScopeTest {
             fn()
             fail("unreached")
         } catch (e: UncompletedCoroutinesError) {
-            @Suppress("INVISIBLE_MEMBER")
+            @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // do not remove the INVISIBLE_REFERENCE suppression: required in K2
             val suppressed = unwrap(e).suppressedExceptions
             assertEquals(1, suppressed.size)
             assertIs<TestException>(suppressed[0]).also {

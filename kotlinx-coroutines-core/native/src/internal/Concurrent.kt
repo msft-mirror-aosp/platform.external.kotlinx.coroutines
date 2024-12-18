@@ -1,10 +1,7 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.internal
 
 import kotlinx.atomicfu.*
+import kotlinx.cinterop.*
 import kotlinx.atomicfu.locks.withLock as withLock2
 
 @Suppress("ACTUAL_WITHOUT_EXPECT")
@@ -14,18 +11,20 @@ internal actual inline fun <T> ReentrantLock.withLock(action: () -> T): T = this
 
 internal actual fun <E> identitySet(expectedSize: Int): MutableSet<E> = HashSet()
 
+@Suppress("ACTUAL_WITHOUT_EXPECT") // This suppress can be removed in 2.0: KT-59355
+internal actual typealias BenignDataRace = kotlin.concurrent.Volatile
 
-// "Suppress-supporting throwable" is currently used for tests only
-internal open class SuppressSupportingThrowableImpl : Throwable() {
-    private val _suppressed = atomic<Array<Throwable>>(emptyArray())
+internal actual class WorkaroundAtomicReference<V> actual constructor(value: V) {
 
-    val suppressed: Array<Throwable>
-        get() = _suppressed.value
+    private val nativeAtomic = kotlin.concurrent.AtomicReference<V>(value)
 
-    fun addSuppressed(other: Throwable) {
-        _suppressed.update { current ->
-            current + other
-        }
+    public actual fun get(): V= nativeAtomic.value
+
+    public actual fun set(value: V) {
+        nativeAtomic.value = value
     }
-}
 
+    public actual fun getAndSet(value: V): V = nativeAtomic.getAndSet(value)
+
+    public actual fun compareAndSet(expected: V, value: V): Boolean = nativeAtomic.compareAndSet(expected, value)
+}

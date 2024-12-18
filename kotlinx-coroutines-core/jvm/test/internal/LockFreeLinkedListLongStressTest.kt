@@ -1,10 +1,6 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.internal
 
-import kotlinx.coroutines.TestBase
+import kotlinx.coroutines.testing.TestBase
 import org.junit.Test
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -34,7 +30,7 @@ class LockFreeLinkedListLongStressTest : TestBase() {
         for (j in 0 until nAddThreads)
             threads += thread(start = false, name = "adder-$j") {
                 for (i in j until nAdded step nAddThreads) {
-                    list.addLast(IntNode(i))
+                    list.addLast(IntNode(i), Int.MAX_VALUE)
                 }
                 println("${Thread.currentThread().name} completed")
                 workingAdders.decrementAndGet()
@@ -44,8 +40,8 @@ class LockFreeLinkedListLongStressTest : TestBase() {
                 val rnd = Random()
                 do {
                     val lastTurn = workingAdders.get() == 0
-                    list.forEach<IntNode> { node ->
-                        if (shallRemove(node.i) && (lastTurn || rnd.nextDouble() < removeProbability))
+                    list.forEach { node ->
+                        if (node is IntNode && shallRemove(node.i) && (lastTurn || rnd.nextDouble() < removeProbability))
                             node.remove()
                     }
                 } while (!lastTurn)
@@ -65,9 +61,21 @@ class LockFreeLinkedListLongStressTest : TestBase() {
                 if (!shallRemove(i))
                     yield(i)
         }
-        list.forEach<IntNode> { node ->
-            require(node.i == expected.next())
+        list.forEach { node ->
+            require(node !is IntNode || node.i == expected.next())
         }
         require(!expected.hasNext())
+    }
+
+    private fun LockFreeLinkedListHead.validate() {
+        var prev: LockFreeLinkedListNode = this
+        var cur: LockFreeLinkedListNode = next as LockFreeLinkedListNode
+        while (cur != this) {
+            val next = cur.nextNode
+            cur.validateNode(prev, next)
+            prev = cur
+            cur = next
+        }
+        validateNode(prev, next as LockFreeLinkedListNode)
     }
 }

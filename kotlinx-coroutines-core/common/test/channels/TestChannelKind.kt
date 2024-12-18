@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.channels
 
 import kotlinx.coroutines.*
@@ -25,7 +21,7 @@ enum class TestChannelKind(
 
     fun <T> create(onUndeliveredElement: ((T) -> Unit)? = null): Channel<T> = when {
         viaBroadcast && onUndeliveredElement != null -> error("Broadcast channels to do not support onUndeliveredElement")
-        viaBroadcast -> ChannelViaBroadcast(BroadcastChannel(capacity))
+        viaBroadcast -> @Suppress("DEPRECATION_ERROR") ChannelViaBroadcast(BroadcastChannel(capacity))
         else -> Channel(capacity, onUndeliveredElement = onUndeliveredElement)
     }
 
@@ -34,6 +30,7 @@ enum class TestChannelKind(
 }
 
 internal class ChannelViaBroadcast<E>(
+    @Suppress("DEPRECATION_ERROR")
     private val broadcast: BroadcastChannel<E>
 ): Channel<E>, SendChannel<E> by broadcast {
     val sub = broadcast.openSubscription()

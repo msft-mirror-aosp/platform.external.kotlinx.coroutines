@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.sync
 
 import kotlinx.atomicfu.*
@@ -9,6 +5,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
 import kotlinx.coroutines.selects.*
 import kotlin.contracts.*
+import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.*
 
 /**
@@ -42,12 +39,12 @@ public interface Mutex {
     public fun tryLock(owner: Any? = null): Boolean
 
     /**
-     * Locks this mutex, suspending caller while the mutex is locked.
+     * Locks this mutex, suspending caller until the lock is acquired (in other words, while the lock is held elsewhere).
      *
-     * This suspending function is cancellable. If the [Job] of the current coroutine is cancelled or completed while this
-     * function is suspended, this function immediately resumes with [CancellationException].
-     * There is a **prompt cancellation guarantee**. If the job was cancelled while this function was
-     * suspended, it will not resume successfully. See [suspendCancellableCoroutine] documentation for low-level details.
+     * This suspending function is cancellable: if the [Job] of the current coroutine is cancelled while this
+     * suspending function is waiting, this function immediately resumes with [CancellationException].
+     * There is a **prompt cancellation guarantee**: even if this function is ready to return the result, but was cancelled
+     * while suspended, [CancellationException] will be thrown. See [suspendCancellableCoroutine] for low-level details.
      * This function releases the lock if it was already acquired by this function before the [CancellationException]
      * was thrown.
      *
@@ -121,17 +118,16 @@ public suspend inline fun <T> Mutex.withLock(owner: Any? = null, action: () -> T
     contract {
         callsInPlace(action, InvocationKind.EXACTLY_ONCE)
     }
-
     lock(owner)
-    try {
-        return action()
+    return try {
+        action()
     } finally {
         unlock(owner)
     }
 }
 
 
-internal open class MutexImpl(locked: Boolean) : SemaphoreImpl(1, if (locked) 1 else 0), Mutex {
+internal open class MutexImpl(locked: Boolean) : SemaphoreAndMutexImpl(1, if (locked) 1 else 0), Mutex {
     /**
      * After the lock is acquired, the corresponding owner is stored in this field.
      * The [unlock] operation checks the owner and either re-sets it to [NO_OWNER],
@@ -142,7 +138,7 @@ internal open class MutexImpl(locked: Boolean) : SemaphoreImpl(1, if (locked) 1 
 
     private val onSelectCancellationUnlockConstructor: OnCancellationConstructor =
         { _: SelectInstance<*>, owner: Any?, _: Any? ->
-            { unlock(owner) }
+            { _, _, _ -> unlock(owner) }
         }
 
     override val isLocked: Boolean get() =
@@ -247,16 +243,21 @@ internal open class MutexImpl(locked: Boolean) : SemaphoreImpl(1, if (locked) 1 
         return this
     }
 
+    @OptIn(InternalForInheritanceCoroutinesApi::class)
     private inner class CancellableContinuationWithOwner(
         @JvmField
         val cont: CancellableContinuationImpl<Unit>,
         @JvmField
         val owner: Any?
     ) : CancellableContinuation<Unit> by cont, Waiter by cont {
-        override fun tryResume(value: Unit, idempotent: Any?, onCancellation: ((cause: Throwable) -> Unit)?): Any? {
+        override fun <R : Unit> tryResume(
+            value: R,
+            idempotent: Any?,
+            onCancellation: ((cause: Throwable, value: R, context: CoroutineContext) -> Unit)?
+        ): Any? {
             assert { this@MutexImpl.owner.value === NO_OWNER }
-            val token = cont.tryResume(value, idempotent) {
-                assert { this@MutexImpl.owner.value.let { it === NO_OWNER ||it === owner } }
+            val token = cont.tryResume(value, idempotent) { _, _, _ ->
+                assert { this@MutexImpl.owner.value.let { it === NO_OWNER || it === owner } }
                 this@MutexImpl.owner.value = owner
                 unlock(owner)
             }
@@ -267,7 +268,10 @@ internal open class MutexImpl(locked: Boolean) : SemaphoreImpl(1, if (locked) 1 
             return token
         }
 
-        override fun resume(value: Unit, onCancellation: ((cause: Throwable) -> Unit)?) {
+        override fun <R : Unit> resume(
+            value: R,
+            onCancellation: ((cause: Throwable, value: R, context: CoroutineContext) -> Unit)?
+        ) {
             assert { this@MutexImpl.owner.value === NO_OWNER }
             this@MutexImpl.owner.value = owner
             cont.resume(value) { unlock(owner) }

@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:JvmMultifileClass
 @file:JvmName("JobKt")
 @file:Suppress("DEPRECATION_ERROR", "RedundantUnitReturnType")
@@ -25,9 +21,9 @@ import kotlin.jvm.*
  *
  * The most basic instances of `Job` interface are created like this:
  *
- * * **Coroutine job** is created with [launch][CoroutineScope.launch] coroutine builder.
+ * - **Coroutine job** is created with [launch][CoroutineScope.launch] coroutine builder.
  *   It runs a specified block of code and completes on completion of this block.
- * * **[CompletableJob]** is created with a `Job()` factory function.
+ * - **[CompletableJob]** is created with a `Job()` factory function.
  *   It is completed by calling [CompletableJob.complete].
  *
  * Conceptually, an execution of a job does not produce a result value. Jobs are launched solely for their
@@ -103,12 +99,9 @@ import kotlin.jvm.*
  *
  * All functions on this interface and on all interfaces derived from it are **thread-safe** and can
  * be safely invoked from concurrent coroutines without external synchronization.
- *
- * ### Not stable for inheritance
- *
- * **`Job` interface and all its derived interfaces are not stable for inheritance in 3rd party libraries**,
- * as new methods might be added to this interface in the future, but is stable for use.
  */
+@OptIn(ExperimentalSubclassOptIn::class)
+@SubclassOptInRequired(markerClass = InternalForInheritanceCoroutinesApi::class)
 public interface Job : CoroutineContext.Element {
     /**
      * Key for [Job] instance in the coroutine context.
@@ -220,11 +213,11 @@ public interface Job : CoroutineContext.Element {
      *
      * A parent-child relation has the following effect:
      *
-     * * Cancellation of parent with [cancel] or its exceptional completion (failure)
+     * - Cancellation of parent with [cancel] or its exceptional completion (failure)
      *   immediately cancels all its children.
-     * * Parent cannot complete until all its children are complete. Parent waits for all its children to
+     * - Parent cannot complete until all its children are complete. Parent waits for all its children to
      *   complete in _completing_ or _cancelling_ state.
-     * * Uncaught exception in a child, by default, cancels parent. This applies even to
+     * - Uncaught exception in a child, by default, cancels parent. This applies even to
      *   children created with [async][CoroutineScope.async] and other future-like
      *   coroutine builders, even though their exceptions are caught and are encapsulated in their result.
      *   This default behavior can be overridden with [SupervisorJob].
@@ -236,9 +229,9 @@ public interface Job : CoroutineContext.Element {
      * returns a handle that should be used to detach it.
      *
      * A parent-child relation has the following effect:
-     * * Cancellation of parent with [cancel] or its exceptional completion (failure)
+     * - Cancellation of parent with [cancel] or its exceptional completion (failure)
      *   immediately cancels all its children.
-     * * Parent cannot complete until all its children are complete. Parent waits for all its children to
+     * - Parent cannot complete until all its children are complete. Parent waits for all its children to
      *   complete in _completing_ or _cancelling_ states.
      *
      * **A child must store the resulting [ChildHandle] and [dispose][DisposableHandle.dispose] the attachment
@@ -294,10 +287,10 @@ public interface Job : CoroutineContext.Element {
      * job is complete.
      *
      * The meaning of `cause` that is passed to the handler:
-     * * Cause is `null` when the job has completed normally.
-     * * Cause is an instance of [CancellationException] when the job was cancelled _normally_.
+     * - Cause is `null` when the job has completed normally.
+     * - Cause is an instance of [CancellationException] when the job was cancelled _normally_.
      *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
-     * * Otherwise, the job had _failed_.
+     * - Otherwise, the job had _failed_.
      *
      * The resulting [DisposableHandle] can be used to [dispose][DisposableHandle.dispose] the
      * registration of this handler and release its memory if its invocation is no longer needed.
@@ -314,44 +307,8 @@ public interface Job : CoroutineContext.Element {
     public fun invokeOnCompletion(handler: CompletionHandler): DisposableHandle
 
     /**
-     * Registers handler that is **synchronously** invoked once on cancellation or completion of this job.
-     * when the job was already cancelled and is completed its execution, then the handler is immediately invoked
-     * with the job's cancellation cause or `null` unless [invokeImmediately] is set to false.
-     * Otherwise, handler will be invoked once when this job is cancelled or is complete.
-     *
-     * The meaning of `cause` that is passed to the handler:
-     * * Cause is `null` when the job has completed normally.
-     * * Cause is an instance of [CancellationException] when the job was cancelled _normally_.
-     *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
-     * * Otherwise, the job had _failed_.
-     *
-     * Invocation of this handler on a transition to a _cancelling_ state
-     * is controlled by [onCancelling] boolean parameter.
-     * The handler is invoked when the job becomes _cancelling_ if [onCancelling] parameter is set to `true`.
-     *
-     * The resulting [DisposableHandle] can be used to [dispose][DisposableHandle.dispose] the
-     * registration of this handler and release its memory if its invocation is no longer needed.
-     * There is no need to dispose the handler after completion of this job. The references to
-     * all the handlers are released when this job completes.
-     *
-     * Installed [handler] should not throw any exceptions. If it does, they will get caught,
-     * wrapped into [CompletionHandlerException], and rethrown, potentially causing crash of unrelated code.
-     *
-     * **Note**: This function is a part of internal machinery that supports parent-child hierarchies
-     * and allows for implementation of suspending functions that wait on the Job's state.
-     * This function should not be used in general application code.
-     * Implementation of `CompletionHandler` must be fast, non-blocking, and thread-safe.
-     * This handler can be invoked concurrently with the surrounding code.
-     * There is no guarantee on the execution context in which the [handler] is invoked.
-     *
-     * @param onCancelling when `true`, then the [handler] is invoked as soon as this job transitions to _cancelling_ state;
-     *        when `false` then the [handler] is invoked only when it transitions to _completed_ state.
-     * @param invokeImmediately when `true` and this job is already in the desired state (depending on [onCancelling]),
-     *        then the [handler] is immediately and synchronously invoked and no-op [DisposableHandle] is returned;
-     *        when `false` then no-op [DisposableHandle] is returned, but the [handler] is not invoked.
-     * @param handler the handler.
-     *
-     * @suppress **This an internal API and should not be used from general code.**
+     * Kept for preserving compatibility. Shouldn't be used by anyone.
+     * @suppress
      */
     @InternalCoroutinesApi
     public fun invokeOnCompletion(
@@ -372,6 +329,31 @@ public interface Job : CoroutineContext.Element {
         "The job to the right of `+` just replaces the job the left of `+`.",
         level = DeprecationLevel.ERROR)
     public operator fun plus(other: Job): Job = other
+}
+
+/**
+ * Registers a handler that is **synchronously** invoked once on cancellation or completion of this job.
+ *
+ * If the handler would have been invoked earlier if it was registered at that time, then it is invoked immediately,
+ * unless [invokeImmediately] is set to `false`.
+ *
+ * The meaning of `cause` that is passed to the handler is:
+ * - It is `null` if the job has completed normally.
+ * - It is an instance of [CancellationException] if the job was cancelled _normally_.
+ *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
+ * - Otherwise, the job had _failed_.
+ *
+ * The resulting [DisposableHandle] can be used to [dispose][DisposableHandle.dispose] of the registration of this
+ * handler and release its memory if its invocation is no longer needed.
+ * There is no need to dispose of the handler after completion of this job. The references to
+ * all the handlers are released when this job completes.
+ */
+internal fun Job.invokeOnCompletion(
+    invokeImmediately: Boolean = true,
+    handler: JobNode,
+): DisposableHandle = when (this) {
+    is JobSupport -> invokeOnCompletionInternal(invokeImmediately, handler)
+    else -> invokeOnCompletion(handler.onCancelling, invokeImmediately, handler::invoke)
 }
 
 /**
@@ -419,6 +401,7 @@ public fun interface DisposableHandle {
  */
 @InternalCoroutinesApi
 @Deprecated(level = DeprecationLevel.ERROR, message = "This is internal API and may be removed in the future releases")
+@OptIn(InternalForInheritanceCoroutinesApi::class)
 public interface ChildJob : Job {
     /**
      * Parent is cancelling its child by invoking this method.
@@ -438,6 +421,7 @@ public interface ChildJob : Job {
  */
 @InternalCoroutinesApi
 @Deprecated(level = DeprecationLevel.ERROR, message = "This is internal API and may be removed in the future releases")
+@OptIn(InternalForInheritanceCoroutinesApi::class)
 public interface ParentJob : Job {
     /**
      * Child job is using this method to learn its cancellation cause when the parent cancels it with [ChildJob.parentCancelled].
@@ -491,7 +475,7 @@ public interface ChildHandle : DisposableHandle {
  * ```
  */
 internal fun Job.disposeOnCompletion(handle: DisposableHandle): DisposableHandle =
-    invokeOnCompletion(handler = DisposeOnCompletion(handle).asHandler)
+    invokeOnCompletion(handler = DisposeOnCompletion(handle))
 
 /**
  * Cancels the job and suspends the invoking coroutine until the cancelled job is complete.
@@ -681,4 +665,12 @@ public object NonDisposableHandle : DisposableHandle, ChildHandle {
      * @suppress
      */
     override fun toString(): String = "NonDisposableHandle"
+}
+
+private class DisposeOnCompletion(
+    private val handle: DisposableHandle
+) : JobNode() {
+    override val onCancelling get() = false
+
+    override fun invoke(cause: Throwable?) = handle.dispose()
 }

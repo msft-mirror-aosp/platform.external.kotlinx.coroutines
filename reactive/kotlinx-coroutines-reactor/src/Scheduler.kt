@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.reactor
 
 import kotlinx.coroutines.*
@@ -51,6 +47,4 @@ public class SchedulerCoroutineDispatcher(
 }
 
 private fun Disposable.asDisposableHandle(): DisposableHandle =
-    object : DisposableHandle {
-        override fun dispose() = this@asDisposableHandle.dispose()
-    }
+    DisposableHandle { this@asDisposableHandle.dispose() }

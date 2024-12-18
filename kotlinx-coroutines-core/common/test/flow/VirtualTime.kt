@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
 
@@ -25,7 +22,21 @@ internal class VirtualTimeDispatcher(enclosingScope: CoroutineScope) : Coroutine
                 val delayNanos = ThreadLocalEventLoop.currentOrNull()?.processNextEvent()
                     ?: error("Event loop is missing, virtual time source works only as part of event loop")
                 if (delayNanos <= 0) continue
-                if (delayNanos > 0 && delayNanos != Long.MAX_VALUE) error("Unexpected external delay: $delayNanos")
+                if (delayNanos > 0 && delayNanos != Long.MAX_VALUE) {
+                    if (usesSharedEventLoop) {
+                        val targetTime = currentTime + delayNanos
+                        while (currentTime < targetTime) {
+                            val nextTask = heap.minByOrNull { it.deadline } ?: break
+                            if (nextTask.deadline > targetTime) break
+                            heap.remove(nextTask)
+                            currentTime = nextTask.deadline
+                            nextTask.run()
+                        }
+                        currentTime = maxOf(currentTime, targetTime)
+                    } else {
+                        error("Unexpected external delay: $delayNanos")
+                    }
+                }
                 val nextTask = heap.minByOrNull { it.deadline } ?: return@launch
                 heap.remove(nextTask)
                 currentTime = nextTask.deadline
@@ -83,6 +94,6 @@ public fun TestBase.withVirtualTime(block: suspend CoroutineScope.() -> Unit) = 
         // Create a platform-independent event loop
         val dispatcher = VirtualTimeDispatcher(this)
         withContext(dispatcher) { block() }
-        ensureFinished()
+        checkFinishCall(allowNotUsingExpect = false)
     }
 }

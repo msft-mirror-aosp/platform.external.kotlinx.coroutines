@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlin.test.*
 
 class AwaitTest : TestBase() {
@@ -356,6 +353,7 @@ class AwaitTest : TestBase() {
     fun testAwaitAllDelegates() = runTest {
         expect(1)
         val deferred = CompletableDeferred<String>()
+        @OptIn(InternalForInheritanceCoroutinesApi::class)
         val delegate = object : Deferred<String> by deferred {}
         launch {
             expect(3)
@@ -370,6 +368,7 @@ class AwaitTest : TestBase() {
     fun testCancelAwaitAllDelegate() = runTest {
         expect(1)
         val deferred = CompletableDeferred<String>()
+        @OptIn(InternalForInheritanceCoroutinesApi::class)
         val delegate = object : Deferred<String> by deferred {}
         launch {
             expect(3)

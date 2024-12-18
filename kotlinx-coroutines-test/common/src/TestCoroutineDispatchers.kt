@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.test
 
 import kotlinx.coroutines.*
@@ -23,18 +19,18 @@ import kotlin.coroutines.*
  * ```
  * @Test
  * fun testEagerlyEnteringChildCoroutines() = runTest(UnconfinedTestDispatcher()) {
- *   var entered = false
- *   val deferred = CompletableDeferred<Unit>()
- *   var completed = false
- *   launch {
- *     entered = true
- *     deferred.await()
- *     completed = true
- *   }
- *   assertTrue(entered) // `entered = true` already executed.
- *   assertFalse(completed) // however, the child coroutine then suspended, so it is enqueued.
- *   deferred.complete(Unit) // resume the coroutine.
- *   assertTrue(completed) // now the child coroutine is immediately completed.
+ *     var entered = false
+ *     val deferred = CompletableDeferred<Unit>()
+ *     var completed = false
+ *     launch {
+ *         entered = true
+ *         deferred.await()
+ *         completed = true
+ *     }
+ *     assertTrue(entered) // `entered = true` already executed.
+ *     assertFalse(completed) // however, the child coroutine then suspended, so it is enqueued.
+ *     deferred.complete(Unit) // resume the coroutine.
+ *     assertTrue(completed) // now the child coroutine is immediately completed.
  * }
  * ```
  *
@@ -46,20 +42,20 @@ import kotlin.coroutines.*
  * ```
  * @Test
  * fun testUnconfinedDispatcher() = runTest {
- *   val values = mutableListOf<Int>()
- *   val stateFlow = MutableStateFlow(0)
- *   val job = launch(UnconfinedTestDispatcher(testScheduler)) {
- *     stateFlow.collect {
- *       values.add(it)
+ *     val values = mutableListOf<Int>()
+ *     val stateFlow = MutableStateFlow(0)
+ *     val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+ *         stateFlow.collect {
+ *             values.add(it)
+ *         }
  *     }
- *   }
- *   stateFlow.value = 1
- *   stateFlow.value = 2
- *   stateFlow.value = 3
- *   job.cancel()
- *   // each assignment will immediately resume the collecting child coroutine,
- *   // so no values will be skipped.
- *   assertEquals(listOf(0, 1, 2, 3), values)
+ *     stateFlow.value = 1
+ *     stateFlow.value = 2
+ *     stateFlow.value = 3
+ *     job.cancel()
+ *     // each assignment will immediately resume the collecting child coroutine,
+ *     // so no values will be skipped.
+ *     assertEquals(listOf(0, 1, 2, 3), values)
  * }
  * ```
  *
@@ -93,7 +89,8 @@ private class UnconfinedTestDispatcherImpl(
 
     override fun isDispatchNeeded(context: CoroutineContext): Boolean = false
 
-    @Suppress("INVISIBLE_MEMBER")
+    // do not remove the INVISIBLE_REFERENCE and INVISIBLE_SETTER suppressions: required in K2
+    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE", "INVISIBLE_SETTER")
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         checkSchedulerInContext(scheduler, context)
         scheduler.sendDispatchEvent(context)

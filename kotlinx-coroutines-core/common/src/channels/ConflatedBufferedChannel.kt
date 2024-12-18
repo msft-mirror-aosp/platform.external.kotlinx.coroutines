@@ -1,17 +1,9 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.channels
 
-import kotlinx.atomicfu.*
 import kotlinx.coroutines.channels.BufferOverflow.*
-import kotlinx.coroutines.channels.ChannelResult.Companion.closed
 import kotlinx.coroutines.channels.ChannelResult.Companion.success
 import kotlinx.coroutines.internal.*
-import kotlinx.coroutines.internal.OnUndeliveredElement
 import kotlinx.coroutines.selects.*
-import kotlin.coroutines.*
 
 /**
  * This is a special [BufferedChannel] extension that supports [DROP_OLDEST] and [DROP_LATEST]
@@ -75,27 +67,6 @@ internal open class ConflatedBufferedChannel<E>(
         }
         return success(Unit)
     }
-
-    private fun trySendDropOldest(element: E): ChannelResult<Unit> =
-        sendImpl( // <-- this is an inline function
-            element = element,
-            // Put the element into the logical buffer even
-            // if this channel is already full, the `onSuspend`
-            // callback below extract the first (oldest) element.
-            waiter = BUFFERED,
-            // Finish successfully when a rendezvous has happened
-            // or the element has been buffered.
-            onRendezvousOrBuffered = { return success(Unit) },
-            // In case the algorithm decided to suspend, the element
-            // was added to the buffer. However, as the buffer is now
-            // overflowed, the first (oldest) element has to be extracted.
-            onSuspend = { segm, i ->
-                dropFirstElementUntilTheSpecifiedCellIsInTheBuffer(segm.id * SEGMENT_SIZE + i)
-                return success(Unit)
-            },
-            // If the channel is closed, return the corresponding result.
-            onClosed = { return closed(sendException) }
-        )
 
     @Suppress("UNCHECKED_CAST")
     override fun registerSelectForSend(select: SelectInstance<*>, element: Any?) {

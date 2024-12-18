@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package benchmarks.scheduler
 
 import benchmarks.*
@@ -44,6 +40,7 @@ import java.util.concurrent.*
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
+@Suppress("DEPRECATION_ERROR")
 open class StatefulAsyncBenchmark : ParametrizedDispatcherBase() {
 
     private val stateSize = 2048

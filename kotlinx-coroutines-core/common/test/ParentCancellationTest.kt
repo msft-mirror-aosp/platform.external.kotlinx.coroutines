@@ -1,13 +1,9 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("NAMED_ARGUMENTS_NOT_ALLOWED") // KT-21913
 
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.channels.*
-import kotlin.coroutines.*
 import kotlin.test.*
 
 /**
@@ -60,6 +56,7 @@ class ParentCancellationTest : TestBase() {
     }
 
     @Test
+    @Suppress("DEPRECATION_ERROR")
     fun testBroadcastChild() = runTest {
         testParentCancellation(runsInScopeContext = true) { fail ->
             broadcast<Unit> { fail() }.openSubscription()

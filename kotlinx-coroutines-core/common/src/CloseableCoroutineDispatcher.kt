@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 /**
@@ -15,7 +11,7 @@ package kotlinx.coroutines
  * might be added to this interface in the future, but is stable for use.
  */
 @ExperimentalCoroutinesApi
-public expect abstract class CloseableCoroutineDispatcher() : CoroutineDispatcher {
+public expect abstract class CloseableCoroutineDispatcher() : CoroutineDispatcher, AutoCloseable {
 
     /**
      * Initiate the closing sequence of the coroutine dispatcher.
@@ -24,5 +20,5 @@ public expect abstract class CloseableCoroutineDispatcher() : CoroutineDispatche
      *
      * Invocations of `close` are idempotent and thread-safe.
      */
-    public abstract fun close()
+    public abstract override fun close()
 }

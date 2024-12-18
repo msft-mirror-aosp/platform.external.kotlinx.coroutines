@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.selects.*
 import org.junit.Test
@@ -213,6 +210,9 @@ class ReusableCancellableContinuationTest : TestBase() {
         for (value in channel) {
             delay(1)
         }
-        FieldWalker.assertReachableCount(1, coroutineContext[Job]) { it is ChildContinuation }
+        FieldWalker.assertReachableCount(1, coroutineContext[Job]) {
+            // could be `it is ChildContinuation` if `ChildContinuation` wasn't private
+            it::class.simpleName == "ChildContinuation"
+        }
     }
 }

@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("NAMED_ARGUMENTS_NOT_ALLOWED") // KT-21913
 
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlin.test.*
 
 /**
@@ -18,7 +15,7 @@ class CancellableResumeTest : TestBase() {
         val ok = suspendCancellableCoroutine<String> { cont ->
             expect(2)
             cont.invokeOnCancellation { expectUnreached() }
-            cont.resume("OK") { expectUnreached() }
+            cont.resume("OK") { _, _, _ -> expectUnreached() }
             expect(3)
         }
         assertEquals("OK", ok)
@@ -35,9 +32,12 @@ class CancellableResumeTest : TestBase() {
             cont.invokeOnCancellation { expect(3) }
             cont.cancel(TestException("FAIL"))
             expect(4)
-            cont.resume("OK") { cause ->
+            val value = "OK"
+            cont.resume(value) { cause, valueToClose, context ->
                 expect(5)
-                assertTrue(cause is TestException)
+                assertSame(value, valueToClose)
+                assertSame(context, cont.context)
+                assertIs<TestException>(cause)
             }
             finish(6)
         }
@@ -61,9 +61,12 @@ class CancellableResumeTest : TestBase() {
             }
             cont.cancel(TestException("FAIL"))
             expect(4)
-            cont.resume("OK") { cause ->
+            val value = "OK"
+            cont.resume(value) { cause, valueToClose, context ->
                 expect(5)
-                assertTrue(cause is TestException)
+                assertSame(value, valueToClose)
+                assertSame(context, cont.context)
+                assertIs<TestException>(cause)
                 throw TestException3("FAIL") // onCancellation block fails with exception
             }
             finish(6)
@@ -82,8 +85,12 @@ class CancellableResumeTest : TestBase() {
             cont.invokeOnCancellation { expect(3) }
             ctx.cancel()
             expect(4)
-            cont.resume("OK") {
+            val value = "OK"
+            cont.resume(value) { cause, valueToClose, context ->
                 expect(5)
+                assertSame(value, valueToClose)
+                assertSame(context, cont.context)
+                assertIs<CancellationException>(cause)
             }
             finish(6)
         }
@@ -108,8 +115,12 @@ class CancellableResumeTest : TestBase() {
             }
             ctx.cancel()
             expect(4)
-            cont.resume("OK") {
+            val value = "OK"
+            cont.resume(value) { cause, valueToClose, context ->
                 expect(5)
+                assertSame(value, valueToClose)
+                assertSame(context, cont.context)
+                assertIs<CancellationException>(cause)
                 throw TestException3("FAIL") // onCancellation block fails with exception
             }
             finish(6)
@@ -132,7 +143,7 @@ class CancellableResumeTest : TestBase() {
             finish(6)
         }
         expect(4)
-        cc.resume("OK") { expectUnreached() }
+        cc.resume("OK") { _, _, _ -> expectUnreached() }
         expect(5)
     }
 
@@ -149,16 +160,19 @@ class CancellableResumeTest : TestBase() {
                     cc = cont
                 }
                 expectUnreached()
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
                 finish(9)
             }
         }
         expect(4)
         job.cancel(TestCancellationException())
         expect(6)
-        cc.resume("OK") { cause ->
+        val value = "OK"
+        cc.resume(value) { cause, valueToClose, context ->
             expect(7)
-            assertTrue(cause is TestCancellationException)
+            assertSame(value, valueToClose)
+            assertSame(context, cc.context)
+            assertIs<TestCancellationException>(cause)
         }
         expect(8)
     }
@@ -184,16 +198,19 @@ class CancellableResumeTest : TestBase() {
                     cc = cont
                 }
                 expectUnreached()
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
                 finish(9)
             }
         }
         expect(4)
         job.cancel(TestCancellationException())
         expect(6)
-        cc.resume("OK") { cause ->
+        val value = "OK"
+        cc.resume(value) { cause, valueToClose, context ->
             expect(7)
-            assertTrue(cause is TestCancellationException)
+            assertSame(value, valueToClose)
+            assertSame(context, cc.context)
+            assertIs<TestCancellationException>(cause)
             throw TestException3("FAIL") // onCancellation block fails with exception
         }
         expect(8)
@@ -212,20 +229,23 @@ class CancellableResumeTest : TestBase() {
                     cont.invokeOnCancellation { cause ->
                         // Note: invokeOnCancellation is called before cc.resume(value) { ... } handler
                         expect(7)
-                        assertTrue(cause is TestCancellationException)
+                        assertIs<TestCancellationException>(cause)
                     }
                     cc = cont
                 }
                 expectUnreached()
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
                 expect(9)
             }
         }
         expect(4)
-        cc.resume("OK") { cause ->
+        val value = "OK"
+        cc.resume("OK") { cause, valueToClose, context ->
             // Note: this handler is called after invokeOnCancellation handler
             expect(8)
-            assertTrue(cause is TestCancellationException)
+            assertSame(value, valueToClose)
+            assertSame(context, cc.context)
+            assertIs<TestCancellationException>(cause)
         }
         expect(5)
         job.cancel(TestCancellationException()) // cancel while execution is dispatched
@@ -252,21 +272,24 @@ class CancellableResumeTest : TestBase() {
                     cont.invokeOnCancellation { cause ->
                         // Note: invokeOnCancellation is called before cc.resume(value) { ... } handler
                         expect(7)
-                        assertTrue(cause is TestCancellationException)
+                        assertIs<TestCancellationException>(cause)
                         throw TestException2("FAIL") // invokeOnCancellation handler fails with exception
                     }
                     cc = cont
                 }
                 expectUnreached()
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
                 expect(9)
             }
         }
         expect(4)
-        cc.resume("OK") { cause ->
+        val value = "OK"
+        cc.resume(value) { cause, valueToClose, context ->
             // Note: this handler is called after invokeOnCancellation handler
             expect(8)
-            assertTrue(cause is TestCancellationException)
+            assertSame(value, valueToClose)
+            assertSame(context, cc.context)
+            assertIs<TestCancellationException>(cause)
             throw TestException3("FAIL") // onCancellation block fails with exception
         }
         expect(5)
@@ -282,7 +305,7 @@ class CancellableResumeTest : TestBase() {
         withContext(Dispatchers.Unconfined) {
             val result = suspendCancellableCoroutine<String> {
                 outerScope.launch {
-                    it.resume("OK") {
+                    it.resume("OK") { _, _, _ ->
                         expectUnreached()
                     }
                 }

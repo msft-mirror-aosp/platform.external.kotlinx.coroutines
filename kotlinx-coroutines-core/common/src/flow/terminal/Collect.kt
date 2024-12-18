@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:JvmMultifileClass
 @file:JvmName("FlowKt")
 
@@ -44,7 +40,7 @@ public suspend fun Flow<*>.collect(): Unit = collect(NopCollector)
  *     .launchIn(uiScope)
  * ```
  *
- * Note that the resulting value of [launchIn] is not used and the provided scope takes care of cancellation.
+ * In this example, note that the `job` returned by [launchIn] is not used, and the provided scope takes care of cancellation.
  */
 public fun <T> Flow<T>.launchIn(scope: CoroutineScope): Job = scope.launch {
     collect() // tail-call

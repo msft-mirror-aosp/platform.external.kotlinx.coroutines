@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.internal.*
 import kotlinx.coroutines.scheduling.*
@@ -90,7 +87,6 @@ class RejectedExecutionTest : TestBase() {
 
     @Test
     fun testRejectOnDelay() = runTest {
-        if (!removeFutureOnCancel(executor)) return@runTest // Skip this test on old JDKs
         expect(1)
         executor.acceptTasks = 1 // accept one task
         assertFailsWith<CancellationException> {
@@ -112,7 +108,6 @@ class RejectedExecutionTest : TestBase() {
 
     @Test
     fun testRejectWithTimeout() = runTest {
-        if (!removeFutureOnCancel(executor)) return@runTest // Skip this test on old JDKs
         expect(1)
         executor.acceptTasks = 1 // accept one task
         assertFailsWith<CancellationException> {

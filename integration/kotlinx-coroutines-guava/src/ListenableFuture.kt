@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.guava
 
 import com.google.common.util.concurrent.*
@@ -155,6 +151,7 @@ public fun <T> ListenableFuture<T>.asDeferred(): Deferred<T> {
         cancel(false)
     }
     // Return hides the CompletableDeferred. This should prevent casting.
+    @OptIn(InternalForInheritanceCoroutinesApi::class)
     return object : Deferred<T> by deferred {}
 }
 
@@ -220,7 +217,7 @@ public fun <T> Deferred<T>.asListenableFuture(): ListenableFuture<T> {
  *
  * This suspend function is cancellable.
  *
- * If the [Job] of the current coroutine is cancelled or completed while this suspending function is waiting, this function
+ * If the [Job] of the current coroutine is cancelled while this suspending function is waiting, this function
  * stops waiting for the future and immediately resumes with [CancellationException][kotlinx.coroutines.CancellationException].
  *
  * This method is intended to be used with one-shot Futures, so on coroutine cancellation, the Future is cancelled as well.

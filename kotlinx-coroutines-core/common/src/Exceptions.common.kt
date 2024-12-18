@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 /**
@@ -14,7 +10,6 @@ public class CompletionHandlerException(message: String, cause: Throwable) : Run
 
 public expect open class CancellationException(message: String?) : IllegalStateException
 
-@Suppress("FunctionName", "NO_ACTUAL_FOR_EXPECT")
 public expect fun CancellationException(message: String?, cause: Throwable?) : CancellationException
 
 internal expect class JobCancellationException(
@@ -27,6 +22,5 @@ internal expect class JobCancellationException(
 
 internal class CoroutinesInternalError(message: String, cause: Throwable) : Error(message, cause)
 
-internal expect fun Throwable.addSuppressedThrowable(other: Throwable)
 // For use in tests
 internal expect val RECOVER_STACK_TRACES: Boolean
