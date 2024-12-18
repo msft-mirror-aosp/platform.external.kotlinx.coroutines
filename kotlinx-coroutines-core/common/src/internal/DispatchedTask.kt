@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.coroutines.internal.*
@@ -47,10 +43,8 @@ internal const val MODE_UNINITIALIZED = -1
 internal val Int.isCancellableMode get() = this == MODE_CANCELLABLE || this == MODE_CANCELLABLE_REUSABLE
 internal val Int.isReusableMode get() = this == MODE_CANCELLABLE_REUSABLE
 
-@PublishedApi
 internal abstract class DispatchedTask<in T> internal constructor(
-    // Used by the IDEA debugger via reflection and must be kept binary-compatible, see KTIJ-24102
-    @JvmField public var resumeMode: Int
+    @JvmField var resumeMode: Int
 ) : SchedulerTask() {
     internal abstract val delegate: Continuation<T>
 
@@ -63,8 +57,8 @@ internal abstract class DispatchedTask<in T> internal constructor(
 
     /**
      * There are two implementations of `DispatchedTask`:
-     * * [DispatchedContinuation] keeps only simple values as successfully results.
-     * * [CancellableContinuationImpl] keeps additional data with values and overrides this method to unwrap it.
+     * - [DispatchedContinuation] keeps only simple values as successfully results.
+     * - [CancellableContinuationImpl] keeps additional data with values and overrides this method to unwrap it.
      */
     @Suppress("UNCHECKED_CAST")
     internal open fun <T> getSuccessfulResult(state: Any?): T =
@@ -72,9 +66,9 @@ internal abstract class DispatchedTask<in T> internal constructor(
 
     /**
      * There are two implementations of `DispatchedTask`:
-     * * [DispatchedContinuation] is just an intermediate storage that stores the exception that has its stack-trace
+     * - [DispatchedContinuation] is just an intermediate storage that stores the exception that has its stack-trace
      *   properly recovered and is ready to pass to the [delegate] continuation directly.
-     * * [CancellableContinuationImpl] stores raw cause of the failure in its state; when it needs to be dispatched
+     * - [CancellableContinuationImpl] stores raw cause of the failure in its state; when it needs to be dispatched
      *   its stack-trace has to be recovered, so it overrides this method for that purpose.
      */
     internal open fun getExceptionalResult(state: Any?): Throwable? =
@@ -82,7 +76,6 @@ internal abstract class DispatchedTask<in T> internal constructor(
 
     final override fun run() {
         assert { resumeMode != MODE_UNINITIALIZED } // should have been set before dispatching
-        val taskContext = this.taskContext
         var fatalException: Throwable? = null
         try {
             val delegate = delegate as DispatchedContinuation<T>
@@ -113,8 +106,7 @@ internal abstract class DispatchedTask<in T> internal constructor(
             // This instead of runCatching to have nicer stacktrace and debug experience
             fatalException = e
         } finally {
-            val result = runCatching { taskContext.afterTask() }
-            handleFatalException(fatalException, result.exceptionOrNull())
+            fatalException?.let { handleFatalException(it) }
         }
     }
 
@@ -136,15 +128,9 @@ internal abstract class DispatchedTask<in T> internal constructor(
      * Fatal exception handling can be intercepted with [CoroutineExceptionHandler] element in the context of
      * a failed coroutine, but such exceptions should be reported anyway.
      */
-    internal fun handleFatalException(exception: Throwable?, finallyException: Throwable?) {
-        if (exception === null && finallyException === null) return
-        if (exception !== null && finallyException !== null) {
-            exception.addSuppressedThrowable(finallyException)
-        }
-
-        val cause = exception ?: finallyException
+    internal fun handleFatalException(exception: Throwable) {
         val reason = CoroutinesInternalError("Fatal exception in coroutines machinery for $this. " +
-                "Please read KDoc to 'handleFatalException' method and report this incident to maintainers", cause!!)
+                "Please read KDoc to 'handleFatalException' method and report this incident to maintainers", exception)
         handleCoroutineException(this.delegate.context, reason)
     }
 }
@@ -209,7 +195,7 @@ internal inline fun DispatchedTask<*>.runUnconfinedEventLoop(
          * This exception doesn't happen normally, only if we have a bug in implementation.
          * Report it as a fatal exception.
          */
-        handleFatalException(e, null)
+        handleFatalException(e)
     } finally {
         eventLoop.decrementUseCount(unconfined = true)
     }

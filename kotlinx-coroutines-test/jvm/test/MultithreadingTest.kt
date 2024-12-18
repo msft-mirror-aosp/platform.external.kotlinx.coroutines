@@ -1,13 +1,10 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
 import kotlin.concurrent.*
 import kotlin.coroutines.*
 import kotlin.test.*
 
+@Suppress("DEPRECATION", "DEPRECATION_ERROR")
 class MultithreadingTest {
 
     @Test

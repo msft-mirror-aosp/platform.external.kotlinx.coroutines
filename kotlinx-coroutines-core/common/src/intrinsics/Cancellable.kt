@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.intrinsics
 
 import kotlinx.coroutines.*
@@ -12,6 +8,8 @@ import kotlin.coroutines.intrinsics.*
 /**
  * Use this function to start coroutine in a cancellable way, so that it can be cancelled
  * while waiting to be dispatched.
+ *
+ * @suppress **This is internal API and it is subject to change.**
  */
 @InternalCoroutinesApi
 public fun <T> (suspend () -> T).startCoroutineCancellable(completion: Continuation<T>): Unit = runSafely(completion) {
@@ -24,11 +22,9 @@ public fun <T> (suspend () -> T).startCoroutineCancellable(completion: Continuat
  */
 internal fun <R, T> (suspend (R) -> T).startCoroutineCancellable(
     receiver: R, completion: Continuation<T>,
-    onCancellation: ((cause: Throwable) -> Unit)? = null
-) =
-    runSafely(completion) {
-        createCoroutineUnintercepted(receiver, completion).intercepted().resumeCancellableWith(Result.success(Unit), onCancellation)
-    }
+) = runSafely(completion) {
+    createCoroutineUnintercepted(receiver, completion).intercepted().resumeCancellableWith(Result.success(Unit))
+}
 
 /**
  * Similar to [startCoroutineCancellable], but for already created coroutine.

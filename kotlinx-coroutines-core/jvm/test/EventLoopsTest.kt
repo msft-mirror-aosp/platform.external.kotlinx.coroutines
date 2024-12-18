@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.atomicfu.*
 import kotlinx.coroutines.channels.*
 import org.junit.Test
@@ -127,6 +124,21 @@ class EventLoopsTest : TestBase() {
         expect(2)
         event.blockingAwait()
         finish(4)
+    }
+
+    /**
+     * Tests that, when delayed tasks are due on an event loop, they will execute earlier than the newly-scheduled
+     * non-delayed tasks.
+     */
+    @Test
+    fun testPendingDelayedBeingDueEarlier() = runTest {
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            delay(1)
+            expect(1)
+        }
+        Thread.sleep(100)
+        yield()
+        finish(2)
     }
 
     class EventSync {

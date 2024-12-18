@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.debug
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import org.junit.Test
@@ -143,6 +140,7 @@ class StartModeProbesTest : DebugTestBase() {
     fun testLazy() = runTest({ it is CancellationException }) {
         launch(start = CoroutineStart.LAZY) {  }
         actor<Int>(start = CoroutineStart.LAZY) {  }
+        @Suppress("DEPRECATION_ERROR")
         broadcast<Int>(start = CoroutineStart.LAZY) {  }
         async(start = CoroutineStart.LAZY) { 1 }
         verifyPartialDump(5, "BlockingCoroutine",

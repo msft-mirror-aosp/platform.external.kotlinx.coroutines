@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.flow
 
 import kotlinx.coroutines.*
@@ -49,21 +45,21 @@ import kotlin.coroutines.*
  *
  * There are the following basic ways to create a flow:
  *
- * * [flowOf(...)][flowOf] functions to create a flow from a fixed set of values.
- * * [asFlow()][asFlow] extension functions on various types to convert them into flows.
- * * [flow { ... }][flow] builder function to construct arbitrary flows from
+ * - [flowOf(...)][flowOf] functions to create a flow from a fixed set of values.
+ * - [asFlow()][asFlow] extension functions on various types to convert them into flows.
+ * - [flow { ... }][flow] builder function to construct arbitrary flows from
  *   sequential calls to [emit][FlowCollector.emit] function.
- * * [channelFlow { ... }][channelFlow] builder function to construct arbitrary flows from
+ * - [channelFlow { ... }][channelFlow] builder function to construct arbitrary flows from
  *   potentially concurrent calls to the [send][kotlinx.coroutines.channels.SendChannel.send] function.
- * * [MutableStateFlow] and [MutableSharedFlow] define the corresponding constructor functions to create
+ * - [MutableStateFlow] and [MutableSharedFlow] define the corresponding constructor functions to create
  *   a _hot_ flow that can be directly updated.
  *
  * ### Flow constraints
  *
  * All implementations of the `Flow` interface must adhere to two key properties described in detail below:
  *
- * * Context preservation.
- * * Exception transparency.
+ * - Context preservation.
+ * - Exception transparency.
  *
  * These properties ensure the ability to perform local reasoning about the code with flows and modularize the code
  * in such a way that upstream flow emitters can be developed separately from downstream flow collectors.
@@ -106,13 +102,13 @@ import kotlin.coroutines.*
  *
  * ```
  * val myFlow = flow {
- *    // GlobalScope.launch { // is prohibited
- *    // launch(Dispatchers.IO) { // is prohibited
- *    // withContext(CoroutineName("myFlow")) { // is prohibited
- *    emit(1) // OK
- *    coroutineScope {
- *        emit(2) // OK -- still the same coroutine
- *    }
+ *     // GlobalScope.launch { // is prohibited
+ *     // launch(Dispatchers.IO) { // is prohibited
+ *     // withContext(CoroutineName("myFlow")) { // is prohibited
+ *     emit(1) // OK
+ *     coroutineScope {
+ *         emit(2) // OK -- still the same coroutine
+ *     }
  * }
  * ```
  *
@@ -123,11 +119,11 @@ import kotlin.coroutines.*
  *
  * If you are looking for performance and are sure that no concurrent emits and context jumps will happen,
  * the [flow] builder can be used alongside a [coroutineScope] or [supervisorScope] instead:
- *  - Scoped primitive should be used to provide a [CoroutineScope].
- *  - Changing the context of emission is prohibited, no matter whether it is `withContext(ctx)` or
- *    a builder argument (e.g. `launch(ctx)`).
- *  - Collecting another flow from a separate context is allowed, but it has the same effect as
- *    applying the [flowOn] operator to that flow, which is more efficient.
+ * - Scoped primitive should be used to provide a [CoroutineScope].
+ * - Changing the context of emission is prohibited, no matter whether it is `withContext(ctx)` or
+ *   a builder argument (e.g. `launch(ctx)`).
+ * - Collecting another flow from a separate context is allowed, but it has the same effect as
+ *   applying the [flowOn] operator to that flow, which is more efficient.
  *
  * ### Exception transparency
  *

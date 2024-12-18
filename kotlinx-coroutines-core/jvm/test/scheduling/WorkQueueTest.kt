@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.scheduling
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
 import org.junit.*
 import org.junit.Test
@@ -81,8 +78,8 @@ class WorkQueueTest : TestBase() {
     }
 }
 
-internal fun task(n: Long) = TaskImpl(Runnable {}, n, NonBlockingContext)
-internal fun blockingTask(n: Long) = TaskImpl(Runnable {}, n, BlockingContext)
+internal fun task(n: Long) = Runnable {}.asTask(n, NonBlockingContext)
+internal fun blockingTask(n: Long) = Runnable {}.asTask(n, BlockingContext)
 
 internal fun WorkQueue.drain(ref: ObjectRef<Task?>): List<Long> {
     var task: Task? = poll()

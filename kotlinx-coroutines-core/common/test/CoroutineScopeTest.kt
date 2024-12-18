@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("UNREACHABLE_CODE")
 
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
 import kotlin.test.*
@@ -248,6 +245,31 @@ class CoroutineScopeTest : TestBase() {
         expect(4)
         yield() // to coroutineScope
         finish(7)
+    }
+
+    @Test
+    fun testLaunchContainsDefaultDispatcher() = runTest {
+        val scopeWithoutDispatcher = CoroutineScope(coroutineContext.minusKey(ContinuationInterceptor))
+        scopeWithoutDispatcher.launch(Dispatchers.Default) {
+            assertSame(Dispatchers.Default, coroutineContext[ContinuationInterceptor])
+        }.join()
+        scopeWithoutDispatcher.launch {
+            assertSame(Dispatchers.Default, coroutineContext[ContinuationInterceptor])
+        }.join()
+    }
+
+    @Test
+    fun testNewCoroutineContextDispatcher() {
+        fun newContextDispatcher(c1: CoroutineContext, c2: CoroutineContext) =
+            ContextScope(c1).newCoroutineContext(c2)[ContinuationInterceptor]
+
+        assertSame(Dispatchers.Default, newContextDispatcher(EmptyCoroutineContext, EmptyCoroutineContext))
+        assertSame(Dispatchers.Default, newContextDispatcher(EmptyCoroutineContext, Dispatchers.Default))
+        assertSame(Dispatchers.Default, newContextDispatcher(Dispatchers.Default, EmptyCoroutineContext))
+        assertSame(Dispatchers.Default, newContextDispatcher(Dispatchers.Default, Dispatchers.Default))
+        assertSame(Dispatchers.Default, newContextDispatcher(Dispatchers.Unconfined, Dispatchers.Default))
+        assertSame(Dispatchers.Unconfined, newContextDispatcher(Dispatchers.Default, Dispatchers.Unconfined))
+        assertSame(Dispatchers.Unconfined, newContextDispatcher(Dispatchers.Unconfined, Dispatchers.Unconfined))
     }
 
     @Test

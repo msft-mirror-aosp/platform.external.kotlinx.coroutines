@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("UNUSED_VARIABLE")
 
 package kotlinx.coroutines.scheduling
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.internal.*
 import org.junit.*
@@ -98,6 +95,12 @@ abstract class SchedulerTestBase : TestBase() {
     }
 }
 
+/**
+ * Implementation note:
+ * Our [Dispatcher.IO] is a [limitedParallelism][CoroutineDispatcher.limitedParallelism] dispatcher
+ * on top of unbounded scheduler. We want to test this scenario, but on top of non-singleton
+ * scheduler so we can control the number of threads, thus this method.
+ */
 internal fun SchedulerCoroutineDispatcher.blocking(parallelism: Int = 16): CoroutineDispatcher {
     return object : CoroutineDispatcher() {
 

@@ -1,5 +1,142 @@
 # Change log for kotlinx.coroutines
 
+## Version 1.9.0
+
+### Features
+
+* Wasm/WASI target support (#4064). Thanks, @igoriakovlev!
+* `limitedParallelism` now optionally accepts the name of the dispatcher view for easier debugging (#4023).
+* No longer initialize `Dispatchers.IO` on the JVM when other standard dispatchers are accessed (#4166). Thanks, @metalhead8816!
+* Introduced the `Flow<T>.chunked(size: Int): Flow<List<T>>` operator that groups emitted values into groups of the given size (#1290).
+* Closeable dispatchers are instances of `AutoCloseable` now (#4123).
+
+### Fixes
+
+* Calling `hasNext` on a `Channel`'s iterator is idempotent (#4065). Thanks, @gitpaxultek!
+* `CoroutineScope()` created without an explicit dispatcher uses `Dispatchers.Default` on Native (#4074). Thanks, @whyoleg!
+* Fixed a bug that prevented non-Android `Dispatchers.Main` from initializing when the Firebase dependency is used (#3914).
+* Ensured a more intuitive ordering of tasks in `runBlocking` (#4134).
+* Forbid casting a `Mutex` to `Semaphore` (#4176).
+* Worked around a stack overflow that may occur when calling `asDeferred` on a `Future` many times (#4156).
+
+### Deprecations and promotions
+
+* Advanced the deprecation levels for `BroadcastChannel`-based API (#4197).
+* Advanced the deprecation levels for the old `kotlinx-coroutines-test` API (#4198).
+* Deprecated `Job.cancelFutureOnCompletion` (#4173).
+* Promoted `CoroutineDispatcher.limitedParallelism` to stable (#3864).
+* Promoted `CoroutineStart.ATOMIC` from `ExperimentalCoroutinesApi` to `DelicateCoroutinesApi` (#4169).
+* Promoted `CancellableContinuation.resume` with an `onCancellation` lambda to stable, providing extra arguments to the lambda (#4088).
+* Marked the classes and interfaces that are not supposed to be inherited from with the new `InternalForInheritanceCoroutinesApi` opt-in (#3770).
+* Marked the classes and interfaces inheriting from which is not stable with the new `ExperimentalForInheritanceCoroutinesApi` opt-in (#3770).
+
+### Other
+
+* Kotlin was updated to 2.0 (#4137).
+* Reworked the documentation for `CoroutineStart` and `Channel`-based API (#4147, #4148, #4167). Thanks, @globsterg!
+* Simplified the internal implementation of `Job` (#4053).
+* Small tweaks, fixes, and documentation improvements.
+
+## Version 1.9.0-RC.2
+
+* Advanced the deprecation levels for `BroadcastChannel`-based API (#4197).
+* Advanced the deprecation levels for the old `kotlinx-coroutines-test` API (#4198).
+* Promoted `CoroutineStart.ATOMIC` from `ExperimentalCoroutinesApi` to `DelicateCoroutinesApi` (#4169).
+* Reworked the documentation for `CoroutineStart` and `Channel`-based API (#4147, #4148, #4167). Thanks, @globsterg!
+* Forbid casting a `Mutex` to `Semaphore` (#4176).
+* Deprecated `Job.cancelFutureOnCompletion` (#4173).
+* Worked around a stack overflow that may occur when calling `asDeferred` on a `Future` many times (#4156).
+* Fixed a bug that disallowed setting a custom `probeCoroutineResumed` when starting coroutines with `UNDISPATCHED` (#4162).
+* No longer initialize `Dispatchers.IO` on the JVM when other standard dispatchers are accessed (#4166). Thanks, @metalhead8816!
+* Small tweaks, fixes, and documentation improvements.
+
+## Version 1.9.0-RC
+
+* Kotlin was updated to 2.0 (#4137).
+* Introduced the `Flow<T>.chunked(size: Int): Flow<List<T>>` operator that groups emitted values into groups of the given size (#1290).
+* Closeable dispatchers are instances of `AutoCloseable` now (#4123).
+* `limitedParallelism` now optionally accepts the name of the dispatcher view for easier debugging (#4023).
+* Marked the classes and interfaces that are not supposed to be inherited from with the new `InternalForInheritanceCoroutinesApi` opt-in (#3770).
+* Marked the classes and interfaces inheriting from which is not stable with the new `ExperimentalForInheritanceCoroutinesApi` opt-in (#3770).
+* Wasm/WASI target support (#4064). Thanks, @igoriakovlev!
+* Promoted `CoroutineDispatcher.limitedParallelism` to stable (#3864).
+* Promoted `CancellableContinuation.resume` with an `onCancellation` lambda to stable, providing extra arguments to the lambda (#4088).
+* Ensured a more intuitive ordering of tasks in `runBlocking` (#4134).
+* Simplified the internal implementation of `Job` (#4053).
+* Fixed a bug that prevented non-Android `Dispatchers.Main` from initializing when the Firebase dependency is used (#3914).
+* Calling `hasNext` on a `Channel`'s iterator is idempotent (#4065). Thanks, @gitpaxultek!
+* `CoroutineScope()` created without an explicit dispatcher uses `Dispatchers.Default` on Native (#4074). Thanks, @whyoleg!
+* Small tweaks and documentation fixes.
+
+## Version 1.8.1
+
+* Remove the `@ExperimentalTime` annotation from usages of `TimeSource` (#4046). Thanks, @hfhbd!
+* Introduce a workaround for an Android bug that caused an occasional `NullPointerException` when setting the `StateFlow` value on old Android devices (#3820).
+* No longer use `kotlin.random.Random` as part of `Dispatchers.Default` and `Dispatchers.IO` initialization (#4051).
+* `Flow.timeout` throws the exception with which the channel was closed (#4071).
+* Small tweaks and documentation fixes.
+
+### Changelog relative to version 1.8.1-Beta
+
+* `Flow.timeout` throws the exception with which the channel was closed (#4071).
+* Small documentation fixes.
+
+## Version 1.8.1-Beta
+
+* Remove the `@ExperimentalTime` annotation from usages of `TimeSource` (#4046). Thanks, @hfhbd!
+* Attempt a workaround for an Android bug that caused an occasional `NullPointerException` when setting the `StateFlow` value on old Android devices (#3820).
+* No longer use `kotlin.random.Random` as part of `Dispatchers.Default` and `Dispatchers.IO` initialization (#4051).
+* Small tweaks.
+
+## Version 1.8.0
+
+* Implement the library for the Web Assembly (Wasm) for JavaScript (#3713). Thanks @igoriakovlev!
+* Major Kotlin version update: was 1.8.20, became 1.9.21.
+* On Android, ensure that `Dispatchers.Main != Dispatchers.Main.immediate` (#3545, #3963).
+* Fixed a bug that caused `Flow` operators that limit cancel the upstream flow to forget that they were already finished if there is another such operator upstream (#4035, #4038)
+* `kotlinx-coroutines-debug` is published with the correct Java 9 module info (#3944).
+* `kotlinx-coroutines-debug` no longer requires manually setting `DebugProbes.enableCoroutineCreationStackTraces` to `false`, it's the default (#3783).
+* `kotlinx-coroutines-test`: set the default timeout of `runTest` to 60 seconds, added the ability to configure it on the JVM with the `kotlinx.coroutines.test.default_timeout=10s` (#3800).
+* `kotlinx-coroutines-test`: fixed a bug that could lead to not all uncaught exceptions being reported after some tests failed (#3800).
+* `delay(Duration)` rounds nanoseconds up to whole milliseconds and not down (#3920). Thanks @kevincianfarini!
+* `Dispatchers.Default` and the default thread for background work are guaranteed to use the same context classloader as the object containing it them (#3832).
+* It is guaranteed that by the time `SharedFlow.collect` suspends for the first time, it's registered as a subscriber for that `SharedFlow` (#3885). Before, it was also true, but not documented.
+* Atomicfu version is updated to 0.23.1, and Kotlin/Native atomic transformations are enabled, reducing the footprint of coroutine-heavy code (#3954).
+* Added a workaround for miscompilation of `withLock` on JS (#3881). Thanks @CLOVIS-AI!
+* Small tweaks and documentation fixes.
+
+### Changelog relative to version 1.8.0-RC2
+
+* `kotlinx-coroutines-debug` no longer requires manually setting `DebugProbes.enableCoroutineCreationStackTraces` to `false`, it's the default (#3783).
+* Fixed a bug that caused `Flow` operators that limit cancel the upstream flow to forget that they were already finished if there is another such operator upstream (#4035, #4038)
+* Small documentation fixes.
+
+## Version 1.8.0-RC2
+
+* Fixed a bug introduced in 1.8.0-RC where `Mutex.onLock` would not unlock if a non-local return was performed (#3985).
+* Fixed a bug introduced in 1.8.0-RC where depending on kotlinx-coroutines in Native code failed with a compilation error `Could not find "org.jetbrains.kotlinx:atomicfu-cinterop-interop"` (#3968).
+* Small documentation fixes.
+
+## Version 1.8.0-RC
+
+* Implement the library for the Web Assembly (Wasm) for JavaScript (#3713). Thanks @igoriakovlev!
+* On Android, ensure that `Dispatchers.Main != Dispatchers.Main.immediate` (#3545, #3963).
+* `kotlinx-coroutines-debug` is published with the correct Java 9 module info (#3944).
+* Major Kotlin version update: was 1.8.20, became 1.9.21.
+* `kotlinx-coroutines-test`: set the default timeout of `runTest` to 60 seconds, added the ability to configure it on the JVM with the `kotlinx.coroutines.test.default_timeout=10s` (#3800).
+* `kotlinx-coroutines-test`: fixed a bug that could lead to not all uncaught exceptions being reported after some tests failed (#3800).
+* `delay(Duration)` rounds nanoseconds up to whole milliseconds and not down (#3920). Thanks @kevincianfarini!
+* `Dispatchers.Default` and the default thread for background work are guaranteed to use the same context classloader as the object containing it them (#3832).
+* It is guaranteed that by the time `SharedFlow.collect` suspends for the first time, it's registered as a subscriber for that `SharedFlow` (#3885). Before, it was also true, but not documented.
+* Atomicfu version is updated to 0.23.1, and Kotlin/Native atomic transformations are enabled, reducing the footprint of coroutine-heavy code (#3954).
+* Added a workaround for miscompilation of `withLock` on JS (#3881). Thanks @CLOVIS-AI!
+* Small tweaks and documentation fixes.
+
+## Version 1.7.3
+
+* Disabled the publication of the multiplatform library metadata for the old (1.6 and earlier) KMP Gradle plugin (#3809).
+* Fixed a bug introduced in 1.7.2 that disabled the coroutine debugger in IDEA (#3822).
+
 ## Version 1.7.2
 
 ### Bug fixes and improvements

@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.sync
 
 import kotlinx.atomicfu.*
@@ -32,14 +28,14 @@ public interface Semaphore {
      * Acquires a permit from this semaphore, suspending until one is available.
      * All suspending acquirers are processed in first-in-first-out (FIFO) order.
      *
-     * This suspending function is cancellable. If the [Job] of the current coroutine is cancelled or completed while this
-     * function is suspended, this function immediately resumes with [CancellationException].
-     * There is a **prompt cancellation guarantee**. If the job was cancelled while this function was
-     * suspended, it will not resume successfully. See [suspendCancellableCoroutine] documentation for low-level details.
+     * This suspending function is cancellable: if the [Job] of the current coroutine is cancelled while this
+     * suspending function is waiting, this function immediately resumes with [CancellationException].
+     * There is a **prompt cancellation guarantee**: even if this function is ready to return the result, but was cancelled
+     * while suspended, [CancellationException] will be thrown. See [suspendCancellableCoroutine] for low-level details.
      * This function releases the semaphore if it was already acquired by this function before the [CancellationException]
      * was thrown.
      *
-     * Note, that this function does not check for cancellation when it does not suspend.
+     * Note that this function does not check for cancellation when it does not suspend.
      * Use [CoroutineScope.isActive] or [CoroutineScope.ensureActive] to periodically
      * check for cancellation in tight loops if needed.
      *
@@ -82,17 +78,16 @@ public suspend inline fun <T> Semaphore.withPermit(action: () -> T): T {
     contract {
         callsInPlace(action, InvocationKind.EXACTLY_ONCE)
     }
-
     acquire()
-    try {
-        return action()
+    return try {
+        action()
     } finally {
         release()
     }
 }
 
 @Suppress("UNCHECKED_CAST")
-internal open class SemaphoreImpl(private val permits: Int, acquiredPermits: Int) : Semaphore {
+internal open class SemaphoreAndMutexImpl(private val permits: Int, acquiredPermits: Int) {
     /*
        The queue of waiting acquirers is essentially an infinite array based on the list of segments
        (see `SemaphoreSegment`); each segment contains a fixed number of slots. To determine a slot for each enqueue
@@ -149,11 +144,11 @@ internal open class SemaphoreImpl(private val permits: Int, acquiredPermits: Int
      * cannot be greater than 2^31 in any real application.
      */
     private val _availablePermits = atomic(permits - acquiredPermits)
-    override val availablePermits: Int get() = max(_availablePermits.value, 0)
+    val availablePermits: Int get() = max(_availablePermits.value, 0)
 
-    private val onCancellationRelease = { _: Throwable -> release() }
+    private val onCancellationRelease = { _: Throwable, _: Unit, _: CoroutineContext -> release() }
 
-    override fun tryAcquire(): Boolean {
+    fun tryAcquire(): Boolean {
         while (true) {
             // Get the current number of available permits.
             val p = _availablePermits.value
@@ -172,7 +167,7 @@ internal open class SemaphoreImpl(private val permits: Int, acquiredPermits: Int
         }
     }
 
-    override suspend fun acquire() {
+    suspend fun acquire() {
         // Decrement the number of available permits.
         val p = decPermits()
         // Is the permit acquired?
@@ -244,7 +239,7 @@ internal open class SemaphoreImpl(private val permits: Int, acquiredPermits: Int
         }
     }
 
-    override fun release() {
+    fun release() {
         while (true) {
             // Increment the number of available permits.
             val p = _availablePermits.getAndIncrement()
@@ -351,11 +346,15 @@ internal open class SemaphoreImpl(private val permits: Int, acquiredPermits: Int
             } else false
         }
         is SelectInstance<*> -> {
-            trySelect(this@SemaphoreImpl, Unit)
+            trySelect(this@SemaphoreAndMutexImpl, Unit)
         }
         else -> error("unexpected: $this")
     }
 }
+
+private class SemaphoreImpl(
+    permits: Int, acquiredPermits: Int
+): SemaphoreAndMutexImpl(permits, acquiredPermits), Semaphore
 
 private fun createSegment(id: Long, prev: SemaphoreSegment?) = SemaphoreSegment(id, prev, 0)
 

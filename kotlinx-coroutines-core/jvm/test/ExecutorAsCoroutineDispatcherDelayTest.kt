@@ -1,9 +1,6 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
+import kotlinx.coroutines.testing.*
 import org.junit.Test
 import java.lang.Runnable
 import java.util.concurrent.*
@@ -40,5 +37,22 @@ class ExecutorAsCoroutineDispatcherDelayTest : TestBase() {
         }
         executor.shutdown()
         assertEquals(1, callsToSchedule)
+    }
+
+    @Test
+    fun testCancelling() = runTest {
+        val executor = STPE()
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                expect(1)
+                (executor.asCoroutineDispatcher() as Delay).scheduleResumeAfterDelay(1_000_000, cont)
+                cont.cancel()
+                expect(2)
+            }
+        }
+        expect(3)
+        assertTrue(executor.getQueue().isEmpty())
+        executor.shutdown()
+        finish(4)
     }
 }

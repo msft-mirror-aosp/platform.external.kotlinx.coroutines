@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.coroutines.internal.*
@@ -31,10 +27,9 @@ internal object DefaultIoScheduler : CoroutineDispatcher() {
     private val unlimitedPool = newFixedThreadPoolContext(2048, "Dispatchers.IO")
     private val io = unlimitedPool.limitedParallelism(64) // Default JVM size
 
-    @ExperimentalCoroutinesApi
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         // See documentation to Dispatchers.IO for the rationale
-        return unlimitedPool.limitedParallelism(parallelism)
+        return unlimitedPool.limitedParallelism(parallelism, name)
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {

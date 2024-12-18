@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.atomicfu.*
@@ -9,17 +5,10 @@ import kotlinx.coroutines.internal.*
 import kotlin.coroutines.*
 import kotlin.jvm.*
 
-internal fun <T> Result<T>.toState(
-    onCancellation: ((cause: Throwable) -> Unit)? = null
-): Any? = fold(
-    onSuccess = { if (onCancellation != null) CompletedWithCancellation(it, onCancellation) else it },
-    onFailure = { CompletedExceptionally(it) }
-)
+internal fun <T> Result<T>.toState(): Any? = getOrElse { CompletedExceptionally(it) }
 
-internal fun <T> Result<T>.toState(caller: CancellableContinuation<*>): Any? = fold(
-    onSuccess = { it },
-    onFailure = { CompletedExceptionally(recoverStackTrace(it, caller)) }
-)
+internal fun <T> Result<T>.toState(caller: CancellableContinuation<*>): Any? =
+    getOrElse { CompletedExceptionally(recoverStackTrace(it, caller)) }
 
 @Suppress("RESULT_CLASS_IN_RETURN_TYPE", "UNCHECKED_CAST")
 internal fun <T> recoverResult(state: Any?, uCont: Continuation<T>): Result<T> =
@@ -27,11 +16,6 @@ internal fun <T> recoverResult(state: Any?, uCont: Continuation<T>): Result<T> =
         Result.failure(recoverStackTrace(state.cause, uCont))
     else
         Result.success(state as T)
-
-internal data class CompletedWithCancellation(
-    @JvmField val result: Any?,
-    @JvmField val onCancellation: (cause: Throwable) -> Unit
-)
 
 /**
  * Class for an internal state of a job that was cancelled (completed exceptionally).

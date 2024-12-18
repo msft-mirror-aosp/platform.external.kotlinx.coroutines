@@ -1,11 +1,7 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
+package kotlinx.coroutines.flow
 
-package kotlinx.coroutines.flow.operators
-
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
 import kotlin.test.*
 
 class CancellableTest : TestBase() {

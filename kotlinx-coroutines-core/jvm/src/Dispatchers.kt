@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2023 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.coroutines.internal.*
@@ -66,7 +62,7 @@ public actual object Dispatchers {
      * during operations over IO dispatcher.
      */
     @JvmStatic
-    public val IO: CoroutineDispatcher = DefaultIoScheduler
+    public val IO: CoroutineDispatcher get() = DefaultIoScheduler
 
     /**
      * Shuts down built-in dispatchers, such as [Default] and [IO],

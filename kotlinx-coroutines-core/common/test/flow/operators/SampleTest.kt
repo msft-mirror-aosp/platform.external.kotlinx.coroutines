@@ -1,12 +1,8 @@
-/*
- * Copyright 2016-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
+package kotlinx.coroutines.flow
 
-package kotlinx.coroutines.flow.operators
-
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.flow.*
 import kotlin.test.*
 import kotlin.time.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -295,5 +291,11 @@ class SampleTest : TestBase() {
         val result = flow.sample(1000.milliseconds).toList()
         assertEquals(listOf("A", "B", "D"), result)
         finish(5)
+    }
+
+    @Test
+    fun testFailsWithIllegalArgument() {
+        val flow = emptyFlow<Int>()
+        assertFailsWith<IllegalArgumentException> { flow.debounce(-1) }
     }
 }

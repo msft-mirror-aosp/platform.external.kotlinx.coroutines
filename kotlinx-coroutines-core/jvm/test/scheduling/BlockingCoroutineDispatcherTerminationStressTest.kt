@@ -1,10 +1,7 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
+package kotlinx.coroutines.scheduling
 
-package kotlinx.coroutines
-
-import kotlinx.coroutines.scheduling.*
+import kotlinx.coroutines.testing.*
+import kotlinx.coroutines.*
 import org.junit.*
 import java.util.*
 import java.util.concurrent.*

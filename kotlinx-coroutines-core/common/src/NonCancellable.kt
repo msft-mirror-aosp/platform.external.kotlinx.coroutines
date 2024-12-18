@@ -1,6 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
 @file:Suppress("DEPRECATION_ERROR")
 
 package kotlinx.coroutines
@@ -24,6 +21,7 @@ import kotlin.coroutines.*
  * when the parent is cancelled, the whole parent-child relation between parent and child is severed.
  * The parent will not wait for the child's completion, nor will be cancelled when the child crashed.
  */
+@OptIn(InternalForInheritanceCoroutinesApi::class)
 @Suppress("DeprecatedCallableAddReplaceWith")
 public object NonCancellable : AbstractCoroutineContextElement(Job), Job {
 

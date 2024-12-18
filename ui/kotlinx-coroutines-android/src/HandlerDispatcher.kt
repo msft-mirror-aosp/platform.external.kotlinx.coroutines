@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("unused")
 
 package kotlinx.coroutines.android
@@ -31,18 +27,18 @@ public sealed class HandlerDispatcher : MainCoroutineDispatcher(), Delay {
      * Example of usage:
      * ```
      * suspend fun updateUiElement(val text: String) {
-     *   /*
-     *    * If it is known that updateUiElement can be invoked both from the Main thread and from other threads,
-     *    * `immediate` dispatcher is used as a performance optimization to avoid unnecessary dispatch.
-     *    *
-     *    * In that case, when `updateUiElement` is invoked from the Main thread, `uiElement.text` will be
-     *    * invoked immediately without any dispatching, otherwise, the `Dispatchers.Main` dispatch cycle via
-     *    * `Handler.post` will be triggered.
-     *    */
-     *   withContext(Dispatchers.Main.immediate) {
-     *     uiElement.text = text
-     *   }
-     *   // Do context-independent logic such as logging
+     *     /*
+     *      * If it is known that updateUiElement can be invoked both from the Main thread and from other threads,
+     *      * `immediate` dispatcher is used as a performance optimization to avoid unnecessary dispatch.
+     *      *
+     *      * In that case, when `updateUiElement` is invoked from the Main thread, `uiElement.text` will be
+     *      * invoked immediately without any dispatching, otherwise, the `Dispatchers.Main` dispatch cycle via
+     *      * `Handler.post` will be triggered.
+     *      */
+     *     withContext(Dispatchers.Main.immediate) {
+     *         uiElement.text = text
+     *     }
+     *     // Do context-independent logic such as logging
      * }
      * ```
      */
@@ -127,11 +123,8 @@ internal class HandlerContext private constructor(
         name: String? = null
     ) : this(handler, name, false)
 
-    @Volatile
-    private var _immediate: HandlerContext? = if (invokeImmediately) this else null
-
-    override val immediate: HandlerContext = _immediate ?:
-        HandlerContext(handler, name, true).also { _immediate = it }
+    override val immediate: HandlerContext = if (invokeImmediately) this else
+        HandlerContext(handler, name, true)
 
     override fun isDispatchNeeded(context: CoroutineContext): Boolean {
         return !invokeImmediately || Looper.myLooper() != handler.looper
@@ -172,8 +165,10 @@ internal class HandlerContext private constructor(
         if (invokeImmediately) "$str.immediate" else str
     }
 
-    override fun equals(other: Any?): Boolean = other is HandlerContext && other.handler === handler
-    override fun hashCode(): Int = System.identityHashCode(handler)
+    override fun equals(other: Any?): Boolean =
+        other is HandlerContext && other.handler === handler && other.invokeImmediately == invokeImmediately
+    // inlining `Boolean.hashCode()` for Android compatibility, as requested by Animal Sniffer
+    override fun hashCode(): Int = System.identityHashCode(handler) xor if (invokeImmediately) 1231 else 1237
 }
 
 @Volatile

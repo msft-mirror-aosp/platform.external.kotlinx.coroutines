@@ -1,11 +1,9 @@
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.test
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.testing.*
 import kotlin.test.*
+import kotlin.test.assertFailsWith
 
 @Suppress("DEPRECATION", "DEPRECATION_ERROR")
 class TestRunBlockingTest {
@@ -239,7 +237,7 @@ class TestRunBlockingTest {
                 delay(SLOW)
                 executed = true
             }
-            advanceTimeBy(SLOW)
+            delay(SLOW)
 
             assertTrue(deferred.isCompleted)
             assertTrue(executed)
@@ -317,49 +315,6 @@ class TestRunBlockingTest {
             }
         }
     }
-
-    @Test
-    fun pauseDispatcher_disablesAutoAdvance_forCurrent() = runBlockingTest {
-        var mutable = 0
-        pauseDispatcher {
-            launch {
-                mutable++
-            }
-            assertEquals(0, mutable)
-            runCurrent()
-            assertEquals(1, mutable)
-        }
-    }
-
-    @Test
-    fun pauseDispatcher_disablesAutoAdvance_forDelay() = runBlockingTest {
-        var mutable = 0
-        pauseDispatcher {
-            launch {
-                mutable++
-                delay(SLOW)
-                mutable++
-            }
-            assertEquals(0, mutable)
-            runCurrent()
-            assertEquals(1, mutable)
-            advanceTimeBy(SLOW)
-            assertEquals(2, mutable)
-        }
-    }
-
-    @Test
-    fun pauseDispatcher_withDelay_resumesAfterPause() = runBlockingTest {
-        var mutable = 0
-        assertRunsFast {
-            pauseDispatcher {
-                delay(1_000)
-                mutable++
-            }
-        }
-        assertEquals(1, mutable)
-    }
-
 
     @Test
     fun testWithTestContextThrowingAnAssertionError() {

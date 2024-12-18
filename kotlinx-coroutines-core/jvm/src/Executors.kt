@@ -1,14 +1,10 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.internal.*
-import java.io.*
+import java.io.Closeable
 import java.util.concurrent.*
 import kotlin.coroutines.*
+import kotlin.AutoCloseable
 
 /**
  * [CoroutineDispatcher] that has underlying [Executor] for dispatching tasks.
@@ -17,7 +13,7 @@ import kotlin.coroutines.*
  * This class is generally used as a bridge between coroutine-based API and
  * asynchronous API that requires an instance of the [Executor].
  */
-public abstract class ExecutorCoroutineDispatcher: CoroutineDispatcher(), Closeable {
+public abstract class ExecutorCoroutineDispatcher : CoroutineDispatcher(), Closeable, AutoCloseable {
     /** @suppress */
     @ExperimentalStdlibApi
     public companion object Key : AbstractCoroutineContextKey<CoroutineDispatcher, ExecutorCoroutineDispatcher>(
@@ -121,13 +117,12 @@ private class DispatcherExecutor(@JvmField val dispatcher: CoroutineDispatcher) 
 
 internal class ExecutorCoroutineDispatcherImpl(override val executor: Executor) : ExecutorCoroutineDispatcher(), Delay {
 
-    /*
-     * Attempts to reflectively (to be Java 6 compatible) invoke
-     * ScheduledThreadPoolExecutor.setRemoveOnCancelPolicy in order to cleanup
-     * internal scheduler queue on cancellation.
-     */
     init {
-        removeFutureOnCancel(executor)
+        /* Attempt to invoke ScheduledThreadPoolExecutor.setRemoveOnCancelPolicy in order to clean up
+         * the internal scheduler queue on cancellation. */
+        if (executor is ScheduledThreadPoolExecutor) {
+            executor.removeOnCancelPolicy = true
+        }
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
@@ -148,7 +143,7 @@ internal class ExecutorCoroutineDispatcherImpl(override val executor: Executor) 
         )
         // If everything went fine and the scheduling attempt was not rejected -- use it
         if (future != null) {
-            continuation.cancelFutureOnCancellation(future)
+            continuation.invokeOnCancellation(CancelFutureOnCancel(future))
             return
         }
         // Otherwise fallback to default executor
@@ -203,4 +198,13 @@ private class DisposableFutureHandle(private val future: Future<*>) : Disposable
         future.cancel(false)
     }
     override fun toString(): String = "DisposableFutureHandle[$future]"
+}
+
+private class CancelFutureOnCancel(private val future: Future<*>) : CancelHandler {
+    override fun invoke(cause: Throwable?) {
+        // Don't interrupt when cancelling future on completion, because no one is going to reset this
+        // interruption flag and it will cause spurious failures elsewhere
+        future.cancel(false)
+    }
+    override fun toString() = "CancelFutureOnCancel[$future]"
 }

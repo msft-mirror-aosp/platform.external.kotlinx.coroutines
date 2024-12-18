@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.internal
 
 /*
@@ -9,13 +5,11 @@ package kotlinx.coroutines.internal
  * where atomicfu doesn't support its tranformations.
  *
  * Have `Local` prefix to avoid AFU clashes during star-imports
+ *
+ * TODO: remove after https://youtrack.jetbrains.com/issue/KT-62423/
  */
 internal expect class LocalAtomicInt(value: Int) {
     fun get(): Int
     fun set(value: Int)
     fun decrementAndGet(): Int
 }
-
-internal inline var LocalAtomicInt.value
-    get() = get()
-    set(value) = set(value)

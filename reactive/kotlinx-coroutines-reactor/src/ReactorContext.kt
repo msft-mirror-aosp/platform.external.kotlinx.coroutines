@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.reactor
 
 import kotlin.coroutines.*
@@ -30,7 +26,7 @@ import reactor.util.context.*
  *
  * // Now add ReactorContext
  * withContext(Context.of("answer", "42").asCoroutineContext()) {
- *    flux.awaitFirst() // Will print "Context{'key'='value'}"
+ *     flux.awaitFirst() // Will print "Context{'key'='value'}"
  * }
  * ```
  *

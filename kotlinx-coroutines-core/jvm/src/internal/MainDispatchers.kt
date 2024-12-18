@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.internal
 
 import kotlinx.coroutines.*
@@ -95,7 +91,7 @@ private class MissingMainCoroutineDispatcher(
     override fun isDispatchNeeded(context: CoroutineContext): Boolean =
         missing()
 
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher =
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher =
         missing()
 
     override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle =

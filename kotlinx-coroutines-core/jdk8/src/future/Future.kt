@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.future
 
 import kotlinx.coroutines.*
@@ -142,7 +138,7 @@ public fun <T> CompletionStage<T>.asDeferred(): Deferred<T> {
             handleCoroutineException(EmptyCoroutineContext, e)
         }
     }
-    result.cancelFutureOnCompletion(future)
+    result.invokeOnCompletion(handler = CancelFutureOnCompletion(future))
     return result
 }
 
@@ -150,7 +146,7 @@ public fun <T> CompletionStage<T>.asDeferred(): Deferred<T> {
  * Awaits for completion of [CompletionStage] without blocking a thread.
  *
  * This suspending function is cancellable.
- * If the [Job] of the current coroutine is cancelled or completed while this suspending function is waiting, this function
+ * If the [Job] of the current coroutine is cancelled while this suspending function is waiting, this function
  * stops waiting for the completion stage and immediately resumes with [CancellationException][kotlinx.coroutines.CancellationException].
  *
  * This method is intended to be used with one-shot futures, so on coroutine cancellation the [CompletableFuture] that
@@ -192,5 +188,20 @@ private class ContinuationHandler<T>(
             // the future has completed with an exception, unwrap it to provide consistent view of .await() result and to propagate only original exception
             cont.resumeWithException((exception as? CompletionException)?.cause ?: exception)
         }
+    }
+}
+
+private class CancelFutureOnCompletion(
+    private val future: Future<*>
+) : JobNode() {
+    override val onCancelling get() = false
+
+    override fun invoke(cause: Throwable?) {
+        // Don't interrupt when cancelling future on completion, because no one is going to reset this
+        // interruption flag and it will cause spurious failures elsewhere.
+        // We do not cancel the future if it's already completed in some way,
+        // because `cancel` on a completed future won't change the state but is not guaranteed to behave well
+        // on reentrancy. See https://github.com/Kotlin/kotlinx.coroutines/issues/4156
+        if (cause != null && !future.isDone) future.cancel(false)
     }
 }

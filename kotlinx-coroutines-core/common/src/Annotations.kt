@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlinx.coroutines.flow.*
@@ -84,6 +80,7 @@ public annotation class ObsoleteCoroutinesApi
  * `kotlinx.coroutines`, because their signatures and semantics will change between future releases without any
  * warnings and without providing any migration aids.
  */
+@MustBeDocumented
 @Retention(value = AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.TYPEALIAS, AnnotationTarget.PROPERTY)
 @RequiresOptIn(
@@ -93,3 +90,29 @@ public annotation class ObsoleteCoroutinesApi
             "so stable API could be provided instead"
 )
 public annotation class InternalCoroutinesApi
+
+/**
+ * Marks declarations that cannot be safely inherited from.
+ */
+@Target(AnnotationTarget.CLASS)
+@RequiresOptIn(
+    level = RequiresOptIn.Level.WARNING, message =
+    "Inheriting from this kotlinx.coroutines API is unstable. " +
+        "Either new methods may be added in the future, which would break the inheritance, " +
+        "or correctly inheriting from it requires fulfilling contracts that may change in the future."
+)
+public annotation class ExperimentalForInheritanceCoroutinesApi
+
+/**
+ * Marks declarations that cannot be safely inherited from.
+ */
+@Target(AnnotationTarget.CLASS)
+@RequiresOptIn(
+    level = RequiresOptIn.Level.WARNING, message =
+    "This is a kotlinx.coroutines API that is not intended to be inherited from, " +
+        "as the library may handle predefined instances of this in a special manner. " +
+        "This will be an error in a future release. " +
+        "If you need to inherit from this, please describe your use case in " +
+        "https://github.com/Kotlin/kotlinx.coroutines/issues, so that we can provide a stable API for inheritance. "
+)
+public annotation class InternalForInheritanceCoroutinesApi

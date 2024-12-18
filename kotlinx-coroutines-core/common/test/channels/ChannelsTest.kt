@@ -1,11 +1,8 @@
-/*
- * Copyright 2016-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 @file:Suppress("DEPRECATION")
 
 package kotlinx.coroutines.channels
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
 import kotlin.math.*
@@ -96,6 +93,15 @@ class ChannelsTest: TestBase() {
     fun testToList() = runTest {
         assertEquals(testList, testList.asReceiveChannel().toList())
 
+    }
+
+    @Test
+    fun testToListOnFailedChannel() = runTest {
+        val channel = Channel<Int>()
+        channel.close(TestException())
+        assertFailsWith<TestException> {
+            channel.toList()
+        }
     }
 
     private fun <E> Iterable<E>.asReceiveChannel(context: CoroutineContext = Dispatchers.Unconfined): ReceiveChannel<E> =

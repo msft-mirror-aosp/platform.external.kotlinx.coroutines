@@ -1,7 +1,3 @@
-/*
- * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines
 
 import kotlin.coroutines.*
@@ -12,8 +8,7 @@ import kotlin.jvm.*
  */
 internal object Unconfined : CoroutineDispatcher() {
 
-    @ExperimentalCoroutinesApi
-    override fun limitedParallelism(parallelism: Int): CoroutineDispatcher {
+    override fun limitedParallelism(parallelism: Int, name: String?): CoroutineDispatcher {
         throw UnsupportedOperationException("limitedParallelism is not supported for Dispatchers.Unconfined")
     }
 

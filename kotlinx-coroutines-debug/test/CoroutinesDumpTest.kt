@@ -1,10 +1,8 @@
-/*
- * Copyright 2016-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
- */
-
 package kotlinx.coroutines.debug
 
+import kotlinx.coroutines.testing.*
 import kotlinx.coroutines.*
+import org.junit.*
 import org.junit.Test
 import kotlin.coroutines.*
 import kotlin.test.*
@@ -12,6 +10,12 @@ import kotlin.test.*
 class CoroutinesDumpTest : DebugTestBase() {
     private val monitor = Any()
     private var coroutineThread: Thread? = null // guarded by monitor
+
+    @Before
+    override fun setUp() {
+        super.setUp()
+        DebugProbes.enableCreationStackTraces = true
+    }
 
     @Test
     fun testSuspendedCoroutine() = runBlocking {
@@ -28,7 +32,6 @@ class CoroutinesDumpTest : DebugTestBase() {
                     "\tat _COROUTINE._CREATION._(CoroutineDebugging.kt)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt)\n" +
                     "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt)\n" +
-                    "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable\$default(Cancellable.kt)\n" +
                     "\tat kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt)\n",
             ignoredCoroutine = "BlockingCoroutine"
         ) {
@@ -56,7 +59,6 @@ class CoroutinesDumpTest : DebugTestBase() {
                     "\tat _COROUTINE._CREATION._(CoroutineDebugging.kt)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt)\n" +
                     "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt)\n" +
-                    "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable\$default(Cancellable.kt)\n" +
                     "\tat kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt)\n" +
                     "\tat kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt)\n" +
                     "\tat kotlinx.coroutines.BuildersKt__Builders_commonKt.async(Builders.common.kt)\n" +
@@ -87,7 +89,6 @@ class CoroutinesDumpTest : DebugTestBase() {
                     "\tat _COROUTINE._CREATION._(CoroutineDebugging.kt)\n" +
                     "\tat kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt)\n" +
                     "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt)\n" +
-                    "\tat kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable\$default(Cancellable.kt)\n" +
                     "\tat kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt)\n" +
                     "\tat kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt)\n" +
                     "\tat kotlinx.coroutines.BuildersKt__Builders_commonKt.async(Builders.common.kt)\n" +
@@ -99,6 +100,26 @@ class CoroutinesDumpTest : DebugTestBase() {
         ) {
             deferred.cancel()
             coroutineThread!!.interrupt()
+        }
+    }
+
+    /**
+     * Tests that a coroutine started with [CoroutineStart.UNDISPATCHED] is considered running.
+     */
+    @Test
+    fun testUndispatchedCoroutineIsRunning() = runBlocking {
+        val job = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) { // or launch(Dispatchers.Unconfined)
+            verifyDump(
+                "Coroutine \"coroutine#1\":StandaloneCoroutine{Active}@1e4a7dd4, state: RUNNING\n",
+                ignoredCoroutine = "BlockingCoroutine"
+            )
+            delay(Long.MAX_VALUE)
+        }
+        verifyDump(
+            "Coroutine \"coroutine#1\":StandaloneCoroutine{Active}@1e4a7dd4, state: SUSPENDED\n",
+            ignoredCoroutine = "BlockingCoroutine"
+        ) {
+            job.cancel()
         }
     }
 
@@ -121,7 +142,6 @@ class CoroutinesDumpTest : DebugTestBase() {
         val expected =
             "kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsJvmKt.createCoroutineUnintercepted(IntrinsicsJvm.kt)\n" +
             "kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt)\n" +
-            "kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable\$default(Cancellable.kt)\n" +
             "kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt)\n" +
             "kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt)\n" +
             "kotlinx.coroutines.BuildersKt__Builders_commonKt.async(Builders.common.kt)\n" +
