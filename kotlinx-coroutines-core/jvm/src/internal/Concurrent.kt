@@ -3,7 +3,6 @@ package kotlinx.coroutines.internal
 import java.util.*
 import kotlin.concurrent.withLock as withLockJvm
 
-@Suppress("ACTUAL_WITHOUT_EXPECT")
 internal actual typealias ReentrantLock = java.util.concurrent.locks.ReentrantLock
 
 internal actual inline fun <T> ReentrantLock.withLock(action: () -> T) = this.withLockJvm(action)
