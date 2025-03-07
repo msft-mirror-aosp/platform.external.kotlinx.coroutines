@@ -87,7 +87,13 @@ public interface CoroutineScope {
  * Adds the specified coroutine context to this scope, overriding existing elements in the current
  * scope's context with the corresponding keys.
  *
- * This is a shorthand for `CoroutineScope(thisScope.coroutineContext + context)`.
+ * This is a shorthand for `CoroutineScope(thisScope.coroutineContext + context)` and can be used as
+ * a combinator with existing constructors:
+ * ```
+ * class MyActivity {
+ *     val uiScope = MainScope() + CoroutineName("MyActivity")
+ * }
+ * ```
  */
 public operator fun CoroutineScope.plus(context: CoroutineContext): CoroutineScope =
     ContextScope(coroutineContext + context)
@@ -117,13 +123,30 @@ public fun MainScope(): CoroutineScope = ContextScope(SupervisorJob() + Dispatch
 /**
  * Returns `true` when the current [Job] is still active (has not completed and was not cancelled yet).
  *
- * Check this property in long-running computation loops to support cancellation:
+ * Coroutine cancallation [is cooperative](https://kotlinlang.org/docs/cancellation-and-timeouts.html#cancellation-is-cooperative)
+ * and normally, it's checked if a coroutine is cancelled when it *suspends*, for example,
+ * when trying to read from a [channel][kotlinx.coroutines.channels.Channel] that is empty.
+ *
+ * Sometimes, a coroutine does not need to perform suspending operations, but still wants to be cooperative
+ * and respect cancellation.
+ *
+ * The [isActive] property is inteded to be used for scenarios like this:
  * ```
- * while (isActive) {
- *     // do some computation
+ * val watchdogDispatcher = Dispatchers.IO.limitParallelism(1)
+ * fun backgroundWork() {
+ *     println("Doing bookkeeping in the background in a non-suspending manner")
+ *     Thread.sleep(100L) // Sleep 100ms
+ * }
+ * // Part of some non-trivial CoroutineScope-confined lifecycle
+ * launch(watchdogDispatcher) {
+ *     while (isActive) {
+ *         // Repetitively do some background work that is non-suspending
+ *         backgroundWork()
+ *     }
  * }
  * ```
  *
+ * This function returns `true` if there is no [job][Job] in the scope's [coroutineContext][CoroutineScope.coroutineContext].
  * This property is a shortcut for `coroutineContext.isActive` in the scope when
  * [CoroutineScope] is available.
  * See [coroutineContext][kotlin.coroutines.coroutineContext],
@@ -258,6 +281,7 @@ public suspend fun <R> coroutineScope(block: suspend CoroutineScope.() -> R): R 
     }
     return suspendCoroutineUninterceptedOrReturn { uCont ->
         val coroutine = ScopeCoroutine(uCont.context, uCont)
+        @Suppress("LEAKED_IN_PLACE_LAMBDA") // Contract is preserved, invoked immediately or throws
         coroutine.startUndispatchedOrReturn(coroutine, block)
     }
 }
@@ -292,35 +316,59 @@ public fun CoroutineScope.cancel(cause: CancellationException? = null) {
 public fun CoroutineScope.cancel(message: String, cause: Throwable? = null): Unit = cancel(CancellationException(message, cause))
 
 /**
- * Ensures that current scope is [active][CoroutineScope.isActive].
+ * Throws the [CancellationException] that was the scope's cancellation cause if the scope is no longer [active][CoroutineScope.isActive].
  *
- * If the job is no longer active, throws [CancellationException].
- * If the job was cancelled, thrown exception contains the original cancellation cause.
- * This function does not do anything if there is no [Job] in the scope's [coroutineContext][CoroutineScope.coroutineContext].
+ * Coroutine cancallation [is cooperative](https://kotlinlang.org/docs/cancellation-and-timeouts.html#cancellation-is-cooperative)
+ * and normally, it's checked if a coroutine is cancelled when it *suspends*, for example,
+ * when trying to read from a [channel][kotlinx.coroutines.channels.Channel] that is empty.
  *
- * This method is a drop-in replacement for the following code, but with more precise exception:
+ * Sometimes, a coroutine does not need to perform suspending operations, but still wants to be cooperative
+ * and respect cancellation.
+ *
+ * [ensureActive] function is inteded to be used for these scenarios and immediately bubble up the cancellation exception:
  * ```
- * if (!isActive) {
- *     throw CancellationException()
+ * val watchdogDispatcher = Dispatchers.IO.limitParallelism(1)
+ * fun backgroundWork() {
+ *     println("Doing bookkeeping in the background in a non-suspending manner")
+ *     Thread.sleep(100L) // Sleep 100ms
+ * }
+ * fun postBackgroundCleanup() = println("Doing something else")
+ * // Part of some non-trivial CoroutineScope-confined lifecycle
+ * launch(watchdogDispatcher) {
+ *     while (true) {
+ *         // Repeatatively do some background work that is non-suspending
+ *         backgroundWork()
+ *         ensureActive() // Bail out if the scope was cancelled
+ *         postBackgroundCleanup() // Won't be invoked if the scope was cancelled
+ *     }
  * }
  * ```
+ * This function does not do anything if there is no [Job] in the scope's [coroutineContext][CoroutineScope.coroutineContext].
  *
+ * @see CoroutineScope.isActive
  * @see CoroutineContext.ensureActive
  */
 public fun CoroutineScope.ensureActive(): Unit = coroutineContext.ensureActive()
 
-
 /**
  * Returns the current [CoroutineContext] retrieved by using [kotlin.coroutines.coroutineContext].
- * This function is an alias to avoid name clash with [CoroutineScope.coroutineContext] in a receiver position:
+ * This function is an alias to avoid name clash with [CoroutineScope.coroutineContext]:
  *
  * ```
- * launch { // this: CoroutineScope
- *     val flow = flow<Unit> {
- *         coroutineContext // Resolves into the context of outer launch, which is incorrect, see KT-38033
- *         currentCoroutineContext() // Retrieves actual context where the flow is collected
- *     }
+ * // ANTIPATTERN! DO NOT WRITE SUCH A CODE
+ * suspend fun CoroutineScope.suspendFunWithScope() {
+ *     // Name of the CoroutineScope.coroutineContext in 'this' position, same as `this.coroutineContext`
+ *     println(coroutineContext[CoroutineName])
+ *     // Name of the context that invoked this suspend function, same as `kotlin.coroutines.coroutineContext`
+ *     println(currentCoroutineContext()[CoroutineName])
+ * }
+ *
+ * withContext(CoroutineName("Caller")) {
+ *     // Will print 'CoroutineName("Receiver")' and 'CoroutineName("Caller")'
+ *     CoroutineScope("Receiver").suspendFunWithScope()
  * }
  * ```
+ *
+ * This function should always be preferred over [kotlin.coroutines.coroutineContext] property even when there is no explicit clash.
  */
 public suspend inline fun currentCoroutineContext(): CoroutineContext = coroutineContext
