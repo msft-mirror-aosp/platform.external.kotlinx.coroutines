@@ -26,7 +26,7 @@ Provided [TestDispatcher] implementations:
 Add `kotlinx-coroutines-test` to your project test dependencies:
 ```
 dependencies {
-    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
 }
 ```
 
@@ -159,7 +159,7 @@ suspend fun foo() {
 }
 ```
 
-## `launch` and `async`
+## launch and async
 
 The coroutine dispatcher used for tests is single-threaded, meaning that the child coroutines of the [runTest] block
 will run on the thread that started the test, and will never run in parallel.
@@ -323,7 +323,7 @@ fun testExampleBackgroundJob() = runTest {
 }
 ```
 
-## Eagerly entering `launch` and `async` blocks
+## Eagerly entering launch and async blocks
 
 Some tests only test functionality and don't particularly care about the precise order in which coroutines are
 dispatched.
@@ -374,7 +374,7 @@ fun testEagerlyEnteringSomeChildCoroutines() = runTest(UnconfinedTestDispatcher(
 }
 ```
 
-### Using `withTimeout` inside `runTest`
+### Using withTimeout inside runTest
 
 Timeouts are also susceptible to time control, so the code below will immediately finish.
 

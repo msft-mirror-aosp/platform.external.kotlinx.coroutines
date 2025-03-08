@@ -77,6 +77,7 @@ class JobChildStressTest : TestBase() {
     fun testChildAttachmentRacingWithLastChildCompletion() {
         // All exceptions should get aggregated here
         repeat(N_ITERATIONS) {
+            val canCloseThePool = CountDownLatch(1)
             runBlocking {
                 val rogueJob = AtomicReference<Job?>()
                 /** not using [createCompletableDeferredForTesting] because we don't need extra children. */
@@ -93,6 +94,7 @@ class JobChildStressTest : TestBase() {
                         rogueJob.set(launch(pool + deferred) {
                             throw TestException("isCancelled: ${coroutineContext.job.isCancelled}")
                         })
+                        canCloseThePool.countDown()
                     }
                 }
 
@@ -100,6 +102,12 @@ class JobChildStressTest : TestBase() {
                 val rogue = rogueJob.get()
                 if (rogue?.isActive == true) {
                     throw TestException("Rogue job $rogue with parent " + rogue.parent + " and children list: " + rogue.parent?.children?.toList())
+                } else {
+                    canCloseThePool.await()
+                    rogueJob.get().let {
+                        assertNotNull(it)
+                        assertTrue(it.isCancelled)
+                    }
                 }
             }
         }
