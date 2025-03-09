@@ -26,16 +26,21 @@ class ListAllCoroutineThrowableSubclassesTest {
         "kotlinx.coroutines.internal.DiagnosticCoroutineContextException",
         "kotlinx.coroutines.internal.ExceptionSuccessfullyProcessed",
         "kotlinx.coroutines.CoroutinesInternalError",
+        "kotlinx.coroutines.DispatchException",
         "kotlinx.coroutines.channels.ClosedSendChannelException",
         "kotlinx.coroutines.channels.ClosedReceiveChannelException",
         "kotlinx.coroutines.flow.internal.ChildCancelledException",
         "kotlinx.coroutines.flow.internal.AbortFlowException",
+        "kotlinx.coroutines.debug.junit5.CoroutinesTimeoutException",
     )
 
     @Test
     fun testThrowableSubclassesAreSerializable() {
         val classes = ClassPath.from(this.javaClass.classLoader)
-            .getTopLevelClassesRecursive("kotlinx.coroutines");
+            .getTopLevelClassesRecursive("kotlinx.coroutines")
+            // Not in the classpath: requires explicit dependency
+            .filter { it.name != "kotlinx.coroutines.debug.CoroutinesBlockHoundIntegration"
+                    && it.name != "kotlinx.coroutines.debug.junit5.CoroutinesTimeoutExtension" };
         val throwables = classes.filter { Throwable::class.java.isAssignableFrom(it.load()) }.map { it.toString() }
         for (throwable in throwables) {
             for (field in throwable.javaClass.declaredFields) {

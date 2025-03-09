@@ -4,7 +4,7 @@ package kotlinx.coroutines
 
 import kotlin.coroutines.*
 import kotlin.native.concurrent.*
-import kotlin.system.*
+import kotlin.time.*
 
 internal actual abstract class EventLoopImplPlatform : EventLoop() {
 
@@ -15,7 +15,8 @@ internal actual abstract class EventLoopImplPlatform : EventLoop() {
     }
 
     protected actual fun reschedule(now: Long, delayedTask: EventLoopImplBase.DelayedTask) {
-        DefaultExecutor.invokeOnTimeout(now, delayedTask, EmptyCoroutineContext)
+        val delayTimeMillis = delayNanosToMillis(delayedTask.nanoTime - now)
+        DefaultExecutor.invokeOnTimeout(delayTimeMillis, delayedTask, EmptyCoroutineContext)
     }
 }
 
@@ -26,5 +27,6 @@ internal class EventLoopImpl: EventLoopImplBase() {
 
 internal actual fun createEventLoop(): EventLoop = EventLoopImpl()
 
-@Suppress("DEPRECATION")
-internal actual fun nanoTime(): Long = getTimeNanos()
+private val startingPoint = TimeSource.Monotonic.markNow()
+
+internal actual fun nanoTime(): Long = (TimeSource.Monotonic.markNow() - startingPoint).inWholeNanoseconds

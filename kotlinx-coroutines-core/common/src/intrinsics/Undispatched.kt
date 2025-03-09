@@ -20,7 +20,8 @@ internal fun <R, T> (suspend (R) -> T).startCoroutineUndispatched(receiver: R, c
             startCoroutineUninterceptedOrReturn(receiver, actualCompletion)
         }
     } catch (e: Throwable) {
-        actualCompletion.resumeWithException(e)
+        val reportException = if (e is DispatchException) e.cause else e
+        actualCompletion.resumeWithException(reportException)
         return
     }
     if (value !== COROUTINE_SUSPENDED) {
@@ -78,6 +79,7 @@ private inline fun <T> ScopeCoroutine<T>.undispatchedResult(
     if (result === COROUTINE_SUSPENDED) return COROUTINE_SUSPENDED // (1)
     val state = makeCompletingOnce(result)
     if (state === COMPLETING_WAITING_CHILDREN) return COROUTINE_SUSPENDED // (2)
+    afterCompletionUndispatched()
     return if (state is CompletedExceptionally) { // (3)
         when {
             shouldThrow(state.cause) -> throw recoverStackTrace(state.cause, uCont)
