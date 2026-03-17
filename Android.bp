@@ -41,10 +41,7 @@ license {
 // java_host_for_device to expose it to Android targets.
 java_library_host {
     name: "kotlinx_coroutines-host",
-    srcs: [
-        "kotlinx-coroutines-core/jvm/src/**/*.kt",
-        "kotlinx-coroutines-core/jdk8/src/**/*.kt",
-    ],
+    srcs: ["kotlinx-coroutines-core/jvm/src/**/*.kt"],
     common_srcs: [
         "kotlinx-coroutines-core/common/src/**/*.kt",
         "kotlinx-coroutines-core/concurrent/src/**/*.kt",
